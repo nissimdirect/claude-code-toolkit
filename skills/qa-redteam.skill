@@ -1,0 +1,150 @@
+---
+user-invocable: true
+---
+
+# QA & Red-Team Skill (v2)
+# Usage: /qa-redteam [target] | /qa-redteam quick [target] | /qa-redteam deep [target]
+# Pre-mortem for code, ideas, strategies, and infrastructure
+
+## Purpose
+Find what could go wrong before it does. Frame findings by USER IMPACT.
+Use plain language (beginner context). Every finding needs a concrete fix action.
+
+## Step 0: Classify Target
+
+**Risk Tier (determines depth):**
+- Tier 1 (Deep): Handles money, credentials, personal data, or distributed publicly
+- Tier 2 (Standard): Public-facing, reputation at stake (default)
+- Tier 3 (Quick): Internal tools, local scripts, experiments
+
+**Target Type:** CODE | IDEA | INFRA (pick one, determines which steps to run)
+
+## Step 1: Threat Model
+
+Answer before touching checklists:
+- Who might attack/misuse this? What do they want?
+- What is the WORST outcome for the end user?
+  - Audio plugins: DAW crash during recording, lost session, corrupted project
+  - Websites: Leaked info, defaced portfolio, SEO spam injection
+  - Ideas: Wasted months, missed market window, opportunity cost
+
+## Step 2: First Principles
+
+- What assumptions are we making? (List them)
+- What could be simpler?
+- Does this serve the strategic goal? (Creative output that magnifies life)
+
+## Step 3: Security Analysis (CODE targets)
+
+### 3a. Code Security
+- **Input validation:** What breaks with unexpected input? (Empty, huge, negative, special chars)
+- **Memory safety (C++):** Buffer overflows (writing past array end), use-after-free
+- **Auth/access:** Paths that skip permission checks?
+- **Injection:** Can user input become executable? (SQL, XSS, command, template)
+- **Secrets:** API keys, passwords, tokens in code? (Grep for them)
+- **Error handling:** Do failures leak system paths or config?
+- **Resource limits:** Can someone cause runaway CPU/memory/disk?
+- **Concurrency:** If two operations happen simultaneously, does it still work correctly?
+
+### 3b. Supply Chain
+- Dependencies pinned to exact versions? (Not floating ranges)
+- Names correct? (Typosquatting: `juuce` vs `juce`)
+- Lock file committed? Known vulnerabilities?
+- CMake FetchContent: URLs and hashes verified?
+
+### 3c. Build & Distribution
+- Build reproducible? Artifacts signed/notarized?
+- CI/CD secrets scoped? (Not exposed in fork PRs)
+- Build logs leak secrets?
+
+### 3d. Platform Checklists (pick relevant)
+
+**macOS / Audio Plugins:**
+- [ ] Gatekeeper / notarization
+- [ ] AU validation (`auval`)
+- [ ] Buffer size validation (do not assume host buffer size)
+- [ ] Sample rate change handling
+- [ ] Real-time thread safety (no allocs/locks in audio callback)
+- [ ] CPU tested under load
+
+**Websites:**
+- [ ] HTTPS + HSTS
+- [ ] CSP headers
+- [ ] No secrets in client JS
+- [ ] CSRF protection on forms
+
+## Step 4: Strategic Soundness (IDEA targets)
+
+- **Alignment:** Serves core goal? (1-10)
+- **Opportunity cost:** What are we NOT doing?
+- **Reversibility:** Can we undo cheaply if wrong?
+- **Timing:** Right moment? What changes if we wait 3 months?
+- **Competition:** Who else does this? Our unique angle?
+- **Sustainability:** Maintainable with current resources?
+- **Evidence:** Data or gut feeling? (Name it honestly)
+
+## Step 5: Prioritize with Tigers (Shreyas Doshi framework)
+
+- **Real Tiger:** Will cause real damage. Fix before shipping.
+- **Hidden Tiger:** Not obvious but will bite later. Plan a fix.
+- **Paper Tiger:** Looks scary, low risk. Document and move on.
+
+Each Real Tiger must include: user impact (plain language), specific fix, effort (Quick <30min | Medium hours | Heavy days).
+
+## Output Format
+
+**Quick Scan (Tier 3):**
+```
+## Quick Scan: [Target]
+Real Tigers: [count] | Next Action: [ONE thing to fix first]
+- [Tiger type] [finding] -- Fix: [action]
+```
+
+**Standard Review (Tier 2):**
+```
+## Red Team: [Target]
+Risk Tier: [N] | Type: [CODE/IDEA/INFRA]
+Threat: [1 sentence: who attacks, what they want]
+
+### Real Tigers (fix before shipping)
+1. [Finding] -- Impact: [user consequence] | Fix: [action] | Effort: [level]
+
+### Hidden Tigers (plan a fix)
+1. [Finding] -- Risk: [future consequence] | Fix: [action] | Effort: [level]
+
+### Paper Tigers (acceptable risks)
+1. [Finding] -- Acceptable because: [reason]
+
+### Strengths: [what is solid]
+
+### Checklist: [pass/fail items from Step 3]
+
+> NEXT ACTION: [Single most important thing to do right now]
+```
+
+**Deep Review (Tier 1):** Standard + full threat model, supply chain audit, remediation timeline, follow-up date.
+
+## When to Invoke
+
+**Build the habit (triggers):**
+- Before committing 50+ changed lines
+- Before publishing anything (release, deploy, public repo)
+- Before strategies taking >1 week
+- After adding any new dependency
+
+## What NOT to Do
+- No jargon without explanation
+- No 20-item dump with no priorities
+- No "perfect" fixes for Paper Tigers
+- No style/formatting nitpicks (that is a linter's job)
+- Report must not be longer than the code reviewed
+- NEVER skip the "Next Action" line
+
+## Glossary
+- **Buffer overflow:** Writing past allocated memory. Crashes or security exploit.
+- **Race condition:** Simultaneous operations producing wrong results.
+- **Injection:** User input executed as code.
+- **Supply chain attack:** Compromised dependency affects all users.
+- **Notarization:** Apple's verification that macOS software is safe.
+- **CSRF:** Forged request impersonating an authenticated user.
+- **Least privilege:** Minimum permissions needed to function.

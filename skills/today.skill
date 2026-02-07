@@ -1,0 +1,65 @@
+---
+user-invocable: true
+---
+
+# Today - Daily Task Generator
+# Usage: /today
+# Pattern: Teresa Torres (ChatPRD "How I AI")
+
+## Purpose
+Single command to start any session. Replaces manual file reads with a focused daily plan.
+
+## Instructions
+
+### Step 1: Read Current State
+Read these files (targeted, not full):
+1. `~/Documents/Obsidian/ACTIVE-TASKS.md` - What's in progress
+2. `~/Documents/Obsidian/SHORT-TERM-TASKS.md` - Near-term backlog
+3. `~/.claude/projects/-Users-nissimagent/memory/MEMORY.md` - Recent learnings (first 50 lines)
+
+### Step 2: Check Recurring Tasks
+Read `~/Documents/Obsidian/RECURRING-TASKS.md` tracking table.
+Flag anything overdue (compare dates to today).
+
+### Step 3: Check Resource Budget
+Run: `python3 ~/Development/tools/track_resources.py`
+Read the generated `~/Documents/Obsidian/RESOURCE-TRACKER.md` (first 30 lines only).
+
+### Step 4: Generate Daily Plan
+
+Output this format:
+
+```
+# Today: [DATE]
+
+## Budget Status
+- Month-to-date: $X.XX / $50.00
+- Carbon: X.Xg / 5,000g
+
+## Overdue Items
+- [Any recurring tasks past due date]
+
+## Active Work
+- [Current in-progress items from ACTIVE-TASKS.md]
+
+## Today's Focus (Pick ONE as your Daily Highlight)
+1. [Highest-impact item from active work]
+2. [Next most important]
+3. [Third option]
+
+## Quick Wins Available (< 30 min each)
+- [Small tasks that could be knocked out]
+
+## Blocked Items
+- [Items waiting on something]
+```
+
+### Step 5: Save (Optional)
+If user says "save", write to: `~/Documents/Obsidian/daily/[DATE].md`
+
+## Rules
+- Keep output SHORT (< 30 lines)
+- Don't read files you don't need
+- Focus on SHIPPING, not planning (per LNO Framework)
+- Highlight L-tasks (Leverage), flag O-tasks (Overhead)
+- Always ask: "What's your highlight for today?"

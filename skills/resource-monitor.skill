@@ -1,0 +1,120 @@
+---
+user-invocable: true
+---
+
+# Resource Monitor Skill (v2)
+# Usage: /resource-monitor [report-type]
+# Tracks token usage, costs, and environmental impact
+# Integrated with stop hooks for continuous tracking
+
+## Purpose
+Monitor resource consumption and optimize for:
+- Financial sustainability (<$50/month burn rate)
+- Token efficiency (value per token)
+- Model selection (use cheapest model that works)
+- Environmental responsibility (carbon footprint)
+
+## Data Source
+
+The stop hook (`session_tracker.py`) automatically tracks every response:
+- Response count per session
+- Session duration
+- Daily aggregate response count
+- Alerts at 50-response and 200-response/day thresholds
+
+**Read the live data:**
+```bash
+cat ~/.claude/.locks/.resource-tracker.json
+```
+
+## Report Types
+
+### `/resource-monitor` or `/resource-monitor current`
+Show current session metrics:
+1. Read `~/.claude/.locks/.resource-tracker.json`
+2. Find current session by matching PID
+3. Report: response count, duration, estimated tokens/cost
+4. Compare to daily budget ($1.67/day = $50/month)
+
+### `/resource-monitor daily`
+Daily summary across all sessions:
+1. Read resource tracker JSON
+2. Sum today's responses across all sessions
+3. Estimate total tokens: responses × ~3,000 tokens avg
+4. Calculate estimated cost by model
+5. Show burn rate projection
+
+### `/resource-monitor optimize`
+Active optimization recommendations:
+1. Read resource tracker for patterns
+2. Identify high-response sessions (potential inefficiency)
+3. Recommend model downgrades for simple tasks:
+   - File reads, formatting, simple edits → Haiku (10x cheaper)
+   - Standard coding, analysis → Sonnet (balanced)
+   - Architecture, complex debugging → Opus (premium)
+4. Recommend `/clear` if context is bloated
+5. Check if any skills could be replaced with Code > Tokens tools
+
+## Token Estimation
+
+Since Claude Code doesn't expose exact token counts to hooks, we estimate:
+- Average response: ~3,000 tokens (input + output)
+- Opus: ~$0.27/response ($15/M in + $75/M out)
+- Sonnet: ~$0.054/response
+- Haiku: ~$0.005/response
+
+## Output Format
+
+```
+# Resource Monitor — [Report Type]
+
+## Current Session
+- Responses: 42
+- Duration: 1h 23m
+- Est. tokens: ~126K
+- Est. cost: ~$11.34 (Opus)
+- Budget used: ~68% of daily ($1.67)
+
+## Today (All Sessions)
+- Total responses: 67
+- Sessions: 2
+- Est. cost: ~$18.09
+- Burn rate: $543/month (OVER BUDGET)
+
+## Optimization Opportunities
+⚠️ High response count — consider:
+  - /clear between unrelated tasks
+  - Use Haiku for simple file operations
+  - Batch related requests into single messages
+
+✅ Session tracker hook: active, no errors
+✅ Resource tracking: logging every response
+```
+
+## Alerts (Automatic via Hook)
+
+The stop hook posts these to shared buffer:
+- **50 responses**: "Consider /clear if context is bloated"
+- **200 responses/day**: "High burn rate — review model selection"
+
+## Budget Targets
+
+| Metric | Target | Alert |
+|--------|--------|-------|
+| Daily cost | <$1.67 | >$5/day |
+| Monthly cost | <$50 | >$100/month projected |
+| Responses/session | <100 | >50 |
+| Responses/day | <150 | >200 |
+
+## Integration
+
+This skill reads data from the stop hook. The hook runs automatically — no manual tracking needed. For the most accurate picture, check the resource tracker JSON directly:
+
+```bash
+python3 -c "
+import json
+from pathlib import Path
+data = json.loads((Path.home() / '.claude/.locks/.resource-tracker.json').read_text())
+print(json.dumps(data, indent=2))
+"
+```

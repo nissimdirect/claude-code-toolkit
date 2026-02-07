@@ -1,0 +1,315 @@
+---
+user-invocable: true
+---
+
+# Refresh - Training Data Update Automation
+# Usage: /refresh [check|update|schedule]
+# Weekly check for new content from all advisor sources
+
+## Purpose
+Keep advisor training data current without manual checks.
+Detect new articles, episodes, posts from all sources.
+
+## Data Sources Registry
+
+Track all advisor training sources:
+```
+~/.claude/data-sources.json
+```
+
+Format:
+```json
+{
+  "sources": [
+    {
+      "name": "lenny-podcast",
+      "type": "github-repo",
+      "url": "https://github.com/ChatPRD/lennys-podcast-transcripts",
+      "local_path": "~/Development/lennys-podcast-transcripts",
+      "last_checked": "2026-02-06",
+      "episode_count": 303,
+      "last_updated": "2026-01-14",
+      "update_method": "git-pull",
+      "advisor": "ask-lenny"
+    },
+    {
+      "name": "chatprd-blog",
+      "type": "website-blog",
+      "url": "https://chatprd.ai/blog",
+      "local_path": "~/Development/chatprd-blog",
+      "last_checked": "2026-02-06",
+      "article_count": 119,
+      "total_available": 119,
+      "update_method": "scrape-new",
+      "advisor": "ask-chatprd"
+    },
+    {
+      "name": "music-marketing-trends",
+      "type": "newsletter-beehiiv",
+      "url": "https://musicmarketingtrends.beehiiv.com",
+      "local_path": "~/Development/jesse-cannon",
+      "last_checked": "2026-02-06",
+      "article_count": 148,
+      "update_method": "scrape-new",
+      "advisor": "ask-jesse"
+    },
+    {
+      "name": "water-and-music",
+      "type": "website",
+      "url": "https://waterandmusic.com",
+      "local_path": "~/Development/cherie-hu",
+      "last_checked": "2026-02-06",
+      "article_count": 1710,
+      "update_method": "scrape-new",
+      "advisor": "ask-cherie"
+    }
+  ]
+}
+```
+
+## Commands
+
+### Check for Updates
+```
+/refresh check
+→ Checks all sources for new content
+→ Reports what's new
+→ Does NOT download
+```
+
+### Update All Sources
+```
+/refresh update
+→ Downloads new content from all sources
+→ Updates local archives
+→ Updates advisors
+→ Reports changes
+```
+
+### Update Specific Source
+```
+/refresh update lenny-podcast
+→ Only updates that source
+```
+
+### Schedule Weekly Check
+```
+/refresh schedule
+→ Sets up cron job or automation
+→ Runs every Sunday at 2am
+→ Logs results
+→ Notifies if significant updates
+```
+
+## Update Methods by Source Type
+
+### GitHub Repos (Lenny Transcripts)
+```bash
+cd ~/Development/lennys-podcast-transcripts
+git fetch origin
+git log HEAD..origin/main --oneline
+# If new commits:
+git pull origin main
+# Report: "5 new episodes added"
+```
+
+### Website Blogs (ChatPRD, Jesse Cannon)
+```bash
+# 1. Fetch current article list
+/forge --list-only https://chatprd.ai/blog
+
+# 2. Compare with local INDEX.md
+diff <(cat INDEX.md | grep "^- ") <(new article list)
+
+# 3. If differences, scrape new articles only
+/forge --new-only https://chatprd.ai/blog chatprd
+
+# 4. Update INDEX.md and metadata.json
+```
+
+### Newsletter Archives (Beehiiv, Substack)
+```bash
+# 1. Fetch archive page
+# 2. Extract publication dates
+# 3. Compare with last_updated date
+# 4. Scrape only articles newer than last_updated
+# 5. Update metadata
+```
+
+## Automation Setup
+
+### macOS (launchd)
+Create: `~/Library/LaunchAgents/com.claude.refresh.plist`
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
+  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.claude.refresh</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/claude</string>
+        <string>-p</string>
+        <string>/refresh update</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>0</integer>
+        <key>Hour</key>
+        <integer>2</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+</dict>
+</plist>
+```
+
+### Alternative: Cron
+```bash
+# Add to crontab
+0 2 * * 0 /usr/local/bin/claude -p "/refresh update" >> ~/refresh.log 2>&1
+```
+
+## Report Format
+
+After update check:
+```
+# Training Data Update Report
+Date: 2026-02-06
+
+## Sources Checked: 4
+
+### Lenny's Podcast ✅ Updated
+- Previous: 269 episodes
+- Current: 274 episodes
+- New: 5 episodes added
+- Action: Pulled latest from GitHub
+
+### ChatPRD Blog ⚠️ Updates Available
+- Current: 4 articles local
+- Available: 119 articles online
+- Recommendation: Run full scrape
+- Command: /forge https://chatprd.ai/blog chatprd --full
+
+### Music Marketing Trends 🆕 New Source
+- Status: Not yet scraped
+- Recommendation: Initial scrape
+- Command: /forge https://musicmarketingtrends.beehiiv.com jesse-cannon
+
+### Water & Music 🆕 New Source
+- Status: Not yet scraped
+- Recommendation: Initial scrape
+- Command: /forge https://waterandmusic.com water-music
+
+## Summary
+- 5 new Lenny episodes
+- 115 ChatPRD articles pending
+- 2 new sources to initialize
+- Total new content: ~120+ articles/episodes
+
+## Recommended Actions
+1. /forge chatprd --full (download remaining 115)
+2. /forge jesse-cannon (initialize)
+3. /forge water-music (initialize)
+```
+
+## Notification System
+
+### Log File
+All updates logged to: `~/.claude/refresh.log`
+
+### Desktop Notification (optional)
+```bash
+osascript -e 'display notification "5 new Lenny episodes available" with title "Claude Training Data Update"'
+```
+
+### Summary Email (optional)
+Send weekly digest to user email with update summary.
+
+## Smart Update Strategy
+
+**Full scrape needed when:**
+- First time setup
+- >50% of content missing
+- Source structure changed
+
+**Incremental update when:**
+- <10 new articles
+- Source structure stable
+- Recent last_checked date
+
+**Skip when:**
+- Last checked <7 days ago (unless forced)
+- No changes detected in source
+- Local data is current
+
+## Integration with Advisors
+
+After updating data:
+1. Update advisor skill metadata
+2. Regenerate INDEX.md files
+3. Invalidate any cached summaries
+4. Log update in advisor's CHANGELOG.md
+
+## Error Handling
+
+**Source unavailable:**
+- Log error
+- Try again in 1 hour
+- After 3 failures, notify user
+
+**Scraping blocked:**
+- Respect 429 rate limits
+- Try with longer delays
+- Fall back to manual notification
+
+**Parsing changes:**
+- If extraction fails, flag for review
+- Save raw content
+- Notify user of format change
+
+## Cost Optimization
+
+**Token-aware updates:**
+- Estimate token cost before full scrape
+- Warn if >10K tokens required
+- Suggest incremental approach
+- Respect monthly budget
+
+**Storage-aware:**
+- Check disk space before large downloads
+- Warn if >1GB new data
+- Compress old archives
+
+## Testing
+
+```
+/refresh check --dry-run
+→ Simulates check without changing anything
+→ Shows what would be updated
+
+/refresh update --test lenny-podcast
+→ Updates one source
+→ Validates process
+→ Confirms working
+```
+
+## Manual Override
+
+```
+/refresh forget lenny-podcast
+→ Removes from registry (keeps data)
+
+/refresh add https://newblog.com new-advisor
+→ Adds new source to track
+
+/refresh force-update chatprd
+→ Ignores last_checked, forces update
+```
+
+---
+
+**Run weekly to keep all advisors current without manual work.**

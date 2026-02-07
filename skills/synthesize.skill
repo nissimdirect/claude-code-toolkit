@@ -1,0 +1,331 @@
+---
+user-invocable: true
+---
+
+# Synthesize - Quantum Knowledge Combination
+# Usage: /synthesize [question or topic]
+# Combines multiple knowledge sources, skills, and contexts WITHOUT token burn
+
+## Purpose
+Cross-reference ALL available knowledge to answer complex questions.
+- Advisors (Lenny, Jesse, Cherie, ChatPRD, Indie Hackers)
+- Skills (CTO, Audio Production, Competitive Analysis, etc.)
+- Codebases (local projects, scraped repos)
+- Documentation (Obsidian notes, project files)
+- Context (conversation history, user goals)
+
+Like quantum mechanics: shake up all local knowledge, collapse into coherent synthesis.
+
+**NOT:** Query each source separately (10x tokens)
+**YES:** Read local files, cross-reference in code, synthesize once (90% savings)
+
+## Architecture (Smart)
+
+### Phase 1: Local Data Gathering (Zero Tokens)
+```bash
+# Advisors
+~/Development/lennys-podcast-transcripts/episodes/
+~/Development/chatprd-blog/articles/
+~/Development/jesse-cannon/articles/
+~/Development/cherie-hu/articles/
+~/Development/indie-hackers/ (Pieter/Justin/Daniel combined)
+
+# User's projects & codebases
+~/Development/AudioPlugins/
+~/Development/tools/
+~/Development/VideoGlitch/
+
+# Documentation & context
+~/Documents/Obsidian/
+~/.claude/skills/
+~/.claude/CLAUDE.md
+
+# Audio plugin infrastructure
+~/Development/AudioPlugins/
+```
+
+### Phase 2: Pattern Matching (Minimal Tokens)
+Use Grep/Read tools to find relevant content:
+- Search for keywords across all sources
+- Identify overlapping themes
+- Find contradictions
+- Spot unique insights
+
+### Phase 3: Synthesis (One-Time LLM)
+Combine findings into coherent answer:
+- Cross-reference perspectives
+- Identify consensus
+- Highlight disagreements
+- Provide multi-dimensional answer
+
+## Token Economics
+
+**Traditional Approach (BAD):**
+```
+/ask-lenny [question] = 5K tokens
+/ask-chatprd [question] = 5K tokens
+/ask-jesse [question] = 5K tokens
+/ask-cherie [question] = 5K tokens
+Total: 20K tokens
+```
+
+**Synthesis Approach (GOOD):**
+```
+Grep across all sources = 0 tokens (code)
+Read relevant files = 1K tokens (targeted)
+Synthesize findings = 2K tokens (one LLM call)
+Total: 3K tokens (85% savings)
+```
+
+## How It Works
+
+### Step 1: Analyze Question
+Break down what's being asked:
+- Topic/domain
+- Keywords to search
+- Which advisors likely have insights
+- What type of answer (strategy, tactics, trends, data)
+
+### Step 2: Search All Sources
+```bash
+# Example: "How do I price my first audio plugin?"
+Grep pattern="pricing" path="~/Development/lennys-podcast-transcripts/"
+Grep pattern="plugin" path="~/Development/jesse-cannon/"
+Grep pattern="monetization" path="~/Development/chatprd-blog/"
+```
+
+### Step 3: Read Relevant Content
+Use Read tool on matched files:
+- Extract key insights
+- Note source (Lenny vs Jesse vs ChatPRD)
+- Identify patterns
+
+### Step 4: Cross-Reference
+**In code, not in LLM:**
+- Compare perspectives
+- Find overlaps (consensus)
+- Find gaps (disagreements)
+- Identify unique angles
+
+### Step 5: Synthesize Answer
+**Single LLM call** combining:
+- What Lenny says (business strategy)
+- What Jesse says (music marketing)
+- What ChatPRD says (AI workflows)
+- What Cherie says (music industry trends)
+- Your own reasoning (CTO perspective)
+
+## Output Format
+
+```markdown
+# Synthesis: [Question]
+
+## Executive Summary
+[1-2 sentence answer]
+
+## Multi-Perspective Analysis
+
+### From Lenny (Business Strategy)
+- Key insight 1
+- Key insight 2
+Source: [Episode name]
+
+### From Jesse Cannon (Music Marketing)
+- Key insight 1
+- Key insight 2
+Source: [Article name]
+
+### From ChatPRD (AI Workflows)
+- Key insight 1
+- Key insight 2
+Source: [Article name]
+
+### From Cherie Hu (Music Industry)
+- Key insight 1
+- Key insight 2
+Source: [Article name]
+
+## Cross-Referenced Insights
+
+### ✅ Consensus (What Everyone Agrees On)
+- [Agreement 1]
+- [Agreement 2]
+
+### ⚠️ Contradictions (Different Perspectives)
+- **Lenny says:** [X]
+- **Jesse says:** [Y]
+- **Resolution:** [How to reconcile]
+
+### 🔥 Unique Insights (One Source Only)
+- [Unique angle from Lenny]
+- [Unique angle from Jesse]
+- [Unique angle from ChatPRD]
+
+## Strategic Recommendation
+
+**Based on synthesis:**
+[Actionable recommendation]
+
+**Why this works:**
+1. [Reason from Lenny]
+2. [Reason from Jesse]
+3. [Reason from your context]
+
+**Next Steps:**
+1. [Concrete action]
+2. [Validation approach]
+3. [Follow-up research if needed]
+
+## Token Savings
+**Traditional:** 20K+ tokens (query each advisor)
+**Synthesis:** ~3K tokens (90% savings)
+**ROI:** ♾️ (reusable pattern)
+```
+
+## Example Queries
+
+### Broad Strategy Questions
+```
+/synthesize How should I monetize my creative work?
+
+→ Lenny: Business models, pricing strategy
+→ Jesse: Music marketing monetization
+→ ChatPRD: AI-enhanced workflows
+→ Indie Hackers: Solo product strategy
+→ Cherie: Music industry trends
+→ User's context: Audio plugins + music + visual art
+→ Synthesis: Multi-stream indie hacker approach
+```
+
+### Technical + Business Combination
+```
+/synthesize Should I use Max for Live or build native plugins?
+
+→ CTO: Technical feasibility & architecture
+→ Competitive Analysis: Market positioning
+→ Audio Production: Industry standards
+→ Indie Hackers: Ship fast vs build right
+→ Local codebases: What others are doing
+→ Synthesis: Strategic recommendation with tradeoffs
+```
+
+### Cross-Domain Knowledge
+```
+/synthesize How do successful indie plugin developers market?
+
+→ Jesse: Marketing tactics
+→ Indie Hackers: Product-led growth
+→ Cherie: Music tech trends
+→ Scraped plugin codebases: What they build
+→ Scraped blogs/socials: How they market
+→ Synthesis: Complete playbook
+```
+
+### Tactical Implementation
+```
+/synthesize Best way to promote my audio plugin?
+
+→ Jesse: Music marketing tactics
+→ ChatPRD: AI content creation
+→ Lenny: Growth strategies
+→ Synthesis: Step-by-step plan
+```
+
+### Industry Trends
+```
+/synthesize What's the future of music distribution?
+
+→ Cherie: Industry analysis
+→ Jesse: Marketing trends
+→ Lenny: Business model evolution
+→ Synthesis: Trend forecast + positioning
+```
+
+### Technical Decisions
+```
+/synthesize Should I build custom tools or use existing platforms?
+
+→ CTO: Technical feasibility
+→ Lenny: Make vs buy decision framework
+→ ChatPRD: AI automation possibilities
+→ Synthesis: Decision matrix
+```
+
+## Implementation Details
+
+### Tools to Use
+1. **Grep** - Search all advisor content
+2. **Read** - Extract relevant passages
+3. **Code** - Cross-reference locally
+4. **LLM** - Final synthesis only
+
+### Workflow
+```
+Input: User question
+↓
+Grep all sources for keywords
+↓
+Read matched files (targeted)
+↓
+Extract insights (list)
+↓
+Cross-reference (code logic)
+↓
+Synthesize (one LLM call)
+↓
+Output: Multi-dimensional answer
+```
+
+### Quality Checks
+- Are all relevant advisors consulted?
+- Did we find contradictions?
+- Is the synthesis actionable?
+- Did we save 85%+ tokens?
+
+## Integration with Other Skills
+
+**Combines with:**
+- `/cto` - Add technical feasibility layer
+- `/qa-redteam` - Security audit recommendations
+- `/competitive-analysis` - Add market context
+- `/audio-production` - Add domain expertise
+
+**Enhanced queries:**
+```
+/synthesize + /cto Should I build my own video processing pipeline?
+→ Business (Lenny) + Technical (CTO) + Creative (Jesse)
+
+/synthesize + /competitive-analysis Best audio plugin to build?
+→ Strategy (Lenny) + Market (Competitive) + Production (Audio)
+```
+
+## Guardrails
+
+### DON'T:
+- Query each advisor separately (token waste)
+- Use LLM for pattern matching (use Grep)
+- Synthesize without cross-referencing
+- Ignore contradictions
+
+### DO:
+- Search locally first
+- Read targeted content
+- Cross-reference in code
+- Synthesize once
+- Highlight different perspectives
+- Provide actionable recommendations
+
+## Success Metrics
+
+**Token Efficiency:** <5K tokens per synthesis
+**Quality:** Multi-perspective, actionable
+**Speed:** <60 seconds total
+**Reusability:** Pattern applies to all questions
+
+---
+
+**Role:** Knowledge synthesizer
+**Goal:** Multi-dimensional answers with minimal tokens
+**Method:** Local search → Cross-reference → Synthesize once
+
+**Principle:** Quantum-like combination - shake up local knowledge, collapse into coherent answer

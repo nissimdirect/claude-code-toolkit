@@ -1,0 +1,116 @@
+---
+user-invocable: true
+---
+
+# Orchestrator — Multi-Skill Conductor
+# Usage: /orchestrate [goal] or /orchestrate (auto-assess)
+
+## Purpose
+Assess current context and spin up the right combination of skills.
+Works across sessions via shared buffer. Compounds system capabilities.
+
+## Step 1: Assess Context
+
+Read (targeted, not all):
+1. `~/.claude/shared-buffer.md` — what's happening across sessions
+2. `~/Documents/Obsidian/ACTIVE-TASKS.md` — what should we be doing
+3. `~/.claude/projects/-Users-nissimagent/memory/user-blockers.md` — what's stuck
+4. `~/.claude/.locks/` — who else is active
+
+## Step 2: Discover Available Skills
+
+Dynamically list all skills:
+```bash
+ls ~/.claude/skills/*.skill
+```
+
+Categorize by type:
+| Category | Pattern | Purpose |
+|----------|---------|---------|
+| Advisors | `ask-*.skill` | Consult knowledge bases |
+| Builders | `build-*, new-*, glitch-*` | Create artifacts |
+| Quality | `qa-*, cto.*` | Audit and test |
+| Meta | `self-improve, coach, session-close` | System health |
+| Research | `research-*, competitive-*` | Gather intelligence |
+| Orchestration | `orchestrator, synthesize, propagate` | Coordinate |
+
+## Step 3: Recommend Skill Combination
+
+Based on current context, recommend which skills to use:
+
+### Decision Framework
+
+**If user is stuck/procrastinating:**
+→ `/coach` first, then the relevant builder skill
+
+**If starting a new project:**
+→ `/cto` for feasibility → relevant `ask-*` advisors → builder skill
+
+**If maintaining/auditing:**
+→ `/self-improve` for deep analysis → `/qa-redteam` for security → `/propagate` for consistency
+
+**If shipping something:**
+→ Builder skill → `/qa-redteam` → deploy
+
+**If multiple sessions active:**
+→ Check shared buffer, assign domains, avoid conflicts
+
+### Multi-Session Orchestration
+
+When multiple sessions are active:
+1. Read shared buffer for current session assignments
+2. Identify which domains are unclaimed
+3. Suggest: "Session A should do [X], this session should do [Y]"
+4. Post assignment to shared buffer
+
+## Step 4: Execute or Delegate
+
+**Option A — Sequential:** Run skills one after another in this session
+```
+/cto → assess feasibility
+/ask-lenny → product perspective
+/build → implement
+/qa-redteam → audit
+```
+
+**Option B — Parallel:** Launch advisor agents in parallel (Task tool)
+```
+Launch ask-lenny, ask-jesse, ask-chatprd in parallel
+Synthesize results
+Execute based on consensus
+```
+
+**Option C — Cross-Session:** Post task to shared buffer for another session
+```
+Post: "REQUEST: Session B — build the Astro scaffold while I research fonts"
+```
+
+## Step 5: Report
+
+```markdown
+# Orchestration Plan
+
+## Context
+- Active sessions: [N]
+- Current blockers: [list]
+- Priority: [from ACTIVE-TASKS]
+
+## Recommended Skills
+1. [skill] — [why]
+2. [skill] — [why]
+3. [skill] — [why]
+
+## Execution
+- [Sequential / Parallel / Cross-Session]
+- [Specific plan]
+
+## Cross-Session Assignment (if applicable)
+- This session: [domain]
+- Other sessions: [domains]
+```
+
+## Anti-Patterns
+- Don't orchestrate when ONE skill clearly fits — just use it
+- Don't spin up 5 advisors for a simple question
+- Don't create work to fill sessions — if nothing needs doing, say so
+- Don't override user's stated intent with "better" orchestration

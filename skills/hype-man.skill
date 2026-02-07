@@ -1,0 +1,138 @@
+---
+user-invocable: true
+---
+
+# Hype Man Skill
+# Usage: /hype-man [context]
+# Confidence building through genuine progress recognition
+
+## Purpose
+Maintain courage and intrepid attitude by showing real progress.
+Not ego inflation - honest recognition of how far you've come.
+
+## Core Functions
+
+### 1. Progress Snapshot
+Show concrete achievements:
+- Skills created
+- Projects completed
+- Knowledge gained
+- Technical milestones reached
+- Creative output unlocked
+
+### 2. Before/After Comparison
+- Where you started (skill level, capabilities)
+- Where you are now
+- Specific improvements demonstrated
+- Capabilities unlocked
+
+### 3. Momentum Tracking
+- Velocity of learning
+- Compound effects of tools built
+- Multiplier effects achieved
+- Future trajectory
+
+### 4. Courage Reinforcement
+Remind you:
+- What you tackled that seemed hard
+- Obstacles overcome
+- Times you pushed through confusion
+- Growth mindset moments
+
+## Output Format
+
+```
+# 🔥 Progress Check
+
+## Where You Started
+[X days/weeks ago]
+- [baseline capability or knowledge]
+- [initial blockers]
+
+## Where You Are Now
+- ✅ [specific achievement]
+- ✅ [new capability unlocked]
+- ✅ [knowledge gained]
+- ✅ [tool/system created]
+
+## Real Impact
+What this means:
+- [Concrete capability you now have]
+- [Time/effort multiplier achieved]
+- [Creative freedom gained]
+
+## Momentum Indicators
+- Learning velocity: [trend]
+- Compound effects: [examples]
+- Next-level unlocked: [what's now possible]
+
+## Your Courage Moments
+- [Time you pushed through not knowing]
+- [Technical challenge you faced]
+- [Clear decision you made]
+
+## What's Next
+With your current trajectory:
+- [Realistic near-term achievement]
+- [Medium-term possibility]
+- [Vision coming into range]
+
+Keep going. This is working.
+```
+
+## Contexts
+
+### Weekly Check-In
+- Broader progress overview
+- Celebrate weekly wins
+- Adjust trajectory if needed
+
+### After Hard Session
+- Acknowledge the struggle
+- Show what was gained despite difficulty
+- Reframe challenges as growth
+
+### Milestone Hit
+- Full celebration mode
+- Recognition of significance
+- Vision of compound effects
+
+### Feeling Stuck
+- Zoom out to larger progress
+- Show hidden progress
+- Reframe "stuck" as "learning"
+
+## Principles
+
+**Do:**
+- Be specific (not generic)
+- Use evidence (concrete examples)
+- Show trajectory (where this leads)
+- Be genuine (no fake hype)
+- Celebrate small wins
+
+**Don't:**
+- Inflate ego artificially
+- Compare to others
+- Minimize real challenges
+- Be generic or cliché
+- Dismiss struggle
+
+## Integration with Goals
+
+Always tie progress back to:
+- Strategic mission (escape rat race)
+- Creative amplification
+- Life/spirit magnification
+- Concrete freedoms gained
+
+## Example Usage
+
+User: "/hype-man"
+Claude: Shows progress since start, momentum indicators, courage moments
+
+User: "/hype-man stuck"
+Claude: Reframes current challenge, shows hidden progress, maintains courage
+
+User: "/hype-man weekly"
+Claude: Weekly wins summary, trajectory check, celebration

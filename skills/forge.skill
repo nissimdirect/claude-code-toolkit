@@ -1,0 +1,274 @@
+---
+user-invocable: true
+---
+
+# Forge - Knowledge Synthesis Engine
+# Usage: /forge [target-url or social-profile] [output-name]
+# Mass web scraping for advisor training data
+
+## Purpose
+Automated knowledge extraction from websites, blogs, and social media.
+Transforms scattered content into structured training data.
+
+## Capabilities
+
+### Web Scraping
+- Full website crawling
+- Blog/newsletter archives
+- Documentation sites
+- Social media profiles (when accessible)
+- Pagination handling
+- Rate limiting (respectful crawling)
+
+### Content Processing
+- Extract main content (remove nav/ads/footers)
+- Preserve formatting (markdown)
+- Extract metadata (dates, authors, topics)
+- Deduplication
+- Quality filtering
+
+### Output Format
+Structured for advisor training:
+```
+advisor-name/
+├── INDEX.md (catalog with metadata)
+├── articles/
+│   ├── article-001.md
+│   ├── article-002.md
+│   └── ...
+└── metadata.json (searchable index)
+```
+
+## Usage Patterns
+
+### Single URL
+```
+/forge https://example.com/blog advisor-name
+→ Scrapes entire blog, saves to ~/Development/advisor-name/
+```
+
+### List of URLs
+```
+/forge urls.txt music-marketing
+→ Reads file with URLs, scrapes all, organizes
+```
+
+### Newsletter Archives (Beehiiv, Substack, etc.)
+```
+/forge https://newsletter.beehiiv.com jesse-cannon
+→ Auto-detects newsletter platform
+→ Finds archive/all-posts link
+→ Extracts all articles
+```
+
+### Social Media (Twitter/X, LinkedIn)
+```
+/forge @username twitter-archive
+→ Uses available APIs or public pages
+→ Extracts posts/threads
+→ Preserves context
+```
+
+## Implementation Strategy
+
+### Phase 1: HTML Fetching
+Use existing tools:
+- WebFetch for single pages
+- Bash + curl/wget for bulk
+- Respect robots.txt
+- User-agent identification
+
+### Phase 2: Content Extraction
+Parse HTML intelligently:
+- Identify main content area
+- Remove boilerplate
+- Extract article metadata
+- Convert to clean markdown
+
+### Phase 3: Cataloging
+Create searchable index:
+- metadata.json with all articles
+- INDEX.md human-readable catalog
+- Topic/keyword tagging
+- Date-based organization
+
+### Phase 4: Quality Control
+- Check for extraction errors
+- Validate markdown formatting
+- Remove duplicates
+- Flag incomplete extractions
+
+## Technical Approach
+
+### For Standard Blogs/Sites:
+```bash
+# 1. Fetch sitemap or archive page
+curl -s https://site.com/sitemap.xml
+
+# 2. Extract article URLs
+grep -o 'https://[^<]*' sitemap.xml
+
+# 3. For each URL:
+claude WebFetch url="$url" prompt="Extract full article as markdown with metadata"
+
+# 4. Save to structured format
+```
+
+### For Newsletter Platforms:
+
+**Beehiiv:**
+- Look for /archive or /p/ pattern
+- Extract all post links
+- Fetch each article
+- Parse publication date from page
+
+**Substack:**
+- Archive at /archive
+- RSS feed at /feed
+- API endpoints (if available)
+
+### For Social Media:
+- Use official APIs when available
+- Fall back to public pages
+- Respect rate limits
+- Handle pagination
+
+## Rate Limiting
+
+**Default behavior:**
+- 1 request per second
+- Pause 2 seconds between batches
+- Respect 429 (rate limit) responses
+- Exponential backoff on errors
+
+**Override for slow/fast sites:**
+```
+/forge --rate-limit 2s https://site.com name
+/forge --rate-limit 500ms https://fast-site.com name
+```
+
+## Output Structure
+
+### INDEX.md Format:
+```markdown
+# [Advisor Name] - Knowledge Base
+
+Source: [URL]
+Scraped: [Date]
+Total Articles: [N]
+
+## Articles by Topic
+
+### [Topic 1]
+- [Article Title](articles/article-001.md) - [Date] - [Author]
+- [Article Title](articles/article-002.md) - [Date] - [Author]
+
+### [Topic 2]
+...
+```
+
+### metadata.json Format:
+```json
+{
+  "advisor": "name",
+  "source": "https://...",
+  "scraped_at": "2026-02-06",
+  "total_articles": 119,
+  "articles": [
+    {
+      "id": "001",
+      "title": "...",
+      "url": "...",
+      "date": "...",
+      "author": "...",
+      "topics": ["..."],
+      "word_count": 1500,
+      "file": "articles/article-001.md"
+    }
+  ]
+}
+```
+
+## Error Handling
+
+**Common issues:**
+- 404s: Log and skip
+- Timeouts: Retry 3x with backoff
+- Parsing failures: Save raw HTML, flag for manual review
+- Rate limits: Respect and slow down
+
+**Resume capability:**
+If scraping interrupted:
+```
+/forge --resume advisor-name
+→ Checks existing files
+→ Resumes from last successful fetch
+```
+
+## Integration with Advisors
+
+After scraping, auto-create advisor skill:
+```
+/forge https://blog.com advisor-name --create-skill
+→ Scrapes content
+→ Generates advisor skill file
+→ Includes search patterns
+→ Ready to use
+```
+
+## Examples
+
+### Music Marketing (Jesse Cannon):
+```
+/forge https://musicmarketingtrends.beehiiv.com jesse-cannon
+→ Extracts all newsletter posts
+→ Organizes by topic (marketing, distribution, social media)
+→ Creates searchable index
+```
+
+### ChatPRD Full Archive:
+```
+/forge https://chatprd.ai/blog chatprd --full
+→ Downloads all 119 articles
+→ Organizes by category (How I AI, Updates, Guides)
+→ Updates existing chatprd-blog directory
+```
+
+### Water & Music:
+```
+/forge https://waterandmusic.com water-music
+→ Scrapes available articles
+→ Respects paywall (logs inaccessible)
+→ Extracts public content
+```
+
+## Quality Metrics
+
+Report after scraping:
+- Total URLs attempted
+- Successfully extracted
+- Failed extractions (with reasons)
+- Total words extracted
+- Estimated token count
+- Storage size
+
+## Ethical Considerations
+
+- Respect robots.txt
+- Honor paywalls (don't scrape gated content)
+- Identify as Claude Code user
+- Rate limit conservatively
+- Store data locally only (no redistribution)
+- Attribute sources properly
+
+## Next Steps After Scraping
+
+1. Review INDEX.md for completeness
+2. Spot-check article extractions
+3. Create advisor skill (or use /forge --create-skill)
+4. Test advisor with sample queries
+5. Set up update automation
+
+---
+
+**This is the foundation tool. Once this works, all advisor creation becomes scalable.**

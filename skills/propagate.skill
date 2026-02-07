@@ -1,0 +1,136 @@
+---
+user-invocable: true
+---
+
+# Propagate - Systematic Change Propagation
+# Usage: /propagate [event-type]
+# Ensures all markdown and config files stay in sync after any change
+
+## Purpose
+When ANY file changes, dependent files must be updated.
+This skill runs the consistency checker, identifies stale data, and fixes it.
+**This is the immune system of the PopChaos Labs ecosystem.**
+
+## Event Types (use as argument)
+
+- `/propagate` -- Full check, fix everything
+- `/propagate skill` -- New skill added/removed
+- `/propagate scrape` -- Article counts changed
+- `/propagate task` -- Task completed
+- `/propagate learning` -- New learning captured
+- `/propagate prd` -- PRD written
+- `/propagate tool` -- New tool built
+- `/propagate roadmap` -- Roadmap reprioritized
+- `/propagate session` -- Session ending
+
+## Complete Dependency Graph
+
+### WHEN: New skill added to ~/.claude/skills/
+1. **registry.json** -- Add entry: name, path, description, user_invocable, categories
+2. **SESSION_INIT.md** -- Update skill count in "Skills Arsenal (N Skills)" + add row to table
+3. **DIRECTORY.md** -- Add to appropriate Skills Menu section
+4. **Claude-Ecosystem-Status.md** -- Update Skills Inventory section + total count
+5. **CRITICAL-CONTEXT.md** -- Update Skills Inventory count + list
+
+### WHEN: Skill removed from ~/.claude/skills/
+1. **registry.json** -- Remove entry
+2. **SESSION_INIT.md** -- Decrement count + remove from table
+3. **DIRECTORY.md** -- Remove from Skills Menu
+4. **Claude-Ecosystem-Status.md** -- Update Skills Inventory
+5. **CRITICAL-CONTEXT.md** -- Update count + list
+
+### WHEN: Article counts changed (after scrape/cleanup)
+1. **registry.json** -- Update affected skill description with new count
+2. **SESSION_INIT.md** -- Update Knowledge Bases table: per-source counts + TOTAL row
+3. **DIRECTORY.md** -- Update Knowledge Bases section: counts + total
+4. **CRITICAL-CONTEXT.md** -- Update advisor counts in Skills Inventory
+5. **Claude-Ecosystem-Status.md** -- Update advisor counts
+6. **self-improve.skill** -- Update Training Data Audit section
+7. **Affected ask-*.skill** -- Update data count in header
+
+### WHEN: Task completed
+1. **ACTIVE-TASKS.md** -- Check box [x], move to Completed section
+2. **TASK-LOG.md** -- Append entry: date, tokens, cost, outcome
+3. **SESSION_INIT.md** -- Update Current Project Status table
+4. **MASTER-ROADMAP-RANKING.md** -- Add completion marker
+
+### WHEN: Learning captured
+1. **MEMORY.md** -- Add to section (Patterns, Mistakes, etc.)
+2. **SESSION_INIT.md** -- Update if it changes session protocol
+3. **CLAUDE.md** -- Update if it changes build commands/workflows
+4. **self-improve.skill** -- Update if it changes audit criteria
+
+### WHEN: PRD written
+1. **DIRECTORY.md** -- Add to PRD list
+2. **ACTIVE-TASKS.md** -- Mark "Write PRD for X" complete if listed
+3. **SESSION_INIT.md** -- Update PRDs Written list
+
+### WHEN: Tool built
+1. **SESSION_INIT.md** -- Add to Tools Built table
+2. **DIRECTORY.md** -- Add to Tools & Infrastructure section
+3. **CLAUDE.md** -- Add build/run commands if user needs them
+
+### WHEN: Roadmap reprioritized
+1. **MASTER-ROADMAP-RANKING.md** -- Update ranking table + Top 10
+2. **ACTIVE-TASKS.md** -- Reorder Next Up section
+3. **SESSION_INIT.md** -- Update Execution Sequence table
+
+### WHEN: Session ending
+1. **TASK-LOG.md** -- Append session summary
+2. **ACTIVE-TASKS.md** -- Update all task statuses
+3. **MEMORY.md** -- Capture learnings
+4. **RECURRING-TASKS.md** -- Update Last Run dates
+
+## Instructions
+
+### Step 1: Run consistency checker (ALWAYS)
+```bash
+python3 ~/Development/tools/consistency_checker.py --summary
+```
+If issues found:
+```bash
+python3 ~/Development/tools/consistency_checker.py
+```
+
+### Step 2: Fix issues by dependency order
+Process files in this order (master references first):
+1. registry.json (skill source of truth)
+2. SESSION_INIT.md (master session reference)
+3. DIRECTORY.md (master index)
+4. ACTIVE-TASKS.md (task state)
+5. MASTER-ROADMAP-RANKING.md (roadmap state)
+6. CRITICAL-CONTEXT.md (context preservation)
+7. Claude-Ecosystem-Status.md (system overview)
+8. MEMORY.md (learnings)
+9. CLAUDE.md (build commands)
+10. Skill files (*.skill)
+11. TASK-LOG.md (append-only log)
+12. RECURRING-TASKS.md (schedule dates)
+
+### Step 3: Verify
+```bash
+python3 ~/Development/tools/consistency_checker.py --summary
+```
+Target: 0 critical, 0 high issues.
+
+### Step 4: Report
+```
+# Propagation Complete: [EVENT TYPE]
+
+## Changes Made
+- [File]: [What was updated]
+- [File]: [What was updated]
+
+## Verification
+- Before: X critical, Y high, Z total
+- After: 0 critical, 0 high, N total
+- Status: CLEAN
+```
+
+## Rules
+- ALWAYS start with consistency_checker.py
+- Fix in dependency order (master references first)
+- Don't create new files unless explicitly needed
+- Keep changes minimal -- only fix what's flagged
+- Code > Tokens -- the checker does the detection
+- Re-run checker after fixes to verify

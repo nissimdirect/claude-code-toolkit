@@ -1,0 +1,118 @@
+---
+user-invocable: true
+---
+
+# Self-Improvement Skill v3: Deep Analysis Only
+# Usage: /self-improve (manual, for deep work)
+# NOTE: Layer 1 (per-session) moved to /session-close
+
+## Purpose
+Deep analysis that runs MANUALLY, not every session.
+For per-session profiling, use /session-close instead.
+
+## When to Run
+- Every 5 sessions: behavioral analysis (Layer 2)
+- Every 10 sessions: full system audit (Layer 3)
+- On demand with --deep: advisor synthesis (Layer 4)
+
+---
+
+## Layer 2: Behavioral Analysis (every 5 sessions)
+
+### Pattern Mining
+Grep learnings.md for "Corrections this session:" entries.
+- Calculate average corrections over last 5 sessions
+- Is the trend improving? (fewer corrections = profile is working)
+- If corrections increasing → profile may be drifting, flag for review
+
+### Profile Review
+Read user-profile.md. For each section:
+- When was it last validated by the user?
+- Any assertions that contradict recent session behavior?
+- Surface top 5 assertions for user confirmation
+
+### Drift Detection
+- Is user getting more technical? (skill growth)
+- Are they delegating more? (trust growth)
+- Are correction patterns changing? (alignment shift)
+
+---
+
+## Layer 3: System Audit (every 10 sessions)
+
+### Skill Audit
+Dynamically discover all skills:
+```bash
+ls ~/.claude/skills/*.skill
+```
+For each: usage, token cost, redundancy, completeness.
+- DELETE skills unused 30+ days
+- REFACTOR skills >150 lines
+- FLAG gaps for user goals
+
+### Training Data Audit
+Check freshness of all knowledge bases:
+```bash
+ls ~/Development/*/metadata/metadata.json
+```
+Flag any >30 days since last scrape.
+
+### CLAUDE.md Audit
+- Length, contradictions, effectiveness
+- Compare against behavioral-principles.md for conflicts
+
+### Shipped vs Planned Ratio
+Count items shipped vs items planned in ACTIVE-TASKS.md.
+This is the north star metric. Report it prominently.
+
+---
+
+## Layer 4: Advisor Synthesis (on-demand with --deep)
+
+Dynamically discover all advisor skills:
+```bash
+ls ~/.claude/skills/ask-*.skill
+```
+
+For each advisor found, ask their lens on the self-improve system:
+- Is it useful? Does it change behavior?
+- What's missing?
+- What should be cut?
+
+Cross-reference with their knowledge bases for relevant insights.
+
+Output: Meta-improvement recommendations.
+
+---
+
+## Output Format
+
+```markdown
+# Self-Improve Report
+
+## Corrections Trend
+- Last 5 sessions: [N, N, N, N, N]
+- Trend: [improving / stable / degrading]
+
+## Profile Validation Needed
+- [assertion 1] — still true? (last confirmed: [date])
+- [assertion 2] — still true?
+
+## Shipped vs Planned: [ratio]
+
+## System Health
+- Skills: [count] ([changes])
+- Training data: [freshness]
+- CLAUDE.md: [status]
+
+## Action Items
+1. [top priority]
+```
+
+## Key Files
+| File | Purpose |
+|------|---------|
+| user-profile.md | Behavioral profile (validated by user) |
+| learnings.md | Session learnings + correction counts |
+| behavioral-principles.md | The 15 rules (self-updating) |
+| user-blockers.md | What user needs to do |
