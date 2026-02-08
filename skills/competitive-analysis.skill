@@ -1,0 +1,188 @@
+---
+user-invocable: true
+---
+
+# Competitive Analysis - Market Intelligence
+# Usage: /competitive-analysis [domain or product category]
+# Deep market research, positioning strategy, gap analysis
+
+## Purpose
+Research any market/domain for competitive intelligence.
+Identify gaps, white spaces, opportunities.
+Strategic positioning recommendations.
+
+## Capabilities
+
+### 1. Market Landscape Mapping
+- Key players identification
+- Market segmentation
+- Pricing tiers
+- Feature comparison matrices
+
+### 2. Gap Analysis
+- Unmet customer needs
+- Underserved segments
+- White space opportunities
+- Saturation assessment
+
+### 3. Trend Forecasting
+- Industry direction
+- Technology shifts
+- Customer behavior changes
+- Future opportunities
+
+### 4. Positioning Strategy
+- Differentiation angles
+- Target audience selection
+- Unique value propositions
+- Go-to-market recommendations
+
+## Research Methods
+
+### Deep Research Integration
+Use free tools when available:
+- Perplexity Deep Research
+- Brave Search API
+- Academic databases
+- Reddit/forums (user sentiment)
+- Product Hunt, HackerNews (tech trends)
+- YouTube (reviews, demos)
+- GitHub (open source landscape)
+
+### Manual Research Workflow
+1. **Identify competitors** (top 10-20)
+2. **Feature analysis** (what they offer)
+3. **Pricing research** (positioning)
+4. **User sentiment** (reviews, forums)
+5. **Trend analysis** (direction)
+6. **Synthesize findings** (opportunities)
+
+## Output Format
+
+```
+# Competitive Analysis: [Domain]
+
+## Executive Summary
+- Market size: [estimate]
+- Growth trend: [up/down/flat]
+- Saturation level: [low/medium/high]
+- Opportunity score: [X/10]
+
+## Market Landscape
+
+### Tier 1: Premium
+| Product | Price | Key Features | USP |
+|---------|-------|--------------|-----|
+| A | $X | ... | ... |
+
+### Tier 2: Mid-Market
+[Same format]
+
+### Tier 3: Budget/Free
+[Same format]
+
+## Feature Comparison Matrix
+| Feature | Competitor A | Competitor B | Competitor C | Gap? |
+|---------|--------------|--------------|--------------|------|
+| Feature 1 | ✅ | ✅ | ❌ | No |
+| Feature 2 | ❌ | ❌ | ❌ | 🔥 YES |
+
+## Gap Analysis
+
+### 🔴 Critical Unmet Needs
+- [Need description]
+- Evidence: [forum posts, reviews]
+- Opportunity size: [large/medium/small]
+
+### 🟡 Underserved Segments
+- [Segment description]
+- Current options: [inadequate solutions]
+- Potential: [assessment]
+
+### 🟢 Saturated Areas
+- [What's overdone]
+- Recommendation: Avoid
+
+## Positioning Opportunities
+
+### Option 1: [Angle]
+- **Target:** [Audience]
+- **USP:** [What's unique]
+- **Difficulty:** [Low/Med/High]
+- **Impact:** [Potential]
+- **Recommendation:** [Priority]
+
+### Option 2: [Angle]
+[Same format]
+
+## Trend Forecast
+
+### Short-term (6-12 months)
+- [Prediction]: [Reasoning]
+
+### Medium-term (1-2 years)
+- [Prediction]: [Reasoning]
+
+### Long-term (3-5 years)
+- [Prediction]: [Reasoning]
+
+## Strategic Recommendation
+
+**Best Opportunity:** [Specific approach]
+
+**Why:**
+1. [Reason based on gaps]
+2. [Reason based on trends]
+3. [Reason based on competition]
+
+**Next Steps:**
+1. [Concrete action]
+2. [Validation approach]
+3. [Go-to-market strategy]
+```
+
+## Use Cases
+
+### Audio Plugin Market
+```
+/competitive-analysis reverb plugins
+
+→ Market landscape (Valhalla, FabFilter, etc.)
+→ Gap: Affordable with visual feedback
+→ Recommendation: Mid-tier with unique UI
+```
+
+### Any Domain
+```
+/competitive-analysis AI writing tools
+/competitive-analysis music distribution platforms
+/competitive-analysis video editing software
+```
+
+## Integration with Other Skills
+
+**Combo with:**
+- `/ask-lenny` - Business strategy validation
+- `/cto` - Technical feasibility check
+- `/audio-production` - Feature depth for audio markets
+- `/synthesize` - Cross-reference all insights
+
+## Deep Research Hack
+
+**If Perplexity available:**
+Use for complex multi-source research
+
+**If not:**
+Sequential research pattern:
+1. Google/Brave → overview
+2. Reddit → user pain points
+3. YouTube → product demos
+4. GitHub → open source options
+5. Forums → expert opinions
+6. Synthesize → strategic insights
+
+---
+
+**Role:** Market intelligence analyst
+**Goal:** Identify opportunities through rigorous research
+**Method:** Multi-source analysis + synthesis

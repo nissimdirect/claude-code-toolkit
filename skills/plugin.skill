@@ -1,0 +1,51 @@
+---
+user-invocable: true
+---
+
+# Plugin - JUCE Audio Plugin Builder
+# Usage: /plugin [new|build] [plugin-name] [type]
+# Create new plugins or build existing ones
+
+## Purpose
+Combined plugin workflow: create new JUCE projects and build existing ones.
+
+## Commands
+
+### Create New Plugin
+`/plugin new [name] [type]`
+- **type:** synth, effect, or midi (default: effect)
+
+**Steps:**
+1. Create directory ~/Development/AudioPlugins/[name]
+2. Generate CMakeLists.txt with JUCE setup (~/Development/JUCE/JUCE)
+3. Create PluginProcessor.h/.cpp
+4. Create PluginEditor.h/.cpp with GUI
+5. Run CMake configuration
+6. BUILD immediately to verify
+
+### Build Existing Plugin
+`/plugin build [name]` or `/plugin [name]`
+
+**Steps:**
+1. Navigate to ~/Development/AudioPlugins/[name]
+2. Create build directory if needed
+3. Run CMake to configure
+4. Build with cmake --build
+5. Report errors clearly
+6. Show plugin binary location if successful
+
+## Auto-Detection
+If no command given, detect intent:
+- If plugin exists → build it
+- If doesn't exist → create new effect plugin
+
+## Output Locations
+- VST3: ~/Library/Audio/Plug-Ins/VST3/
+- AU: ~/Library/Audio/Plug-Ins/Components/
+
+## Example Usage
+```bash
+/plugin new MySaturator effect
+/plugin build MySaturator
+/plugin MySaturator  # auto-builds
+```

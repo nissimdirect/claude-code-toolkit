@@ -1,0 +1,37 @@
+---
+user-invocable: true
+---
+
+# glitch-video skill
+# Usage: /glitch-video [input-video] [effect-type]
+# Applies glitch effects to a video
+
+## Instructions:
+
+When this skill is invoked:
+
+1. Check if input video path is provided
+2. Check if effect type is provided (datamosh, pixelsort, glitch, corrupt)
+3. Use FFmpeg to extract frames
+4. Apply the requested glitch effect using Python script
+5. Reassemble into video
+6. Save to ~/Videos/glitched_[original-name].mp4
+7. Show preview command to user
+
+## Effect Types:
+
+- **datamosh**: Remove I-frames for motion blur effect
+- **pixelsort**: Sort pixels by brightness/hue
+- **glitch**: Random byte corruption
+- **corrupt**: Intentional file corruption effects
+
+## Tools needed:
+
+- FFmpeg (already installed)
+- Python with PIL/Pillow
+- Custom glitch scripts (create if needed)
+
+## Example usage:
+
+User: "/glitch-video input.mp4 datamosh"
+You: Extract frames, apply datamosh, reassemble, show result

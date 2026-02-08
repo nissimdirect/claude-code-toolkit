@@ -1,0 +1,91 @@
+---
+user-invocable: true
+---
+
+# Session Close — Unified Session End Skill
+# Usage: /session-close (or "end session")
+# Replaces: session-end.skill + self-improve.skill Layer 1
+
+## Purpose
+ONE skill that does EVERYTHING at session end. No overlap. No forgetting.
+Quick wrap (<3 min), not deep reflection.
+
+## The 6 Steps
+
+### 1. Session Summary
+- Tasks completed this session
+- Files created/modified
+- Decisions made
+- Problems encountered
+
+### 2. Update State Files
+
+**ACTIVE-TASKS.md** (`~/Documents/Obsidian/ACTIVE-TASKS.md`):
+- Mark completed items
+- Add new items discovered
+- Update in-progress status
+
+**user-blockers.md** (`~/.claude/projects/-Users-nissimagent/memory/user-blockers.md`):
+- Update anything the user unblocked
+- Add new blockers discovered
+
+### 3. Capture Learnings
+
+Append to `~/.claude/projects/-Users-nissimagent/memory/learnings.md`:
+- Mistakes made (be specific)
+- What worked well
+- New rules discovered
+- Add session entry under "Session-Specific Learnings"
+
+### 4. Lightweight Profile Check
+
+Read `~/.claude/projects/-Users-nissimagent/memory/user-profile.md`.
+Ask: did anything this session CONTRADICT the current profile?
+- New phrase? → Add to Section A
+- New frustration trigger? → Add to Section B
+- Prediction was wrong? → Update Section E
+- **Only update if something changed.** No-change = no-write.
+
+Track: **corrections this session** (count of #redirect, #frustration moments).
+Append to learnings.md: `Corrections this session: [N]`
+
+### 5. Run Consistency Check
+
+```bash
+python3 ~/Development/tools/consistency_checker.py --summary
+```
+If issues found, flag for next session (don't fix now).
+
+### 6. Cold Start Note
+
+Write to top of ACTIVE-TASKS.md:
+```markdown
+<!-- Next session: [1-2 sentences of context for cold start] -->
+```
+
+## Output Format
+
+```markdown
+# Session Close: [DATE]
+
+## Completed
+- [task list]
+
+## Learnings
+- [items added]
+
+## Profile Delta
+- [changes or "No changes"]
+
+## Corrections: [N]
+
+## Next Session
+[1-2 sentences]
+```
+
+## Rules
+- Quick. <3 minutes.
+- Don't over-document
+- Only update files that actually changed
+- This replaces BOTH /session-end AND /self-improve Layer 1
+- For deep audit, run /self-improve manually (Layers 2-4)

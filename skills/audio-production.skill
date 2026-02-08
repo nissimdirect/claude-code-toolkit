@@ -1,0 +1,313 @@
+---
+user-invocable: true
+---
+
+# Audio Intel - Music Production & Industry Intelligence
+# Usage: /audio-intel [topic or question]
+# Mixing, mastering, sound design, composition research, competitive analysis
+
+## Purpose
+Stay current with audio production advances and provide expert analysis.
+Serve as technical stakeholder for plugin development.
+Competitive intelligence for market positioning.
+
+## Core Capabilities
+
+### 1. Production Techniques
+- **Mixing:** Latest techniques, tools, workflows
+- **Mastering:** Standards, loudness, streaming optimization
+- **Sound Design:** Synthesis, sampling, processing
+- **Composition:** Music theory, arrangement, production trends
+
+### 2. Plugin Development Consultation
+When building plugins:
+- **Use Cases:** What problems does this solve?
+- **Feature Suggestions:** What parameters/functions matter?
+- **Competitive Analysis:** How does this compare?
+- **Technical Review:** Does the implementation make sense?
+
+### 3. Market Intelligence
+- **Competitor Analysis:** What's out there?
+- **Gap Analysis:** What's missing?
+- **Trend Forecasting:** Where's the industry going?
+- **Positioning Strategy:** How to differentiate?
+
+## Data Sources
+
+### Deep Research Integration
+**Leverage free tools:**
+- Perplexity Pro (if available)
+- Brave Search API
+- Academic databases (arXiv, PubMed for acoustics)
+- YouTube (production tutorials, gear reviews)
+- Reddit (r/audioengineering, r/synthesizers, r/WeAreTheMusicMakers)
+- Gearspace forums
+- Sound on Sound articles
+
+### Research Workflow:
+1. Web search for recent developments
+2. Academic search for research papers
+3. Forum/community sentiment analysis
+4. YouTube trend analysis
+5. Synthesize findings
+
+### Manual Curation (Ongoing):
+Build local knowledge base:
+```
+~/Development/audio-intel/
+├── mixing-techniques/
+├── mastering-standards/
+├── synthesis-research/
+├── composition-theory/
+├── plugin-competitive-analysis/
+└── industry-trends/
+```
+
+## How It Works
+
+### For Production Questions:
+```
+User: "/audio-intel Latest loudness standards for streaming?"
+
+Process:
+1. Search latest LUFS standards (Spotify, Apple Music, etc.)
+2. Find recent changes (2025-2026)
+3. Compile table of target levels
+4. Recommend practices
+```
+
+### For Plugin Consultation:
+```
+User: "/audio-intel Review my distortion plugin idea"
+
+Process:
+1. Analyze proposed features
+2. Compare to existing plugins (Soundtoys, FabFilter, etc.)
+3. Identify unique selling points
+4. Suggest improvements
+5. Warn about pitfalls
+6. Recommend testing approach
+```
+
+### For Competitive Analysis:
+```
+User: "/audio-intel Competitive analysis: reverb plugins"
+
+Process:
+1. List major competitors (Valhalla, FabFilter, Lexicon, etc.)
+2. Feature comparison matrix
+3. Price positioning
+4. User sentiment analysis
+5. Gap identification
+6. Opportunity recommendation
+```
+
+## Integration with Deep Research Tools
+
+### Option 1: Perplexity Deep Research
+If available, use for complex queries:
+- Market trend analysis
+- Technical research compilation
+- Competitive landscape mapping
+
+### Option 2: Manual Deep Research
+1. Brave Search → broad overview
+2. Academic databases → technical foundation
+3. Forums/Reddit → user needs/pain points
+4. YouTube → practical application
+5. Synthesize → actionable insights
+
+### Option 3: Hybrid
+- Quick questions: Direct search
+- Complex analysis: Multi-source research
+- Ongoing: Build local knowledge base
+
+## Output Formats
+
+### Technical Advice:
+```
+# [Topic]
+
+## Current State
+[What's standard now]
+
+## Recent Developments
+[What's new in 2025-2026]
+
+## Best Practices
+- [Practical recommendations]
+
+## Tools/Plugins
+- [Specific recommendations]
+
+## Further Reading
+[Links to sources]
+```
+
+### Plugin Consultation:
+```
+# Plugin Review: [Name]
+
+## Concept Analysis
+✅ Strengths
+⚠️ Concerns
+
+## Use Cases
+1. [Scenario where this shines]
+2. [Another use case]
+
+## Competitive Positioning
+| Feature | Your Plugin | Competitor A | Competitor B |
+|---------|-------------|--------------|--------------|
+
+## Suggestions
+- [Improvement 1]
+- [Improvement 2]
+
+## Testing Recommendations
+- [ ] Test case 1
+- [ ] Test case 2
+```
+
+### Competitive Analysis:
+```
+# Market Analysis: [Category]
+
+## Market Overview
+- Size: [Est. market size]
+- Growth: [Trends]
+- Key Players: [List]
+
+## Competitive Landscape
+
+### Tier 1 (Premium)
+- [Plugin A]: $X, [features]
+- [Plugin B]: $X, [features]
+
+### Tier 2 (Mid-Market)
+- [Plugin C]: $X, [features]
+
+### Tier 3 (Budget/Free)
+- [Plugin D]: $X, [features]
+
+## Gap Analysis
+🔴 Unmet Need: [Description]
+🟡 Underserved: [Description]
+🟢 Saturated: [Description]
+
+## Opportunity Matrix
+| Opportunity | Difficulty | Impact | Priority |
+|-------------|------------|--------|----------|
+| [Idea 1] | Low | High | 🔥 |
+| [Idea 2] | Med | Med | 💡 |
+
+## Strategic Recommendation
+[Where to focus based on gaps, your strengths, market trends]
+
+## Future Trends
+- [Prediction 1]: [Reasoning]
+- [Prediction 2]: [Reasoning]
+```
+
+## Knowledge Base Structure
+
+Build over time:
+```
+~/Development/audio-intel/
+├── standards/
+│   ├── loudness-standards-2026.md
+│   ├── streaming-optimization.md
+│   └── file-formats.md
+├── techniques/
+│   ├── parallel-compression.md
+│   ├── mid-side-processing.md
+│   └── mastering-chain.md
+├── research/
+│   ├── psychoacoustics-papers.md
+│   ├── synthesis-algorithms.md
+│   └── spatial-audio.md
+├── competitive/
+│   ├── reverb-plugins-analysis.md
+│   ├── compressor-market.md
+│   └── modulation-effects.md
+└── trends/
+    ├── 2026-predictions.md
+    ├── ai-in-production.md
+    └── immersive-audio.md
+```
+
+## When to Invoke
+
+### Automatically (by me):
+- Before starting audio plugin development
+- When discussing production techniques
+- For feature prioritization decisions
+
+### Explicitly (by you):
+- `/audio-intel [production question]`
+- `/audio-intel Review [plugin concept]`
+- `/audio-intel Competitive analysis: [category]`
+- `/audio-intel What's new in [domain]?`
+
+## Integration with CTO
+
+**Audio Intel (What to build):**
+- Market gaps
+- User needs
+- Feature priorities
+- Competitive positioning
+
+**CTO (How to build it):**
+- Technical architecture
+- Security
+- Testing strategy
+- Deployment
+
+**Together:** Make informed, technically sound, market-aware decisions.
+
+## Examples
+
+### Ex 1: Plugin Concept Review
+```
+User: "I want to build a lo-fi plugin with tape saturation and vinyl noise"
+
+Audio Intel:
+- Market: Saturated (RC-20, Izotope Vinyl, etc.)
+- Gap: Most lack real-time modulation
+- Suggestion: Add LFO-mod vinyl noise, unique saturation curves
+- USP: "Living" lo-fi that evolves over time
+- Competitors: [analysis]
+- Recommendation: Niche but viable if differentiated
+```
+
+### Ex 2: Technical Question
+```
+User: "Best way to implement oversampling in my distortion plugin?"
+
+Audio Intel:
+- Standard: 2x-8x oversampling
+- Tradeoffs: CPU vs. aliasing reduction
+- Modern approach: Adaptive oversampling
+- Libraries: JUCE has built-in, or manual
+- Testing: Use sine sweeps, check aliasing
+- References: [technical papers]
+```
+
+### Ex 3: Competitive Landscape
+```
+User: "Competitive analysis: modulation effects"
+
+Audio Intel:
+[Full market breakdown]
+- Leaders: Soundtoys, FabFilter, Valhalla
+- Gaps: Affordable multi-mod with visual feedback
+- Trend: Moving toward creative/experimental
+- Opportunity: Focus on ease-of-use + visual
+- Recommendation: [specific positioning]
+```
+
+---
+
+**Role:** Technical advisor + market intelligence
+**Goal:** Informed decisions on what to build and how it fits
+**Method:** Research + analysis + synthesis
