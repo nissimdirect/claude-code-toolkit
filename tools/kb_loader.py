@@ -29,11 +29,22 @@ from typing import Optional
 ADVISORS = {
     "lenny": {
         "name": "Lenny Rachitsky",
-        "source": "Lenny's Podcast",
-        "article_dirs": [Path("~/Development/lennys-podcast-transcripts/episodes").expanduser()],
+        "source": "Lenny's Podcast + Full UX Stack (Norman, NNGroup, Baymard, LukeW, Laws of UX, UX Myths, Deceptive Design, ALA, Smashing)",
+        "article_dirs": [
+            Path("~/Development/lennys-podcast-transcripts/episodes").expanduser(),
+            Path("~/Development/don-norman/articles").expanduser(),
+            Path("~/Development/nngroup/articles").expanduser(),
+            Path("~/Development/ux-design/baymard/articles").expanduser(),
+            Path("~/Development/ux-design/lukew/articles").expanduser(),
+            Path("~/Development/ux-design/lawsofux/articles").expanduser(),
+            Path("~/Development/ux-design/uxmyths/articles").expanduser(),
+            Path("~/Development/ux-design/deceptive-design/articles").expanduser(),
+            Path("~/Development/ux-design/alistapart/articles").expanduser(),
+            Path("~/Development/ux-design/smashingmag/articles").expanduser(),
+        ],
         "index_dir": Path("~/Development/lennys-podcast-transcripts/index").expanduser(),
-        "pattern": "**/transcript.md",
-        "article_count": 303,
+        "pattern": "*.md",
+        "article_count": 3831,  # 303 + 175 + 273 + 471 + 2118 + 45 + 34 + 18 + 281 + 114 (Lenny uses full UX stack)
         "excerpt_lines": 80,  # Transcripts are huge, take more context
     },
     "cherie": {
@@ -77,12 +88,335 @@ ADVISORS = {
         "excerpt_lines": 40,
     },
     "cto": {
-        "name": "CTO / Obsidian Docs",
-        "source": "Obsidian Documentation",
-        "article_dirs": [Path("~/Development/obsidian-docs/raw").expanduser()],
+        "name": "CTO / Technical Knowledge",
+        "source": "Obsidian Docs + Plugin Dev Blogs (Valhalla, Airwindows, FabFilter)",
+        "article_dirs": [
+            Path("~/Development/obsidian-docs/raw").expanduser(),
+            Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser(),
+            Path("~/Development/plugin-devs/airwindows/articles").expanduser(),
+            Path("~/Development/plugin-devs/fabfilter/articles").expanduser(),
+        ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 165,
+        "article_count": 601,  # 214 + 364 + 23 (+ Obsidian docs)
+        "excerpt_lines": 40,
+    },
+    "don-norman": {
+        "name": "Don Norman + UX Research Frontier",
+        "source": "jnd.org + NNGroup + Baymard + LukeW + Laws of UX + UX Myths + Deceptive Design + A List Apart + Smashing Mag",
+        "article_dirs": [
+            Path("~/Development/don-norman/articles").expanduser(),
+            Path("~/Development/nngroup/articles").expanduser(),
+            Path("~/Development/ux-design/baymard/articles").expanduser(),
+            Path("~/Development/ux-design/lukew/articles").expanduser(),
+            Path("~/Development/ux-design/lawsofux/articles").expanduser(),
+            Path("~/Development/ux-design/uxmyths/articles").expanduser(),
+            Path("~/Development/ux-design/deceptive-design/articles").expanduser(),
+            Path("~/Development/ux-design/alistapart/articles").expanduser(),
+            Path("~/Development/ux-design/smashingmag/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 3529,  # 175 + 273 + 471 + 2118 + 45 + 34 + 18 + 281 + 114
+        "excerpt_lines": 40,
+    },
+    "nngroup": {
+        "name": "Nielsen Norman Group",
+        "source": "nngroup.com Articles",
+        "article_dirs": [Path("~/Development/nngroup/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 273,
+        "excerpt_lines": 40,
+    },
+    # ── UX Frontier Individual Sources ──
+    "baymard": {
+        "name": "Baymard Institute",
+        "source": "Baymard UX Research (E-commerce UX)",
+        "article_dirs": [Path("~/Development/ux-design/baymard/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 471,
+        "excerpt_lines": 40,
+    },
+    "lukew": {
+        "name": "Luke Wroblewski",
+        "source": "LukeW Ideation + Inspiration",
+        "article_dirs": [Path("~/Development/ux-design/lukew/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 2118,
+        "excerpt_lines": 40,
+    },
+    "lawsofux": {
+        "name": "Jon Yablonski / Laws of UX",
+        "source": "Laws of UX (Psychology-backed design principles)",
+        "article_dirs": [Path("~/Development/ux-design/lawsofux/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 45,
+        "excerpt_lines": 60,
+    },
+    "uxmyths": {
+        "name": "UX Myths",
+        "source": "UX Myths (Debunking common UX misconceptions)",
+        "article_dirs": [Path("~/Development/ux-design/uxmyths/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 34,
+        "excerpt_lines": 40,
+    },
+    "deceptive-design": {
+        "name": "Deceptive Design (Harry Brignull)",
+        "source": "Deceptive Design (Dark patterns taxonomy)",
+        "article_dirs": [Path("~/Development/ux-design/deceptive-design/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 18,
+        "excerpt_lines": 60,
+    },
+    "alistapart": {
+        "name": "A List Apart",
+        "source": "A List Apart (Web design + UX essays)",
+        "article_dirs": [Path("~/Development/ux-design/alistapart/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 281,
+        "excerpt_lines": 40,
+    },
+    "smashingmag": {
+        "name": "Smashing Magazine",
+        "source": "Smashing Magazine (UX Design category)",
+        "article_dirs": [Path("~/Development/ux-design/smashingmag/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 114,
+        "excerpt_lines": 40,
+    },
+    # ── Art Direction Sources ──
+    "art-director": {
+        "name": "Art Director (Brand Identity + Visual Design)",
+        "source": "Brand New + Design Observer + Creative Review + Hyperallergic + e-flux",
+        "article_dirs": [
+            Path("~/Development/art-direction/brandnew/articles").expanduser(),
+            Path("~/Development/art-direction/designobserver/articles").expanduser(),
+            Path("~/Development/art-direction/creativereview/articles").expanduser(),
+            Path("~/Development/art-criticism/hyperallergic/articles").expanduser(),
+            Path("~/Development/art-criticism/e-flux-journal/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 6183,  # 4062+12+12+538+1559
+        "excerpt_lines": 40,
+    },
+    "brandnew": {
+        "name": "Brand New / Under Consideration",
+        "source": "Brand New (Brand identity critiques)",
+        "article_dirs": [Path("~/Development/art-direction/brandnew/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 4062,
+        "excerpt_lines": 40,
+    },
+    "designobserver": {
+        "name": "Design Observer",
+        "source": "Design Observer (Design criticism + culture)",
+        "article_dirs": [Path("~/Development/art-direction/designobserver/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 12,
+        "excerpt_lines": 40,
+    },
+    "creativereview": {
+        "name": "Creative Review",
+        "source": "Creative Review (Advertising + branding)",
+        "article_dirs": [Path("~/Development/art-direction/creativereview/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 12,
+        "excerpt_lines": 40,
+    },
+    "valhalla": {
+        "name": "Sean Costello / Valhalla DSP",
+        "source": "Valhalla DSP Blog",
+        "article_dirs": [Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 214,
+        "excerpt_lines": 40,
+    },
+    "airwindows": {
+        "name": "Chris Johnson / Airwindows",
+        "source": "Airwindows Blog",
+        "article_dirs": [Path("~/Development/plugin-devs/airwindows/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 364,
+        "excerpt_lines": 40,
+    },
+    "fabfilter": {
+        "name": "FabFilter",
+        "source": "FabFilter Learn",
+        "article_dirs": [Path("~/Development/plugin-devs/fabfilter/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 23,
+        "excerpt_lines": 60,  # Educational content, take more context
+    },
+    "eflux": {
+        "name": "e-flux Journal",
+        "source": "e-flux Journal (Art Critical Theory)",
+        "article_dirs": [Path("~/Development/art-criticism/e-flux-journal/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 261,
+        "excerpt_lines": 40,
+    },
+    "hyperallergic": {
+        "name": "Hyperallergic",
+        "source": "Hyperallergic (Art Criticism & News)",
+        "article_dirs": [Path("~/Development/art-criticism/hyperallergic/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 467,
+        "excerpt_lines": 40,
+    },
+    "creative-capital": {
+        "name": "Creative Capital",
+        "source": "Creative Capital Awardees",
+        "article_dirs": [Path("~/Development/art-criticism/creative-capital/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 70,
+        "excerpt_lines": 40,
+    },
+    "ubuweb": {
+        "name": "UbuWeb Papers",
+        "source": "UbuWeb (Avant-Garde Theory)",
+        "article_dirs": [Path("~/Development/art-criticism/ubuweb-papers/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 260,
+        "excerpt_lines": 60,  # Theory texts deserve more context
+    },
+    "stanford-aesthetics": {
+        "name": "Stanford Encyclopedia - Aesthetics",
+        "source": "Stanford Encyclopedia of Philosophy",
+        "article_dirs": [Path("~/Development/art-criticism/stanford-aesthetics/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 33,
+        "excerpt_lines": 80,  # Deep philosophy entries
+    },
+    "marxists-aesthetics": {
+        "name": "Marxists.org Art & Aesthetics",
+        "source": "Marxists.org (Critical Theory)",
+        "article_dirs": [Path("~/Development/art-criticism/marxists-aesthetics/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 0,  # Hub page needs two-level scrape — TODO
+        "excerpt_lines": 60,
+    },
+    "situationist": {
+        "name": "Situationist International",
+        "source": "Bureau of Public Secrets (SI Texts)",
+        "article_dirs": [Path("~/Development/art-criticism/situationist-international/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 88,
+        "excerpt_lines": 60,
+    },
+    "creative-capital-awardees": {
+        "name": "Creative Capital Awardees",
+        "source": "Creative Capital (Grant Recipients)",
+        "article_dirs": [Path("~/Development/art-criticism/creative-capital-awardees/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 831,
+        "excerpt_lines": 40,
+    },
+    "artadia": {
+        "name": "Artadia Awardees",
+        "source": "Artadia Awards (Grant Recipients)",
+        "article_dirs": [Path("~/Development/art-criticism/artadia-awardees/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 305,
+        "excerpt_lines": 40,
+    },
+    "usa-fellows": {
+        "name": "United States Artists Fellows",
+        "source": "USA Fellows (Grant Recipients)",
+        "article_dirs": [Path("~/Development/art-criticism/usa-fellows/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 1038,
+        "excerpt_lines": 40,
+    },
+    "bomb-magazine": {
+        "name": "BOMB Magazine",
+        "source": "BOMB Magazine (Artist Interviews)",
+        "article_dirs": [Path("~/Development/art-criticism/bomb-magazine/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 1500,
+        "excerpt_lines": 50,
+    },
+    "texte-zur-kunst": {
+        "name": "Texte zur Kunst",
+        "source": "Texte zur Kunst (Critical Theory Journal)",
+        "article_dirs": [Path("~/Development/art-criticism/texte-zur-kunst/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 801,
+        "excerpt_lines": 50,
+    },
+    "momus": {
+        "name": "Momus",
+        "source": "Momus (Art Criticism)",
+        "article_dirs": [Path("~/Development/art-criticism/momus/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 1076,
+        "excerpt_lines": 40,
+    },
+    "atrium": {
+        "name": "Atrium (Art Critical Theory + Grants + Publications)",
+        "source": "e-flux + Hyperallergic + Creative Capital + UbuWeb + Stanford + Situationist + CC Awardees + Artadia + USA Fellows + BOMB + Texte zur Kunst + Momus",
+        "article_dirs": [
+            # Original 3
+            Path("~/Development/art-criticism/e-flux-journal/articles").expanduser(),
+            Path("~/Development/art-criticism/hyperallergic/articles").expanduser(),
+            Path("~/Development/art-criticism/creative-capital/articles").expanduser(),
+            # Critical theory
+            Path("~/Development/art-criticism/ubuweb-papers/articles").expanduser(),
+            Path("~/Development/art-criticism/stanford-aesthetics/articles").expanduser(),
+            Path("~/Development/art-criticism/situationist-international/articles").expanduser(),
+            # Grant recipients
+            Path("~/Development/art-criticism/creative-capital-awardees/articles").expanduser(),
+            Path("~/Development/art-criticism/artadia-awardees/articles").expanduser(),
+            Path("~/Development/art-criticism/usa-fellows/articles").expanduser(),
+            # Publications
+            Path("~/Development/art-criticism/bomb-magazine/articles").expanduser(),
+            Path("~/Development/art-criticism/texte-zur-kunst/articles").expanduser(),
+            Path("~/Development/art-criticism/momus/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 7660,  # Total across 12 sources (verified 2026-02-07)
+        "excerpt_lines": 50,
+    },
+    "plugin-devs": {
+        "name": "Plugin Developer Blogs",
+        "source": "Valhalla + Airwindows + FabFilter",
+        "article_dirs": [
+            Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser(),
+            Path("~/Development/plugin-devs/airwindows/articles").expanduser(),
+            Path("~/Development/plugin-devs/fabfilter/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 601,  # 214 + 364 + 23
         "excerpt_lines": 40,
     },
 }
@@ -111,6 +445,100 @@ ALIASES = {
     "daniel": "indie-trinity",
     "daniel-vassallo": "indie-trinity",
     "cto": "cto",
+    # Don Norman / UX
+    "don-norman": "don-norman",
+    "don": "don-norman",
+    "norman": "don-norman",
+    "jnd": "don-norman",
+    "ux": "don-norman",
+    # NNGroup
+    "nngroup": "nngroup",
+    "nn-group": "nngroup",
+    "nielsen-norman": "nngroup",
+    # UX Frontier sources
+    "baymard": "baymard",
+    "baymard-institute": "baymard",
+    "ecommerce-ux": "baymard",
+    "lukew": "lukew",
+    "luke": "lukew",
+    "luke-wroblewski": "lukew",
+    "wroblewski": "lukew",
+    "lawsofux": "lawsofux",
+    "laws-of-ux": "lawsofux",
+    "yablonski": "lawsofux",
+    "uxmyths": "uxmyths",
+    "ux-myths": "uxmyths",
+    "deceptive-design": "deceptive-design",
+    "deceptive": "deceptive-design",
+    "dark-patterns": "deceptive-design",
+    "brignull": "deceptive-design",
+    "alistapart": "alistapart",
+    "ala": "alistapart",
+    "a-list-apart": "alistapart",
+    "smashingmag": "smashingmag",
+    "smashing": "smashingmag",
+    "smashing-magazine": "smashingmag",
+    # Art direction sources
+    "art-director": "art-director",
+    "art-direction": "art-director",
+    "brand-identity": "art-director",
+    "visual-design": "art-director",
+    "brandnew": "brandnew",
+    "brand-new": "brandnew",
+    "underconsideration": "brandnew",
+    "armin-vit": "brandnew",
+    "designobserver": "designobserver",
+    "design-observer": "designobserver",
+    "bierut": "designobserver",
+    "creativereview": "creativereview",
+    "creative-review": "creativereview",
+    # Plugin devs
+    "valhalla": "valhalla",
+    "valhalla-dsp": "valhalla",
+    "sean-costello": "valhalla",
+    "airwindows": "airwindows",
+    "chris-johnson": "airwindows",
+    "fabfilter": "fabfilter",
+    "fab-filter": "fabfilter",
+    "plugin-devs": "plugin-devs",
+    "plugin-developers": "plugin-devs",
+    # Art / Atrium
+    "eflux": "eflux",
+    "e-flux": "eflux",
+    "hyperallergic": "hyperallergic",
+    "creative-capital": "creative-capital",
+    "atrium": "atrium",
+    "art-criticism": "atrium",
+    "art-grants": "atrium",
+    "art-theory": "atrium",
+    "critical-theory": "atrium",
+    "grants": "atrium",
+    # New individual sources
+    "ubuweb": "ubuweb",
+    "ubu-web": "ubuweb",
+    "ubu": "ubuweb",
+    "stanford-aesthetics": "stanford-aesthetics",
+    "stanford": "stanford-aesthetics",
+    "sep": "stanford-aesthetics",
+    "marxists": "marxists-aesthetics",
+    "marxists-aesthetics": "marxists-aesthetics",
+    "marxist": "marxists-aesthetics",
+    "situationist": "situationist",
+    "situationist-international": "situationist",
+    "debord": "situationist",
+    "spectacle": "situationist",
+    "creative-capital-awardees": "creative-capital-awardees",
+    "cc-awardees": "creative-capital-awardees",
+    "artadia": "artadia",
+    "usa-fellows": "usa-fellows",
+    "usa": "usa-fellows",
+    "united-states-artists": "usa-fellows",
+    "bomb": "bomb-magazine",
+    "bomb-magazine": "bomb-magazine",
+    "texte": "texte-zur-kunst",
+    "texte-zur-kunst": "texte-zur-kunst",
+    "tzk": "texte-zur-kunst",
+    "momus": "momus",
 }
 
 
@@ -197,6 +625,7 @@ class KBLoader:
             body_start = 0
 
             if lines[0].strip() == "---":
+                # YAML frontmatter format
                 for i, line in enumerate(lines[1:], 1):
                     if line.strip() == "---":
                         body_start = i + 1
@@ -205,6 +634,24 @@ class KBLoader:
                     m = re.match(r'^(\w[\w_-]*)\s*:\s*(.+)', line)
                     if m:
                         metadata[m.group(1)] = m.group(2).strip().strip('"\'')
+            elif lines[0].strip().startswith("# "):
+                # Markdown-header format (from new scrapers)
+                for i, line in enumerate(lines):
+                    stripped = line.strip()
+                    if stripped.startswith("# ") and "title" not in metadata:
+                        metadata["title"] = stripped[2:].strip()
+                    elif stripped.startswith("**Author:**"):
+                        metadata["author"] = stripped.replace("**Author:**", "").strip()
+                    elif stripped.startswith("**Date:**"):
+                        metadata["date"] = stripped.replace("**Date:**", "").strip()
+                    elif stripped.startswith("**URL:**"):
+                        metadata["source_url"] = stripped.replace("**URL:**", "").strip()
+                    elif stripped == "---" and i > 0:
+                        body_start = i + 1
+                        break
+                    elif i > 15:
+                        body_start = 0
+                        break
 
             # Get excerpt (skip empty lines at start of body)
             body_lines = lines[body_start:]
