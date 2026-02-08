@@ -90,6 +90,104 @@ KNOWLEDGE_DIRS = {
         "source_hint": "creative-capital",
         "skill_hint": "atrium",
     },
+    # ── New Atrium Sources (2026-02-07) ──
+    "ubuweb": {
+        "path": "~/Development/art-criticism/ubuweb-papers",
+        "source_hint": "ubuweb",
+        "skill_hint": "atrium",
+    },
+    "stanford-aesthetics": {
+        "path": "~/Development/art-criticism/stanford-aesthetics",
+        "source_hint": "stanford-aesthetics",
+        "skill_hint": "atrium",
+    },
+    "situationist": {
+        "path": "~/Development/art-criticism/situationist-international",
+        "source_hint": "situationist",
+        "skill_hint": "atrium",
+    },
+    "creative-capital-awardees": {
+        "path": "~/Development/art-criticism/creative-capital-awardees",
+        "source_hint": "creative-capital-awardees",
+        "skill_hint": "atrium",
+    },
+    "artadia": {
+        "path": "~/Development/art-criticism/artadia-awardees",
+        "source_hint": "artadia",
+        "skill_hint": "atrium",
+    },
+    "usa-fellows": {
+        "path": "~/Development/art-criticism/usa-fellows",
+        "source_hint": "usa-fellows",
+        "skill_hint": "atrium",
+    },
+    "bomb-magazine": {
+        "path": "~/Development/art-criticism/bomb-magazine",
+        "source_hint": "bomb-magazine",
+        "skill_hint": "atrium",
+    },
+    "texte-zur-kunst": {
+        "path": "~/Development/art-criticism/texte-zur-kunst",
+        "source_hint": "texte-zur-kunst",
+        "skill_hint": "atrium",
+    },
+    "momus": {
+        "path": "~/Development/art-criticism/momus",
+        "source_hint": "momus",
+        "skill_hint": "atrium",
+    },
+    # ── UX Frontier Sources ──
+    "baymard": {
+        "path": "~/Development/ux-design/baymard",
+        "source_hint": "baymard",
+        "skill_hint": "don-norman",
+    },
+    "lukew": {
+        "path": "~/Development/ux-design/lukew",
+        "source_hint": "lukew",
+        "skill_hint": "don-norman",
+    },
+    "lawsofux": {
+        "path": "~/Development/ux-design/lawsofux",
+        "source_hint": "lawsofux",
+        "skill_hint": "don-norman",
+    },
+    "uxmyths": {
+        "path": "~/Development/ux-design/uxmyths",
+        "source_hint": "uxmyths",
+        "skill_hint": "don-norman",
+    },
+    "deceptive-design": {
+        "path": "~/Development/ux-design/deceptive-design",
+        "source_hint": "deceptive-design",
+        "skill_hint": "don-norman",
+    },
+    "alistapart": {
+        "path": "~/Development/ux-design/alistapart",
+        "source_hint": "alistapart",
+        "skill_hint": "don-norman",
+    },
+    "smashingmag": {
+        "path": "~/Development/ux-design/smashingmag",
+        "source_hint": "smashingmag",
+        "skill_hint": "don-norman",
+    },
+    # ── Art Direction Sources ──
+    "brandnew": {
+        "path": "~/Development/art-direction/brandnew",
+        "source_hint": "brandnew",
+        "skill_hint": "art-director",
+    },
+    "designobserver": {
+        "path": "~/Development/art-direction/designobserver",
+        "source_hint": "designobserver",
+        "skill_hint": "art-director",
+    },
+    "creativereview": {
+        "path": "~/Development/art-direction/creativereview",
+        "source_hint": "creativereview",
+        "skill_hint": "art-director",
+    },
 }
 
 

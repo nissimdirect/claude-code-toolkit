@@ -1989,26 +1989,46 @@ class BrandNewScraper(AdvisorScraper):
     """Scraper for Brand New / Under Consideration (brand identity critique)"""
 
     def extract_article_urls(self, archive_url):
-        urls = []
-        max_pages = 200  # ~11,500 articles / ~8 per page, start with 200 pages = ~1,600 articles
-        for page in range(1, max_pages + 1):
-            page_url = f'https://www.underconsideration.com/brandnew/archives/complete/page/{page}'
-            print(f"   Checking page {page}/{max_pages}...")
-            response = self.fetch_page(page_url)
-            if not response or response.status_code == 404:
-                break
-            soup = BeautifulSoup(response.content, 'html.parser')
-            found = 0
-            for link in soup.find_all('a', href=True):
+        urls = set()
+        base = 'https://www.underconsideration.com'
+        # Step 1: Get all category pages from the /archives/complete page
+        response = self.fetch_page(f'{base}/brandnew/archives/complete')
+        if not response:
+            return []
+        soup = BeautifulSoup(response.content, 'html.parser')
+        categories = []
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            if '/category/industry/' in href:
+                full = urljoin(base, href)
+                if full not in categories:
+                    categories.append(full)
+        print(f"   Found {len(categories)} categories")
+        # Step 2: Crawl each category to collect article .php links
+        for i, cat_url in enumerate(categories):
+            print(f"   Category {i+1}/{len(categories)}: {cat_url.split('/')[-1]}")
+            resp = self.fetch_page(cat_url)
+            if not resp:
+                continue
+            cat_soup = BeautifulSoup(resp.content, 'html.parser')
+            for link in cat_soup.find_all('a', href=True):
                 href = link['href']
-                full_url = urljoin('https://www.underconsideration.com', href)
-                if '/brandnew/archives/' in full_url and '/complete' not in full_url \
-                   and '/page/' not in full_url and full_url not in urls:
-                    urls.append(full_url)
-                    found += 1
-            if found == 0:
-                break
-        return list(set(urls))
+                full_url = urljoin(base, href)
+                if '/brandnew/archives/' in full_url and full_url.endswith('.php') \
+                   and '#' not in full_url:
+                    urls.add(full_url)
+            print(f"   Running total: {len(urls)} unique articles")
+        # Step 3: Also grab from homepage for latest
+        resp = self.fetch_page(f'{base}/brandnew/')
+        if resp:
+            home_soup = BeautifulSoup(resp.content, 'html.parser')
+            for link in home_soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(base, href)
+                if '/brandnew/archives/' in full_url and full_url.endswith('.php') \
+                   and '#' not in full_url:
+                    urls.add(full_url)
+        return list(urls)
 
     def extract_article_content(self, url):
         response = self.fetch_page(url)

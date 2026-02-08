@@ -44,7 +44,7 @@ ADVISORS = {
         ],
         "index_dir": Path("~/Development/lennys-podcast-transcripts/index").expanduser(),
         "pattern": "*.md",
-        "article_count": 1333,  # 303 + 175 + 273 + 160 + 128 + 45 + 34 + 18 + 83 + 114
+        "article_count": 3831,  # 303 + 175 + 273 + 471 + 2118 + 45 + 34 + 18 + 281 + 114 (Lenny uses full UX stack)
         "excerpt_lines": 80,  # Transcripts are huge, take more context
     },
     "cherie": {
@@ -117,7 +117,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 1030,  # 175 + 273 + 160 + 128 + 45 + 34 + 18 + 83 + 114
+        "article_count": 3529,  # 175 + 273 + 471 + 2118 + 45 + 34 + 18 + 281 + 114
         "excerpt_lines": 40,
     },
     "nngroup": {
@@ -136,7 +136,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/ux-design/baymard/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 160,
+        "article_count": 471,
         "excerpt_lines": 40,
     },
     "lukew": {
@@ -145,7 +145,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/ux-design/lukew/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 128,
+        "article_count": 2118,
         "excerpt_lines": 40,
     },
     "lawsofux": {
@@ -181,7 +181,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/ux-design/alistapart/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 83,
+        "article_count": 281,
         "excerpt_lines": 40,
     },
     "smashingmag": {
@@ -206,7 +206,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 752,  # 0+12+12+467+261 (brandnew pending)
+        "article_count": 6183,  # 4062+12+12+538+1559
         "excerpt_lines": 40,
     },
     "brandnew": {
@@ -215,7 +215,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-direction/brandnew/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 4062,
         "excerpt_lines": 40,
     },
     "designobserver": {
@@ -296,7 +296,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/ubuweb-papers/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 260,
         "excerpt_lines": 60,  # Theory texts deserve more context
     },
     "stanford-aesthetics": {
@@ -305,7 +305,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/stanford-aesthetics/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 33,
         "excerpt_lines": 80,  # Deep philosophy entries
     },
     "marxists-aesthetics": {
@@ -314,7 +314,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/marxists-aesthetics/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 0,  # Hub page needs two-level scrape — TODO
         "excerpt_lines": 60,
     },
     "situationist": {
@@ -323,7 +323,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/situationist-international/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 88,
         "excerpt_lines": 60,
     },
     "creative-capital-awardees": {
@@ -332,7 +332,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/creative-capital-awardees/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 831,
         "excerpt_lines": 40,
     },
     "artadia": {
@@ -341,7 +341,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/artadia-awardees/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 305,
         "excerpt_lines": 40,
     },
     "usa-fellows": {
@@ -350,7 +350,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/usa-fellows/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 1038,
         "excerpt_lines": 40,
     },
     "bomb-magazine": {
@@ -359,7 +359,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/bomb-magazine/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 1500,
         "excerpt_lines": 50,
     },
     "texte-zur-kunst": {
@@ -368,7 +368,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/texte-zur-kunst/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 801,
         "excerpt_lines": 50,
     },
     "momus": {
@@ -377,21 +377,20 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/momus/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after scrape
+        "article_count": 1076,
         "excerpt_lines": 40,
     },
     "atrium": {
         "name": "Atrium (Art Critical Theory + Grants + Publications)",
-        "source": "e-flux + Hyperallergic + Creative Capital + UbuWeb + Stanford + Marxists + Situationist + CC Awardees + Artadia + USA Fellows + BOMB + Texte zur Kunst + Momus",
+        "source": "e-flux + Hyperallergic + Creative Capital + UbuWeb + Stanford + Situationist + CC Awardees + Artadia + USA Fellows + BOMB + Texte zur Kunst + Momus",
         "article_dirs": [
             # Original 3
             Path("~/Development/art-criticism/e-flux-journal/articles").expanduser(),
             Path("~/Development/art-criticism/hyperallergic/articles").expanduser(),
             Path("~/Development/art-criticism/creative-capital/articles").expanduser(),
-            # Critical theory (quick wins)
+            # Critical theory
             Path("~/Development/art-criticism/ubuweb-papers/articles").expanduser(),
             Path("~/Development/art-criticism/stanford-aesthetics/articles").expanduser(),
-            Path("~/Development/art-criticism/marxists-aesthetics/articles").expanduser(),
             Path("~/Development/art-criticism/situationist-international/articles").expanduser(),
             # Grant recipients
             Path("~/Development/art-criticism/creative-capital-awardees/articles").expanduser(),
@@ -404,7 +403,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 798,  # Will be updated after scrape completes
+        "article_count": 7660,  # Total across 12 sources (verified 2026-02-07)
         "excerpt_lines": 50,
     },
     "plugin-devs": {
@@ -417,8 +416,52 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 601,  # 214 + 364 + 23
+        "article_count": 637,  # 214 + 400 + 23
         "excerpt_lines": 40,
+    },
+    # ── Music Composition + Production ──
+    "music-composer": {
+        "name": "Music Composer (DnB Production + Sound Design + Music Tech)",
+        "source": "Airwindows + Valhalla DSP + FabFilter + Cherie Hu + Jesse Cannon",
+        "article_dirs": [
+            # Core audio/sound design (most relevant)
+            Path("~/Development/plugin-devs/airwindows/articles").expanduser(),
+            Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser(),
+            Path("~/Development/plugin-devs/fabfilter/articles").expanduser(),
+            # Music industry + tech + marketing
+            Path("~/Development/cherie-hu/articles").expanduser(),
+            Path("~/Development/jesse-cannon/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 2495,  # 400 + 214 + 23 + 1710 + 148
+        "excerpt_lines": 50,
+    },
+    "label": {
+        "name": "Record Label (Music Industry + Marketing)",
+        "source": "Cherie Hu + Jesse Cannon",
+        "article_dirs": [
+            Path("~/Development/cherie-hu/articles").expanduser(),
+            Path("~/Development/jesse-cannon/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 1858,  # 1710 + 148
+        "excerpt_lines": 40,
+    },
+    "audio-production": {
+        "name": "Audio Production (DSP + Sound Design + Music Tech)",
+        "source": "Plugin Devs + Cherie Hu",
+        "article_dirs": [
+            Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser(),
+            Path("~/Development/plugin-devs/airwindows/articles").expanduser(),
+            Path("~/Development/plugin-devs/fabfilter/articles").expanduser(),
+            Path("~/Development/cherie-hu/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 2347,  # 214 + 400 + 23 + 1710
+        "excerpt_lines": 50,
     },
 }
 

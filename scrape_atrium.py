@@ -180,35 +180,39 @@ def scrape_ubuweb():
     print(f"  Found {len(links)} papers")
 
     for i, (url, link_text) in enumerate(links, 1):
-        print(f"  [{i}/{len(links)}] {link_text[:60]}...")
-        resp = fetch(url)
-        if not resp:
-            errors.append(f"Failed: {url}")
-            continue
+        try:
+            print(f"  [{i}/{len(links)}] {link_text[:60]}...")
+            resp = fetch(url)
+            if not resp:
+                errors.append(f"Failed: {url}")
+                continue
 
-        page_soup = BeautifulSoup(resp.content, 'html.parser')
+            page_soup = BeautifulSoup(resp.content, 'html.parser')
 
-        # Title
-        title = link_text
-        h1 = page_soup.find('h1')
-        if h1:
-            title = h1.get_text(strip=True) or title
+            # Title
+            title = link_text
+            h1 = page_soup.find('h1')
+            if h1:
+                title = h1.get_text(strip=True) or title
 
-        # Author - try to extract from title or page
-        author = "UbuWeb"
-        # Many UbuWeb papers have author in format "Author Name - Title"
-        if ' - ' in link_text:
-            author = link_text.split(' - ')[0].strip()
+            # Author - try to extract from title or page
+            author = "UbuWeb"
+            # Many UbuWeb papers have author in format "Author Name - Title"
+            if ' - ' in link_text:
+                author = link_text.split(' - ')[0].strip()
 
-        # Content
-        body = page_soup.find('body')
-        content = md(str(body)) if body else "Content extraction failed"
+            # Content
+            body = page_soup.find('body')
+            content = md(str(body)) if body else "Content extraction failed"
 
-        filepath = save_article(output_dir, i, title, url, author, "", content, "UbuWeb Papers")
-        articles.append({
-            "id": i, "title": title, "url": url, "author": author,
-            "date": "", "file": filepath.name,
-        })
+            filepath = save_article(output_dir, i, title, url, author, "", content, "UbuWeb Papers")
+            articles.append({
+                "id": i, "title": title, "url": url, "author": author,
+                "date": "", "file": filepath.name,
+            })
+        except Exception as e:
+            errors.append(f"Error on {url}: {e}")
+            print(f"    SKIP: {e}")
 
     save_index(output_dir, "UbuWeb Papers", articles, errors)
     print(f"  DONE: {len(articles)} papers saved")
@@ -709,38 +713,36 @@ def scrape_bomb_magazine():
     errors = []
     all_links = []
 
-    # BOMB has format-based archives
-    for fmt in ['interview', 'article']:
-        page = 1
-        while page <= 50:
-            page_url = f"{base_url}/articles/?format={fmt}&page={page}"
-            print(f"  {fmt} page {page}...")
+    # Use BOMB's sitemap (21 pages) to discover all article URLs
+    for sitemap_page in range(1, 25):
+        sitemap_url = f"{base_url}/sitemaps-1-section-articles-1-sitemap-p{sitemap_page}.xml"
+        print(f"  Sitemap page {sitemap_page}...")
 
-            resp = fetch(page_url)
-            if not resp or resp.status_code == 404:
-                break
+        resp = fetch(sitemap_url)
+        if not resp or resp.status_code == 404:
+            break
 
+        # Parse sitemap XML
+        soup = BeautifulSoup(resp.content, 'xml')
+        if not soup:
             soup = BeautifulSoup(resp.content, 'html.parser')
 
-            found = 0
-            for a in soup.find_all('a', href=True):
-                href = a['href']
-                text = a.get_text(strip=True)
-                if '/articles/' in href and text and len(text) > 5:
-                    full_url = urljoin(base_url, href)
-                    # Match: /articles/YYYY/MM/DD/slug/
-                    path = urlparse(full_url).path.strip('/')
-                    parts = path.split('/')
-                    if len(parts) >= 5 and parts[0] == 'articles':
-                        if full_url not in [l[0] for l in all_links]:
-                            all_links.append((full_url, text))
-                            found += 1
+        found = 0
+        for loc in soup.find_all('loc'):
+            url = loc.get_text(strip=True)
+            if '/articles/' in url and url != f"{base_url}/articles":
+                path = urlparse(url).path.strip('/')
+                parts = path.split('/')
+                if len(parts) >= 4 and parts[0] == 'articles':
+                    title = parts[-1].replace('-', ' ').title()
+                    if url not in [l[0] for l in all_links]:
+                        all_links.append((url, title))
+                        found += 1
 
-            if found == 0:
-                break
-            page += 1
+        if found == 0 and sitemap_page > 1:
+            break
 
-    print(f"  Found {len(all_links)} articles/interviews")
+    print(f"  Found {len(all_links)} articles/interviews from sitemap")
 
     for i, (url, link_text) in enumerate(all_links, 1):
         if i > 1500:  # Cap
@@ -774,13 +776,20 @@ def scrape_bomb_magazine():
             except (IndexError, ValueError):
                 pass
 
-        # Content
-        article = soup.find('article') or soup.find('main')
+        # Content - BOMB uses div.articleContent, not <article>
+        article = (soup.find(class_='articleContent')
+                   or soup.find(class_='article-content')
+                   or soup.find(class_='entry-content')
+                   or soup.find('article')
+                   or soup.find('main'))
         content = md(str(article)) if article else ""
+
         if not content or len(content) < 100:
-            # Try entry-content
-            entry = soup.find(class_='entry-content') or soup.find(class_='article-content')
-            content = md(str(entry)) if entry else "Content extraction failed"
+            # Fallback: largest content div
+            candidates = soup.find_all('div', class_=True)
+            best = max(candidates, key=lambda c: len(c.get_text(strip=True)), default=None)
+            if best and len(best.get_text(strip=True)) > 200:
+                content = md(str(best))
 
         if len(content) < 100:
             continue
@@ -899,10 +908,11 @@ def scrape_momus():
     errors = []
     all_links = []
 
-    # WordPress pagination
+    # WordPress pagination - use category/writing archive
+    archive_base = f"{base_url}/category/writing"
     page = 1
     while page <= 150:
-        page_url = f"{base_url}/page/{page}/" if page > 1 else base_url
+        page_url = f"{archive_base}/page/{page}/" if page > 1 else archive_base
         print(f"  Page {page}...")
 
         resp = fetch(page_url)
