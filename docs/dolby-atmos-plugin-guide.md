@@ -513,3 +513,234 @@ The next frontier in binaural rendering. Standard HRTFs work for most listeners 
 - [Spatial Audio Rendering AI Market ($5.56B)](https://www.globenewswire.com/news-release/2026/01/29/3228497/0/en/Spatial-Audio-Rendering-Artificial-Intelligence-AI-Research-Report-2025-5-56-Bn-Market-Opportunities-Trends-Competitive-Analysis-Strategies-and-Forecasts-2019-2024-2024-2029F-2034F.html)
 - [Best Spatial Audio Plugins (Audiocube)](https://www.audiocube.app/blog/spatial-audio-plugin)
 - [6 Must-Have Utility Plugins for Atmos (Production Expert)](https://www.production-expert.com/production-expert-1/6-must-have-utility-plugins-for-dolby-atmos-production)
+
+---
+
+## Real-World Atmos Plugin Examples
+
+> Added: 2026-02-07 | Research on commercial and open-source spatial audio plugins built with JUCE and related frameworks.
+
+### Commercial Plugins Built with JUCE / Spatial Audio Frameworks
+
+#### dearVR PRO 2 (Dear Reality / Dolby)
+
+- **Developer**: Dear Reality (acquired by Dolby)
+- **Technology**: Custom spatial audio engine, outputs up to **9.1.6 Dolby Atmos** and Ambisonics
+- **Key Features**: All-in-one spatializer, 26 multi-channel formats, binaural monitoring, room simulation
+- **Pricing**: ~$199
+- **Note**: Computationally expensive but considered the gold standard for spatial panning
+- **URL**: [Dear Reality](https://www.dearvr.com/)
+
+#### Spacelab Interstellar (Fiedler Audio)
+
+- **Developer**: Fiedler Audio
+- **Technology**: Spectral-spatial reverb engine with granular object-based panning
+- **Key Features**:
+  - Combines state-of-the-art reverberation with object-based 3D panning
+  - **Only reverb plugin that directly connects to the Dolby Atmos Composer** on any DAW (even stereo-only DAWs)
+  - Spacelab sources become dynamic objects in Dolby Atmos with one click
+  - Renders reverb to any speaker layout for Atmos mixes
+- **Architecture**: Plugin communicates with the Atmos Composer via local network protocol
+- **URL**: [Spacelab Interstellar](https://fiedler-audio.com/spacelab-interstellar-immersive-3d-reverb/)
+
+#### Dolby Atmos Composer (Fiedler Audio)
+
+- **Developer**: Fiedler Audio (in partnership with Dolby)
+- **Technology**: Master bus encoder + 3D panner for Dolby Atmos
+- **Key Features**:
+  - Works as an alternative to the official Dolby Atmos Production Suite
+  - Integrates with any DAW (not just Pro Tools/Logic)
+  - Free Essential version available, Pro version ~$299
+- **URL**: [Dolby Atmos Composer](https://fiedler-audio.com/dolby-atmos-composer/)
+
+#### Eventide Immersive Plugins
+
+- **Developer**: Eventide
+- **Technology**: Classic Eventide algorithms adapted for immersive formats
+- **Key Features**: Multi-channel versions of flagship effects (reverb, delay, modulation)
+- **Formats**: Support up to 7.1.4 Atmos bed processing
+- **URL**: [Eventide Immersive](https://store.eventideaudio.com/collections/immersive-plugins)
+
+#### APL Virtuoso v2
+
+- **Developer**: APL
+- **Technology**: Binaural virtualizer for stereo and immersive speaker setups
+- **Key Features**: 5 built-in HRTF presets + custom SOFA file loading
+- **Use Case**: Monitoring immersive mixes on headphones
+- **URL**: [APL Virtuoso](https://apl-hud.com/product/virtuoso/)
+
+#### Anaglyph (IRCAM)
+
+- **Developer**: IRCAM (French research institute)
+- **Technology**: Research-grade binaural renderer
+- **Key Features**: Personalizable morphological ITD model, near-field ILD corrections
+- **Use Case**: Scientific-grade binaural rendering for research and production
+- **URL**: [Anaglyph](https://anaglyph.dalembert.upmc.fr/)
+
+### Open-Source JUCE-Based Spatial Audio Plugins
+
+#### SPARTA Suite (Leo McCormack)
+
+- **Source**: [github.com/leomccormack/SPARTA](https://github.com/leomccormack/SPARTA)
+- **Framework**: JUCE + Spatial Audio Framework (SAF)
+- **Plugins Included**:
+  - **AmbiENC**: Ambisonic encoder/panner (up to 10th order, 128 input channels)
+  - **AmbiDEC**: Ambisonic decoder for loudspeaker arrays
+  - **AmbiDRC**: Dynamic range compressor for ambisonics
+  - **Binauraliser**: Binaural renderer with custom HRTF via SOFA files
+  - **Panner**: Multi-source 3D panner
+  - **Rotator**: Scene rotation for ambisonics
+  - **SLDoA**: Direction-of-arrival analysis
+  - **Compass**: Sound field visualization
+- **Formats**: VST, VST3, AU, LV2, AAX
+- **Platforms**: macOS, Linux, Windows
+- **Build System**: CMake, requires JUCE and SAF as submodules
+- **Why It Matters**: Best open-source reference for learning how to build spatial audio plugins with JUCE
+
+#### Spatial Audio Framework (SAF)
+
+- **Source**: [github.com/leomccormack/Spatial_Audio_Framework](https://github.com/leomccormack/Spatial_Audio_Framework)
+- **Language**: Pure C (no JUCE dependency for the core)
+- **Features**: HRTF processing, ambisonics, beamforming, room simulation, SOFA file I/O
+- **Use Case**: DSP backend that SPARTA and other plugins use for spatial audio math
+
+#### ambix (Matthias Kronlachner)
+
+- **Source**: [github.com/kronihias/ambix](https://github.com/kronihias/ambix)
+- **Framework**: JUCE
+- **Features**: Variable-order ambisonics encoding/decoding, binaural decoding
+- **Platforms**: macOS, Linux, Windows
+
+#### EAR Production Suite (EBU)
+
+- **Source**: [github.com/ebu/ear-production-suite](https://github.com/ebu/ear-production-suite/releases)
+- **Purpose**: Official EBU tools for ADM (Audio Definition Model) production
+- **Features**: Object-based audio authoring, ADM BWF export, monitoring tools
+- **Integration**: Works with REAPER; demonstrates ADM metadata handling
+
+#### Sound Field (mbarzach)
+
+- **Source**: [github.com/mbarzach/Sound-Field](https://github.com/mbarzach/Sound-Field)
+- **Technology**: JUCE 8 WebView integration with React frontend
+- **Why Notable**: Demonstrates using JUCE 8's WebBrowserComponent for a spatial audio plugin UI
+
+### DAW Integration Patterns
+
+#### Logic Pro
+
+- Native Atmos support since Logic Pro 10.7
+- Built-in Dolby Atmos Renderer integration
+- Supports up to 7.1.4 bed + 118 objects (cinema) / 16 objects (music)
+- Third-party plugins work via AU format on Atmos busses
+
+#### Pro Tools
+
+- Industry standard for Atmos post-production
+- Dolby Atmos Production Suite runs as AAX plugin
+- Object routing via dedicated Atmos busses
+- Third-party plugins must support multi-channel AAX formats
+
+#### Nuendo / Cubase
+
+- Built-in Dolby Atmos Renderer integration in Nuendo
+- Nuendo Renderer for Dolby Atmos provides binaural downmix
+- Steinberg's "Headphones Match" plugin for headphone correction
+- VST3 format required for multi-channel support
+
+#### Ableton / FL Studio / Bitwig (Gap Opportunity)
+
+- **No native Atmos support** -- biggest gap in the market
+- Workaround: Use Fiedler Audio Dolby Atmos Composer as a bridge
+- Third-party solutions needed for object panning and metadata
+- **Opportunity for indie developers**: Build Atmos bridge plugins for these DAWs
+
+### Key Technical Patterns for Atmos Plugin Development
+
+#### Pattern 1: Multi-Channel Bus Processing
+
+Process the full Atmos bed (7.1.4 = 12 channels) with standard DSP:
+
+```cpp
+// In isBusesLayoutSupported():
+// Accept 7.1.4 (12ch), 7.1.2 (10ch), 7.1 (8ch), 5.1 (6ch)
+// Apply EQ, compression, reverb to all bed channels
+// No metadata handling needed -- pure audio processing
+```
+
+**Examples**: Eventide immersive plugins, FabFilter Pro-Q (multi-channel mode)
+
+#### Pattern 2: Object Panning with Metadata
+
+Create a panner that positions audio objects in 3D space:
+
+```cpp
+// Parameters: azimuth (-180 to 180), elevation (-90 to 90), distance (0 to 1)
+// Convert spherical to Cartesian for Atmos renderer
+// Communicate position via DAW-specific object bus routing
+// Automate positions for moving sources
+```
+
+**Examples**: Dolby Atmos Music Panner, dearVR PRO, SPARTA Panner
+
+#### Pattern 3: Binaural Monitoring
+
+Render spatial audio to headphones using HRTFs:
+
+```cpp
+// Load HRTF from SOFA file (standard format)
+// For each audio source:
+//   1. Look up HRTF pair for source's azimuth + elevation
+//   2. Convolve audio with left-ear and right-ear HRTFs
+//   3. Sum all sources for stereo binaural output
+// Optional: Head-tracking via OSC for real-time HRTF updates
+```
+
+**Examples**: SPARTA Binauraliser, APL Virtuoso, Anaglyph
+
+#### Pattern 4: Ambisonics Encoding/Decoding
+
+Encode audio into ambisonics format, decode for speakers or headphones:
+
+```cpp
+// JUCE built-in: AudioChannelSet::ambisonic(order)
+// Order 1 = 4 channels (FOA), Order 3 = 16 channels (HOA)
+// Encode: source position -> SH coefficients -> ambisonic channels
+// Decode: ambisonic channels -> speaker feeds or binaural
+```
+
+**Examples**: SPARTA AmbiENC/AmbiDEC, ambix, IEM Plugin Suite
+
+#### Pattern 5: Bridge Plugin (Atmos for Non-Native DAWs)
+
+Connect DAWs without native Atmos support to the Atmos renderer:
+
+```cpp
+// Run as a bus plugin in the DAW
+// Communicate with Dolby Atmos Renderer via local network (OSC/proprietary)
+// Send audio + metadata to external renderer
+// Receive monitoring feeds back
+```
+
+**Examples**: Fiedler Audio Dolby Atmos Composer, FLUX:: Spat Revolution
+
+### Development Considerations
+
+| Consideration | Details |
+|---------------|---------|
+| **VST3 required** | Multi-channel support (7.1.4+) requires VST3 or AU; VST2 is limited |
+| **Channel ordering** | JUCE's front-channel ordering matches VST3 SDK for Atmos versions |
+| **SOFA files** | Standard for HRTF data; use libmysofa or SAF for parsing |
+| **OSC protocol** | Common for head-tracking data and inter-app communication |
+| **Thread safety** | HRTF convolution is CPU-intensive; use lockless queues for parameter updates |
+| **Latency** | Binaural convolution adds latency; use partitioned convolution for low-latency |
+| **Certification** | Commercial Atmos plugins may need Dolby certification for professional use |
+| **Testing** | Test in multiple DAWs; Atmos routing differs significantly between hosts |
+
+### Resources for Getting Started
+
+1. **Build SPARTA from source** -- best way to learn JUCE spatial audio architecture
+2. **Study the Spatial Audio Framework** -- understand the DSP math behind spatial audio
+3. **Start with binaural** -- lowest barrier to entry, huge market demand
+4. **Use REAPER for testing** -- most flexible multi-channel routing, free to try
+5. **Join the JUCE Forum** -- active spatial audio discussion threads
+6. **Attend ADC (Audio Developer Conference)** -- annual JUCE/audio dev conference with spatial audio workshops

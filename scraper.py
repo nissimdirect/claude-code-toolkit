@@ -1630,6 +1630,535 @@ class CreativeCapitalScraper(AdvisorScraper):
         }
 
 
+class BaymardScraper(AdvisorScraper):
+    """Scraper for Baymard Institute (e-commerce UX research) - single archive page"""
+
+    def extract_article_urls(self, archive_url):
+        urls = []
+        response = self.fetch_page('https://baymard.com/blog/archive')
+        if not response:
+            return urls
+        soup = BeautifulSoup(response.content, 'html.parser')
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            if href.startswith('/blog/') and href != '/blog/' and href != '/blog/archive':
+                full_url = urljoin('https://baymard.com', href)
+                if full_url not in urls:
+                    urls.append(full_url)
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        response = self.fetch_page(url)
+        if not response:
+            return None
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('h1')
+        title = title.text.strip() if title else 'Untitled'
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem:
+            date = time_elem.get('datetime', time_elem.text.strip())
+        if not date:
+            meta = soup.find('meta', property='article:published_time')
+            if meta: date = meta.get('content', '')
+        author = 'Baymard Institute'
+        content = None
+        for cls in ['article-body', 'article__body', 'post-content', 'entry-content']:
+            div = soup.find('div', class_=cls)
+            if div:
+                content = md(str(div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article: content = md(str(article))
+        if not content:
+            main = soup.find('main')
+            if main: content = md(str(main))
+        if not content: content = "Content extraction failed"
+        return {'title': title, 'url': url, 'date': date[:10] if date else '', 'author': author, 'content': content}
+
+
+class LukeWScraper(AdvisorScraper):
+    """Scraper for LukeW (lukew.com) - sequential entry IDs"""
+
+    def extract_article_urls(self, archive_url):
+        urls = []
+        # Sequential IDs from 1 to ~2141
+        for i in range(1, 2142):
+            urls.append(f'https://www.lukew.com/ff/entry.asp?{i}')
+        return urls
+
+    def extract_article_content(self, url):
+        response = self.fetch_page(url)
+        if not response:
+            return None
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('h1') or soup.find('h2')
+        title = title.text.strip() if title else 'Untitled'
+        if title == 'Untitled':
+            title_tag = soup.find('title')
+            if title_tag:
+                title = title_tag.text.strip()
+                for suffix in [' | LukeW', ' - LukeW']:
+                    if suffix in title: title = title.split(suffix)[0].strip()
+        date = ''
+        # Look for date patterns in the page
+        for elem in soup.find_all(['span', 'p', 'div']):
+            text = elem.text.strip()
+            if len(text) < 30 and any(m in text for m in ['January','February','March','April','May','June','July','August','September','October','November','December']):
+                if ',' in text:
+                    date = text
+                    break
+        author = 'Luke Wroblewski'
+        content = None
+        # LukeW uses simple HTML structure
+        main = soup.find('div', id='content') or soup.find('td', class_='bodytd')
+        if main: content = md(str(main))
+        if not content:
+            article = soup.find('article') or soup.find('main')
+            if article: content = md(str(article))
+        if not content:
+            # Largest text block
+            candidates = soup.find_all(['div', 'td'])
+            best, max_len = None, 0
+            for c in candidates:
+                l = len(c.get_text(strip=True))
+                if l > max_len: max_len, best = l, c
+            if best and max_len > 200: content = md(str(best))
+        if not content: content = "Content extraction failed"
+        parsed_date = ''
+        if date:
+            for fmt in ['%B %d, %Y', '%b %d, %Y', '%Y-%m-%d']:
+                try:
+                    parsed_date = datetime.strptime(date.strip(), fmt).strftime('%Y-%m-%d')
+                    break
+                except (ValueError, TypeError): continue
+            if not parsed_date: parsed_date = date[:10]
+        return {'title': title, 'url': url, 'date': parsed_date, 'author': author, 'content': content}
+
+
+class LawsOfUXScraper(AdvisorScraper):
+    """Scraper for Laws of UX (lawsofux.com) - 31 laws + articles"""
+
+    def extract_article_urls(self, archive_url):
+        urls = []
+        response = self.fetch_page('https://lawsofux.com/')
+        if not response:
+            return urls
+        soup = BeautifulSoup(response.content, 'html.parser')
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            full_url = urljoin('https://lawsofux.com', href)
+            path = urlparse(full_url).path.strip('/')
+            if path and '/' not in path and path not in ['articles', 'about', 'book'] \
+               and not path.startswith('http') and full_url not in urls:
+                urls.append(full_url)
+        # Also get articles
+        response2 = self.fetch_page('https://lawsofux.com/articles/')
+        if response2:
+            soup2 = BeautifulSoup(response2.content, 'html.parser')
+            for link in soup2.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin('https://lawsofux.com', href)
+                if '/articles/' in full_url and full_url.rstrip('/') != 'https://lawsofux.com/articles' \
+                   and full_url not in urls:
+                    urls.append(full_url)
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        response = self.fetch_page(url)
+        if not response:
+            return None
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('h1')
+        title = title.text.strip() if title else 'Untitled'
+        author = 'Jon Yablonski'
+        content = None
+        main = soup.find('main') or soup.find('article')
+        if main: content = md(str(main))
+        if not content:
+            candidates = soup.find_all(['div', 'section'])
+            best, max_len = None, 0
+            for c in candidates:
+                l = len(c.get_text(strip=True))
+                if l > max_len: max_len, best = l, c
+            if best and max_len > 100: content = md(str(best))
+        if not content: content = "Content extraction failed"
+        return {'title': title, 'url': url, 'date': '', 'author': author, 'content': content}
+
+
+class UXMythsScraper(AdvisorScraper):
+    """Scraper for UX Myths (uxmyths.com) - Tumblr-based, 34 myths"""
+
+    def extract_article_urls(self, archive_url):
+        urls = []
+        response = self.fetch_page('https://uxmyths.com/')
+        if not response:
+            return urls
+        soup = BeautifulSoup(response.content, 'html.parser')
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            if '/post/' in href:
+                full_url = urljoin('https://uxmyths.com', href)
+                if full_url not in urls:
+                    urls.append(full_url)
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        response = self.fetch_page(url)
+        if not response:
+            return None
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('h1') or soup.find('h2')
+        title = title.text.strip() if title else 'Untitled'
+        author = 'Zoltan Kollin'
+        content = None
+        post = soup.find('div', class_='post') or soup.find('article')
+        if post: content = md(str(post))
+        if not content:
+            main = soup.find('main') or soup.find('body')
+            if main: content = md(str(main))
+        if not content: content = "Content extraction failed"
+        return {'title': title, 'url': url, 'date': '', 'author': author, 'content': content}
+
+
+class DeceptiveDesignScraper(AdvisorScraper):
+    """Scraper for Deceptive Design (deceptive.design) - dark patterns"""
+
+    def extract_article_urls(self, archive_url):
+        urls = []
+        # Get all 16 pattern type pages
+        response = self.fetch_page('https://www.deceptive.design/types')
+        if response:
+            soup = BeautifulSoup(response.content, 'html.parser')
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin('https://www.deceptive.design', href)
+                if '/types/' in full_url and full_url.rstrip('/') != 'https://www.deceptive.design/types':
+                    if full_url not in urls:
+                        urls.append(full_url)
+        # Get reading list
+        response2 = self.fetch_page('https://www.deceptive.design/reading-list')
+        if response2:
+            urls.append('https://www.deceptive.design/reading-list')
+        # Get laws page
+        response3 = self.fetch_page('https://www.deceptive.design/laws')
+        if response3:
+            urls.append('https://www.deceptive.design/laws')
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        response = self.fetch_page(url)
+        if not response:
+            return None
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('h1')
+        title = title.text.strip() if title else 'Untitled'
+        author = 'Harry Brignull'
+        content = None
+        main = soup.find('main') or soup.find('article')
+        if main: content = md(str(main))
+        if not content:
+            candidates = soup.find_all(['div', 'section'])
+            best, max_len = None, 0
+            for c in candidates:
+                l = len(c.get_text(strip=True))
+                if l > max_len: max_len, best = l, c
+            if best and max_len > 100: content = md(str(best))
+        if not content: content = "Content extraction failed"
+        return {'title': title, 'url': url, 'date': '', 'author': author, 'content': content}
+
+
+class AListApartScraper(AdvisorScraper):
+    """Scraper for A List Apart (alistapart.com) - UX thought leadership"""
+
+    def extract_article_urls(self, archive_url):
+        urls = []
+        page = 1
+        max_pages = 40
+
+        while page <= max_pages:
+            page_url = f'https://alistapart.com/articles/page/{page}/' if page > 1 else 'https://alistapart.com/articles/'
+            print(f"   Checking page {page}...")
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin('https://alistapart.com', href)
+                if '/article/' in full_url and full_url not in urls:
+                    urls.append(full_url)
+                    found += 1
+            if found == 0:
+                break
+            page += 1
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        response = self.fetch_page(url)
+        if not response:
+            return None
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('h1')
+        title = title.text.strip() if title else 'Untitled'
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem:
+            date = time_elem.get('datetime', time_elem.text.strip())
+        author = 'A List Apart'
+        author_elem = soup.find('a', rel='author') or soup.find('span', class_='author')
+        if author_elem: author = author_elem.text.strip()
+        content = None
+        for cls in ['entry-content', 'article-content', 'post-content']:
+            div = soup.find('div', class_=cls)
+            if div:
+                content = md(str(div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article: content = md(str(article))
+        if not content:
+            main = soup.find('main')
+            if main: content = md(str(main))
+        if not content: content = "Content extraction failed"
+        return {'title': title, 'url': url, 'date': date[:10] if date else '', 'author': author, 'content': content}
+
+
+class SmashingMagScraper(AdvisorScraper):
+    """Scraper for Smashing Magazine UX section"""
+
+    def extract_article_urls(self, archive_url):
+        urls = []
+        page = 1
+        max_pages = 10
+        while page <= max_pages:
+            page_url = f'https://www.smashingmagazine.com/category/ux-design/page/{page}/' if page > 1 \
+                else 'https://www.smashingmagazine.com/category/ux-design/'
+            print(f"   Checking page {page}...")
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin('https://www.smashingmagazine.com', href)
+                path = urlparse(full_url).path.strip('/')
+                parts = path.split('/')
+                # Match /YYYY/MM/slug/ pattern
+                if len(parts) == 3:
+                    try:
+                        int(parts[0])
+                        int(parts[1])
+                        if full_url not in urls:
+                            urls.append(full_url)
+                            found += 1
+                    except ValueError:
+                        pass
+            if found == 0:
+                break
+            page += 1
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        response = self.fetch_page(url)
+        if not response:
+            return None
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('h1')
+        title = title.text.strip() if title else 'Untitled'
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem: date = time_elem.get('datetime', time_elem.text.strip())
+        author = 'Smashing Magazine'
+        author_elem = soup.find('a', rel='author')
+        if author_elem: author = author_elem.text.strip()
+        content = None
+        div = soup.find('div', class_='c-garfield-the-cat')
+        if div: content = md(str(div))
+        if not content:
+            article = soup.find('article')
+            if article: content = md(str(article))
+        if not content: content = "Content extraction failed"
+        return {'title': title, 'url': url, 'date': date[:10] if date else '', 'author': author, 'content': content}
+
+
+class BrandNewScraper(AdvisorScraper):
+    """Scraper for Brand New / Under Consideration (brand identity critique)"""
+
+    def extract_article_urls(self, archive_url):
+        urls = []
+        max_pages = 200  # ~11,500 articles / ~8 per page, start with 200 pages = ~1,600 articles
+        for page in range(1, max_pages + 1):
+            page_url = f'https://www.underconsideration.com/brandnew/archives/complete/page/{page}'
+            print(f"   Checking page {page}/{max_pages}...")
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin('https://www.underconsideration.com', href)
+                if '/brandnew/archives/' in full_url and '/complete' not in full_url \
+                   and '/page/' not in full_url and full_url not in urls:
+                    urls.append(full_url)
+                    found += 1
+            if found == 0:
+                break
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        response = self.fetch_page(url)
+        if not response:
+            return None
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('h1') or soup.find('h2', class_='entry-title')
+        title = title.text.strip() if title else 'Untitled'
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem: date = time_elem.get('datetime', time_elem.text.strip())
+        if not date:
+            # Look for date in spans
+            for span in soup.find_all('span', class_='posted-on'):
+                date = span.text.strip()
+                break
+        author = 'Armin Vit'
+        content = None
+        for cls in ['entry-content', 'post-content']:
+            div = soup.find('div', class_=cls)
+            if div:
+                content = md(str(div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article: content = md(str(article))
+        if not content: content = "Content extraction failed"
+        parsed_date = ''
+        if date:
+            for fmt in ['%B %d, %Y', '%Y-%m-%d', '%b %d, %Y']:
+                try:
+                    parsed_date = datetime.strptime(date.strip(), fmt).strftime('%Y-%m-%d')
+                    break
+                except (ValueError, TypeError): continue
+            if not parsed_date: parsed_date = date[:10]
+        return {'title': title, 'url': url, 'date': parsed_date, 'author': author, 'content': content}
+
+
+class DesignObserverScraper(AdvisorScraper):
+    """Scraper for Design Observer (designobserver.com) - design criticism"""
+
+    def extract_article_urls(self, archive_url):
+        urls = []
+        # Use RSS first for recent articles
+        response = self.fetch_page('https://designobserver.com/feed/')
+        if response:
+            soup = BeautifulSoup(response.content, 'xml')
+            for item in soup.find_all('item'):
+                link = item.find('link')
+                if link and link.text:
+                    urls.append(link.text.strip())
+        # Then crawl main page and feature pages
+        for path in ['/', '/categories/', '/archives/']:
+            page_url = urljoin('https://designobserver.com', path)
+            response = self.fetch_page(page_url)
+            if not response: continue
+            soup = BeautifulSoup(response.content, 'html.parser')
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin('https://designobserver.com', href)
+                if 'designobserver.com/feature/' in full_url and full_url not in urls:
+                    urls.append(full_url)
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        response = self.fetch_page(url)
+        if not response:
+            return None
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('h1')
+        title = title.text.strip() if title else 'Untitled'
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem: date = time_elem.get('datetime', time_elem.text.strip())
+        author = 'Design Observer'
+        author_elem = soup.find('a', rel='author') or soup.find('span', class_='author')
+        if author_elem: author = author_elem.text.strip()
+        content = None
+        article = soup.find('article') or soup.find('main')
+        if article: content = md(str(article))
+        if not content:
+            candidates = soup.find_all(['div', 'section'])
+            best, max_len = None, 0
+            for c in candidates:
+                l = len(c.get_text(strip=True))
+                if l > max_len: max_len, best = l, c
+            if best and max_len > 200: content = md(str(best))
+        if not content: content = "Content extraction failed"
+        return {'title': title, 'url': url, 'date': date[:10] if date else '', 'author': author, 'content': content}
+
+
+class CreativeReviewScraper(AdvisorScraper):
+    """Scraper for Creative Review (creativereview.co.uk) via RSS"""
+
+    def extract_article_urls(self, archive_url):
+        urls = []
+        response = self.fetch_page('https://www.creativereview.co.uk/feed/')
+        if response:
+            soup = BeautifulSoup(response.content, 'xml')
+            for item in soup.find_all('item'):
+                link = item.find('link')
+                if link and link.text:
+                    urls.append(link.text.strip())
+        # Also crawl main pages
+        for page in range(1, 20):
+            page_url = f'https://www.creativereview.co.uk/page/{page}/' if page > 1 \
+                else 'https://www.creativereview.co.uk/'
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404: break
+            soup = BeautifulSoup(response.content, 'html.parser')
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin('https://www.creativereview.co.uk', href)
+                path = urlparse(full_url).path.strip('/')
+                parts = path.split('/')
+                # Match /YYYY/MM/DD/slug/ pattern
+                if len(parts) >= 4:
+                    try:
+                        int(parts[0]); int(parts[1]); int(parts[2])
+                        if full_url not in urls:
+                            urls.append(full_url)
+                    except ValueError: pass
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        response = self.fetch_page(url)
+        if not response:
+            return None
+        soup = BeautifulSoup(response.content, 'html.parser')
+        title = soup.find('h1')
+        title = title.text.strip() if title else 'Untitled'
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem: date = time_elem.get('datetime', time_elem.text.strip())
+        author = 'Creative Review'
+        author_elem = soup.find('a', rel='author')
+        if author_elem: author = author_elem.text.strip()
+        content = None
+        for cls in ['entry-content', 'article-content', 'post-content']:
+            div = soup.find('div', class_=cls)
+            if div:
+                content = md(str(div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article: content = md(str(article))
+        if not content: content = "Content extraction failed"
+        return {'title': title, 'url': url, 'date': date[:10] if date else '', 'author': author, 'content': content}
+
+
 def main():
     """CLI entry point"""
     if len(sys.argv) < 3:
@@ -1649,6 +2178,16 @@ def main():
         print("  hyperallergic    - Hyperallergic (art criticism)")
         print("  fabfilter        - FabFilter Learn (audio education)")
         print("  creativecapital  - Creative Capital awardees (grants)")
+        print("  baymard          - Baymard Institute (e-commerce UX)")
+        print("  lukew            - LukeW (mobile/forms UX pioneer)")
+        print("  lawsofux         - Laws of UX (UX psychology principles)")
+        print("  uxmyths          - UX Myths (myth-busting)")
+        print("  deceptive        - Deceptive Design (dark patterns)")
+        print("  alistapart       - A List Apart (UX thought leadership)")
+        print("  smashingmag      - Smashing Magazine (UX section)")
+        print("  brandnew         - Brand New (brand identity critique)")
+        print("  designobserver   - Design Observer (design criticism)")
+        print("  creativereview   - Creative Review (advertising/branding)")
         print("\nExample:")
         print("  python scraper.py beehiiv https://musicmarketingtrends.beehiiv.com ~/Development/jesse-cannon")
         print("  python scraper.py valhalla https://valhalladsp.com ~/Development/valhalla-dsp")
@@ -1675,6 +2214,18 @@ def main():
         'hyperallergic': HyperallegicScraper,
         'fabfilter': FabFilterScraper,
         'creativecapital': CreativeCapitalScraper,
+        # UX Frontier sources
+        'baymard': BaymardScraper,
+        'lukew': LukeWScraper,
+        'lawsofux': LawsOfUXScraper,
+        'uxmyths': UXMythsScraper,
+        'deceptive': DeceptiveDesignScraper,
+        'alistapart': AListApartScraper,
+        'smashingmag': SmashingMagScraper,
+        # Art Director sources
+        'brandnew': BrandNewScraper,
+        'designobserver': DesignObserverScraper,
+        'creativereview': CreativeReviewScraper,
     }
 
     if source_type not in scrapers:
