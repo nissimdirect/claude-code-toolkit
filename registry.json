@@ -1,0 +1,226 @@
+{
+  "skills": {
+    "ask-chatprd": {
+      "name": "ask-chatprd",
+      "path": "~/.claude/skills/ask-chatprd/SKILL.md",
+      "description": "AI workflow and PRD advice from ChatPRD / Claire Vo (119 articles). Use when user says ChatPRD, ask ChatPRD, AI workflows, PRD review, product requirements.",
+      "user_invocable": true,
+      "category": "advisor"
+    },
+    "ask-cherie": {
+      "name": "ask-cherie",
+      "path": "~/.claude/skills/ask-cherie/SKILL.md",
+      "description": "Music industry intelligence from Cherie Hu / Water and Music (1,710 articles). Use when user says Cherie, ask Cherie, music industry, streaming, distribution, music tech, music business.",
+      "user_invocable": true,
+      "category": "advisor"
+    },
+    "ask-indie-trinity": {
+      "name": "ask-indie-trinity",
+      "path": "~/.claude/skills/ask-indie-trinity/SKILL.md",
+      "description": "Indie hacker wisdom from Pieter Levels, Justin Welsh, Daniel Vassallo. Use when user says indie trinity, Pieter, Justin, Daniel, indie hacking, bootstrap, solopreneur, ship fast.",
+      "user_invocable": true,
+      "category": "advisor"
+    },
+    "ask-jesse": {
+      "name": "ask-jesse",
+      "path": "~/.claude/skills/ask-jesse/SKILL.md",
+      "description": "Music marketing from Jesse Cannon (148 articles). Use when user says Jesse, ask Jesse, Jesse Cannon, music marketing, promotion, social media for music, release strategy.",
+      "user_invocable": true,
+      "category": "advisor"
+    },
+    "ask-lenny": {
+      "name": "ask-lenny",
+      "path": "~/.claude/skills/ask-lenny/SKILL.md",
+      "description": "Product strategy from Lenny Rachitsky (303 episodes). Use when user says Lenny, ask Lenny, Hey Lenny Bot, product strategy, growth, metrics, PMF, monetization, launch strategy, pricing.",
+      "user_invocable": true,
+      "category": "advisor"
+    },
+    "atrium": {
+      "name": "atrium",
+      "path": "~/.claude/skills/atrium/SKILL.md",
+      "description": "Art critical theory, grants, NEA, Creative Capital. Use when user says Atrium, art critic, art theory, grant funding, art criticism, NEA, portfolio review.",
+      "user_invocable": true,
+      "category": "advisor"
+    },
+    "audio-production": {
+      "name": "audio-production",
+      "path": "~/.claude/skills/audio-production/SKILL.md",
+      "description": "Audio engineering: LUFS, DSP, mixing, mastering, sound design. Use when user says audio, mixing, mastering, LUFS, DSP, sound design, production.",
+      "user_invocable": true,
+      "category": "technical"
+    },
+    "coach": {
+      "name": "coach",
+      "path": "~/.claude/skills/coach/SKILL.md",
+      "description": "Anti-procrastination and focus training. Use when user says coach, procrastinating, focus, stuck, motivation, accountability.",
+      "user_invocable": true,
+      "category": "workflow"
+    },
+    "competitive-analysis": {
+      "name": "competitive-analysis",
+      "path": "~/.claude/skills/competitive-analysis/SKILL.md",
+      "description": "Plugin market research and competitive positioning. Use when user says competitive analysis, market research, competitors, positioning, market gaps, plugin market.",
+      "user_invocable": true,
+      "category": "technical"
+    },
+    "creative": {
+      "name": "creative",
+      "path": "~/.claude/skills/creative/SKILL.md",
+      "description": "Creative exploration agent - experiments, brainstorms, cross-modal ideas. Use when user says experiment, brainstorm, wild idea, what if, creative, explore, innovate, jam.",
+      "user_invocable": true,
+      "category": "creative"
+    },
+    "cto": {
+      "name": "cto",
+      "path": "~/.claude/skills/cto/SKILL.md",
+      "description": "Technical leadership and architecture decisions. Use when user says CTO, check with CTO, technical review, architecture, feasibility, security review.",
+      "user_invocable": true,
+      "category": "technical"
+    },
+    "forge": {
+      "name": "forge",
+      "path": "~/.claude/skills/forge/SKILL.md",
+      "description": "Mass web scraping for advisor training data. Use when user says scrape, forge, crawl, download articles, training data, bulk scrape.",
+      "user_invocable": true,
+      "category": "technical"
+    },
+    "glitch-video": {
+      "name": "glitch-video",
+      "path": "~/.claude/skills/glitch-video/SKILL.md",
+      "description": "Apply glitch effects to videos (FFmpeg + Python). Use when user says glitch video, datamosh, corrupt video, pixel sort, video effects, glitch art.",
+      "user_invocable": true,
+      "category": "creative"
+    },
+    "hype-man": {
+      "name": "hype-man",
+      "path": "~/.claude/skills/hype-man/SKILL.md",
+      "description": "Confidence building through progress recognition. Use when user says hype, hype man, progress, how far, celebrate, motivation.",
+      "user_invocable": true,
+      "category": "meta"
+    },
+    "mad-scientist": {
+      "name": "mad-scientist",
+      "path": "~/.claude/skills/mad-scientist/SKILL.md",
+      "description": "Experimental audio-video research. Use when user says mad scientist, experiment, weird, cross-modal, glitch research, wild idea.",
+      "user_invocable": true,
+      "category": "creative"
+    },
+    "my-clone": {
+      "name": "my-clone",
+      "path": "~/.claude/skills/my-clone/SKILL.md",
+      "description": "User persona embodiment - predict how nissim would decide. Use when user says my clone, what would I do, predict my response.",
+      "user_invocable": true,
+      "category": "persona"
+    },
+    "ops": {
+      "name": "ops",
+      "path": "~/.claude/skills/ops/SKILL.md",
+      "description": "System maintenance agent - keeps everything running, organized, token-efficient. Use when user says maintenance, organize, cleanup, health check, continuous improvement, reduce sprawl, file organization, system health.",
+      "user_invocable": true,
+      "category": "agent"
+    },
+    "orchestrator": {
+      "name": "orchestrator",
+      "path": "~/.claude/skills/orchestrator/SKILL.md",
+      "description": "Alias for /synthesize orchestration layer. Use when user says orchestrate, which skills, what should run, coordinate skills, run everything.",
+      "user_invocable": true,
+      "category": "workflow"
+    },
+    "plugin": {
+      "name": "plugin",
+      "path": "~/.claude/skills/plugin/SKILL.md",
+      "description": "JUCE audio plugin builder (new and build). Use when user says plugin, new plugin, build plugin, JUCE, VST, AU, audio plugin, make a plugin.",
+      "user_invocable": true,
+      "category": "technical"
+    },
+    "propagate": {
+      "name": "propagate",
+      "path": "~/.claude/skills/propagate/SKILL.md",
+      "description": "Change propagation - syncs all files after changes. Use when user says propagate, sync files, update everything, consistency check.",
+      "user_invocable": true,
+      "category": "meta"
+    },
+    "qa-redteam": {
+      "name": "qa-redteam",
+      "path": "~/.claude/skills/qa-redteam/SKILL.md",
+      "description": "Security audit and attack surface analysis. Use when user says red team, security audit, attack surface, QA, penetration test, edge cases.",
+      "user_invocable": true,
+      "category": "meta"
+    },
+    "quality": {
+      "name": "quality",
+      "path": "~/.claude/skills/quality/SKILL.md",
+      "description": "Quality gatekeeper agent - reviews everything before shipping. Use when user says review, audit, check, quality, test, verify, security, before we ship.",
+      "user_invocable": true,
+      "category": "agent"
+    },
+    "refresh": {
+      "name": "refresh",
+      "path": "~/.claude/skills/refresh/SKILL.md",
+      "description": "Update advisor knowledge bases with new scraped content. Use when user says refresh, update knowledge, re-scrape, new articles, update advisors.",
+      "user_invocable": true,
+      "category": "meta"
+    },
+    "research-scraper": {
+      "name": "research-scraper",
+      "path": "~/.claude/skills/research-scraper/SKILL.md",
+      "description": "Daily enrichment engine - actively expands knowledge bases. Use when user says research scraper, find new sources, expand KB, knowledge gaps, scrape new, enrich, research.",
+      "user_invocable": true,
+      "category": "technical"
+    },
+    "resource-monitor": {
+      "name": "resource-monitor",
+      "path": "~/.claude/skills/resource-monitor/SKILL.md",
+      "description": "Track token usage, costs, and environmental impact. Use when user says resource monitor, token usage, costs, budget, carbon, how much, spending.",
+      "user_invocable": true,
+      "category": "meta"
+    },
+    "self-improve": {
+      "name": "self-improve",
+      "path": "~/.claude/skills/self-improve/SKILL.md",
+      "description": "Deep analysis of performance, gap identification, continuous improvement. Use when user says self-improve, continuous improvement, system health, optimize system, reduce sprawl, organize files, gap analysis.",
+      "user_invocable": true,
+      "category": "meta"
+    },
+    "session-close": {
+      "name": "session-close",
+      "path": "~/.claude/skills/session-close/SKILL.md",
+      "description": "Unified session end: summary, state updates, learnings, GitHub push. Use when user says end session, wrap up, close session, session close.",
+      "user_invocable": true,
+      "category": "workflow"
+    },
+    "ship": {
+      "name": "ship",
+      "path": "~/.claude/skills/ship/SKILL.md",
+      "description": "Builder agent - ships products, writes code, deploys. Use when user says ship, build, make, create, implement, deploy, launch, code it, get it done.",
+      "user_invocable": true,
+      "category": "agent"
+    },
+    "strategy": {
+      "name": "strategy",
+      "path": "~/.claude/skills/strategy/SKILL.md",
+      "description": "Multi-advisor strategic guidance agent. Use when user says strategy, advise, what should I, opinions, conglomerate, all advisors, board meeting, strategic decision.",
+      "user_invocable": true,
+      "category": "agent"
+    },
+    "synthesize": {
+      "name": "synthesize",
+      "path": "~/.claude/skills/synthesize/SKILL.md",
+      "description": "Orchestration layer + knowledge synthesis. Calls other skills in concert, cross-references all sources. Use when user says synthesize, orchestrate, combine knowledge, cross-reference, conglomerate, orchestration layer, run skills together, multi-skill, full analysis.",
+      "user_invocable": true,
+      "category": "workflow"
+    },
+    "today": {
+      "name": "today",
+      "path": "~/.claude/skills/today/SKILL.md",
+      "description": "Daily task generator - reads full history and creates focused plan. Use when user says today, whats the plan, daily plan, wake up, start session.",
+      "user_invocable": true,
+      "category": "workflow"
+    }
+  },
+  "counts": {
+    "total_skills": 31,
+    "total_articles": 2437
+  },
+  "last_updated": "2026-02-07"
+}

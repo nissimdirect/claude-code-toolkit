@@ -1,0 +1,210 @@
+# Cutting-Edge Multimedia Tools - 172 Total
+# Generated: 2026-02-07
+# Purpose: "Build the weirdest most cutting-edge shit possible"
+
+## Audio Processing (17)
+essentia-tensorflow  # Music information retrieval
+madmom  # Onset/beat/tempo detection
+pydub  # Audio manipulation
+librosa  # Music analysis
+soundfile  # High-quality audio I/O
+nussl  # Source separation
+pedalboard  # Spotify's JUCE-based effects (already installed)
+pyrubberband  # Time/pitch manipulation (already installed)
+pyo  # DSP synthesis engine
+pyAudioAnalysis  # Feature extraction
+spectrum  # Spectral analysis
+pywavelets  # Wavelet transforms
+audioread  # Universal decoder
+sounddevice  # Real-time audio I/O
+pyaudio  # PortAudio bindings
+mutagen  # Audio metadata
+pyloudnorm  # ITU-R BS.1770 loudness
+
+## AI Audio (9)
+spleeter  # Deezer 2/4/5-stem separation
+demucs  # Facebook advanced separation
+basic-pitch  # Spotify audio-to-MIDI
+crepe  # Pitch tracking neural network
+audiocraft  # Meta's MusicGen/AudioGen
+riffusion  # Diffusion-based audio
+RAVE  # Real-time audio VAE
+torch-audiomentations  # Audio augmentation
+nnAudio  # GPU audio processing
+
+## Video/Visual (12)
+moviepy  # Video editing
+opencv-python  # Computer vision
+vidgear  # Hardware-accelerated video
+av  # FFmpeg bindings (PyAV)
+glitch-this  # Datamoshing effects
+vapoursynth  # Low-level video processing
+ffmpeg-python  # FFmpeg wrapper
+gizeh  # Vector graphics
+manim  # Mathematical animations
+imageio-ffmpeg  # FFmpeg wrapper
+rawpy  # RAW photo processing (already installed)
+wand  # ImageMagick (already installed)
+
+## 3D/Spatial (6)
+vispy  # High-performance visualization
+trimesh  # 3D mesh processing
+pyvista  # 3D plotting
+open3d  # 3D data processing
+PyOpenGL  # OpenGL bindings
+pyglet  # OpenGL multimedia
+
+## Meta-Tools (Building) (25)
+libclang  # C++ AST parsing
+pybind11  # Python ↔ C++ bindings
+scipy  # Signal processing, filters
+numba  # JIT compilation
+cython  # C extensions
+cffi  # C foreign function interface
+invoke  # Task execution
+joblib  # Caching & parallelization
+pytest-benchmark  # Performance testing
+py-spy  # Sampling profiler
+memory_profiler  # Memory analysis
+mypy  # Type checking
+autopep8  # Code formatting
+black  # Code formatting
+pyinstaller  # Standalone executables
+nuitka  # Python → C compiler
+meson  # Build system
+tox  # Test automation
+dask  # Parallel computing
+prefect  # Workflow orchestration
+airflow  # Pipeline scheduling
+poetry  # Dependency management
+hatch  # Modern packaging
+pyoxidizer  # Rust-based binaries
+scalene  # CPU/GPU profiler
+
+## Data Processing (8)
+pandas  # DataFrame analysis
+polars  # Fast Rust-based DataFrames
+influxdb-client  # Time-series DB
+tinydb  # Lightweight JSON DB
+pymongo  # MongoDB
+redis-py  # Redis cache
+sqlite-vec  # Vector similarity search
+prometheus-client  # Metrics
+
+## Web Scraping (7)
+playwright  # Browser automation
+scrapy  # Web crawling framework
+selenium  # Browser automation (backup)
+requests-html  # HTML + JavaScript
+trafilatura  # Content extraction
+newspaper3k  # Article extraction
+feedparser  # RSS/Atom parsing
+
+## API Development (5)
+fastapi  # Modern API framework
+uvicorn  # ASGI server
+httpx  # Async HTTP client
+websockets  # WebSocket support
+websocket-client  # WebSocket testing
+
+## Generative Art (11)
+py5  # Python Processing
+pycairo  # 2D graphics library
+pillow-simd  # Accelerated image processing
+colour  # Colour science
+noise  # Perlin/Simplex noise
+stable-diffusion  # Text-to-image
+pygame  # Interactive apps
+arcade  # Modern game framework
+reportlab  # PDF generation
+weasyprint  # HTML → PDF
+jinja2  # Templates
+
+## Music Theory/MIDI (11)
+mido  # MIDI manipulation
+pretty_midi  # MIDI analysis
+music21  # Music theory
+rtmidi  # Real-time MIDI I/O
+python-rtmidi  # Alternative MIDI
+python-osc  # OSC protocol
+jack-client  # JACK audio
+mingus  # Music theory
+python-tuning  # Microtonal scales
+abjad  # Algorithmic composition
+pyfluidsynth  # SoundFont synthesis
+
+## Live Coding/Experimental (8)
+isobar  # Algorithmic composition
+foxdot  # Live coding patterns
+sardine  # Live coding Python
+sonic-pi  # Education live coding
+musx  # Music composition framework
+supercollider  # Audio synthesis (sc3nb)
+chuck  # Strongly-timed audio
+csound  # Sound synthesis
+
+## NLP/Text (6)
+spacy  # NLP analysis
+textblob  # Sentiment analysis
+whoosh  # Search engine
+markovify  # Markov chains
+gpt-2-simple  # Local GPT-2
+pygments  # Syntax highlighting
+
+## Hardware Integration (7)
+pyserial  # Serial (Arduino/Eurorack)
+gpiozero  # Raspberry Pi GPIO
+pyusb  # USB devices
+hidapi  # HID devices
+python-osc  # OSC protocol (duplicate)
+rtmidi  # MIDI (duplicate)
+mididings  # MIDI router
+
+## Cloud/Distribution (8)
+boto3  # AWS S3
+google-cloud-storage  # GCS
+azure-storage-blob  # Azure
+web3  # Ethereum
+ipfshttpclient  # IPFS
+opensea-sdk  # OpenSea API
+twine  # PyPI upload
+docker  # Containerization
+
+## Testing/Quality (6)
+pytest-audio  # Audio fixtures
+audio-quality-ml  # Perceptual quality
+pyloudnorm  # Loudness measurement (duplicate)
+locust  # Load testing
+pytest-benchmark  # Benchmarks (duplicate)
+mosqito  # Sound quality metrics
+
+## Monitoring/Logging (4)
+loguru  # Better logging
+rich  # Terminal output
+tqdm  # Progress bars
+python-daemon  # Daemonize
+
+## Psychoacoustics (3)
+mosqito  # Sound quality (duplicate)
+pypevoc  # Pitch/voicing
+spectral-audio  # Spectral processing
+
+## Total: 172 tools across 20 categories
+## Installation command:
+# pip3 install --break-system-packages -r requirements-cutting-edge.txt
+
+## Priority Install Order:
+# 1. Meta-tools (scipy, numba, pybind11, pandas, playwright)
+# 2. Audio I/O (sounddevice, mutagen, pyloudnorm)
+# 3. AI Audio (spleeter, demucs, basic-pitch)
+# 4. Video (moviepy, opencv)
+# 5. Generative (py5, pyo, noise)
+# 6. Everything else
+
+## Roadmap Synergies:
+# - Sidechain Operator: sounddevice, pyloudnorm, scipy.signal, pybind11
+# - Glitch Video: moviepy, opencv, vapoursynth, manim
+# - Art Portfolio: py5, pycairo, weasyprint
+# - Grant Scraping: playwright, spacy, tinydb, pandas
+# - VST Research: spacy, textblob, whoosh
+# - Hardware (Future): pyserial, rtmidi, hidapi

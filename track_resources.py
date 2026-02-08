@@ -34,6 +34,8 @@ def parse_session_file(jsonl_path):
     usage_data = {
         'input_tokens': 0,
         'output_tokens': 0,
+        'cache_creation_tokens': 0,
+        'cache_read_tokens': 0,
         'messages': 0,
         'model': None,
         'start_time': None,
@@ -48,22 +50,35 @@ def parse_session_file(jsonl_path):
                 try:
                     data = json.loads(line)
 
-                    # Extract model
-                    if not usage_data['model'] and 'model' in data:
-                        usage_data['model'] = data['model']
-
-                    # Extract timestamps
+                    # Extract timestamps (top-level field)
                     if 'timestamp' in data:
                         ts = datetime.fromisoformat(data['timestamp'].replace('Z', '+00:00'))
                         if not usage_data['start_time']:
                             usage_data['start_time'] = ts
                         usage_data['end_time'] = ts
 
-                    # Extract token usage
-                    if 'usage' in data:
-                        usage = data['usage']
-                        usage_data['input_tokens'] += usage.get('input_tokens', 0)
-                        usage_data['output_tokens'] += usage.get('output_tokens', 0)
+                    # In Claude Code JSONL, model and usage are nested
+                    # inside the 'message' object for assistant responses
+                    msg = data.get('message', {})
+
+                    # Extract model (inside message)
+                    if not usage_data['model'] and 'model' in msg:
+                        model = msg['model']
+                        if model != '<synthetic>':
+                            usage_data['model'] = model
+
+                    # Extract token usage (inside message.usage)
+                    usage = msg.get('usage', {})
+                    input_tok = usage.get('input_tokens', 0)
+                    output_tok = usage.get('output_tokens', 0)
+                    cache_create = usage.get('cache_creation_input_tokens', 0)
+                    cache_read = usage.get('cache_read_input_tokens', 0)
+
+                    if input_tok > 0 or output_tok > 0 or cache_create > 0 or cache_read > 0:
+                        usage_data['input_tokens'] += input_tok
+                        usage_data['output_tokens'] += output_tok
+                        usage_data['cache_creation_tokens'] += cache_create
+                        usage_data['cache_read_tokens'] += cache_read
                         usage_data['messages'] += 1
 
                 except json.JSONDecodeError:
@@ -74,21 +89,33 @@ def parse_session_file(jsonl_path):
 
     return usage_data
 
-def calculate_costs(input_tokens, output_tokens, model):
-    """Calculate cost and carbon for token usage"""
+def calculate_costs(input_tokens, output_tokens, model,
+                    cache_creation_tokens=0, cache_read_tokens=0):
+    """Calculate cost and carbon for token usage.
+    Cache creation is billed at 1.25x input price.
+    Cache reads are billed at 0.1x input price.
+    """
     if model not in PRICING:
         # Default to Sonnet if unknown
         model = 'claude-sonnet-4-5-20250929'
 
     pricing = PRICING[model]
 
+    input_cost = input_tokens * pricing['input']
+    output_cost = output_tokens * pricing['output']
+    cache_create_cost = cache_creation_tokens * pricing['input'] * 1.25
+    cache_read_cost = cache_read_tokens * pricing['input'] * 0.1
+
     cost = {
-        'input': input_tokens * pricing['input'],
-        'output': output_tokens * pricing['output'],
-        'total': (input_tokens * pricing['input']) + (output_tokens * pricing['output'])
+        'input': input_cost,
+        'output': output_cost,
+        'cache_creation': cache_create_cost,
+        'cache_read': cache_read_cost,
+        'total': input_cost + output_cost + cache_create_cost + cache_read_cost,
     }
 
-    carbon = ((input_tokens + output_tokens) / 1000) * pricing['carbon']
+    total_tokens = input_tokens + output_tokens + cache_creation_tokens + cache_read_tokens
+    carbon = (total_tokens / 1000) * pricing['carbon']
 
     return cost, carbon
 
@@ -106,7 +133,9 @@ def scan_all_sessions():
             continue
 
         usage = parse_session_file(jsonl_file)
-        if usage['input_tokens'] > 0 or usage['output_tokens'] > 0:
+        if (usage['input_tokens'] > 0 or usage['output_tokens'] > 0
+                or usage.get('cache_creation_tokens', 0) > 0
+                or usage.get('cache_read_tokens', 0) > 0):
             usage['session_file'] = str(jsonl_file)
             usage['session_id'] = jsonl_file.stem
             sessions.append(usage)
@@ -122,19 +151,25 @@ def generate_report(sessions, output_path=None):
     # Calculate totals
     total_input = sum(s['input_tokens'] for s in sessions)
     total_output = sum(s['output_tokens'] for s in sessions)
+    total_cache_create = sum(s.get('cache_creation_tokens', 0) for s in sessions)
+    total_cache_read = sum(s.get('cache_read_tokens', 0) for s in sessions)
     total_messages = sum(s['messages'] for s in sessions)
 
     # Group by model for cost calculation
-    costs_by_model = defaultdict(lambda: {'input': 0, 'output': 0})
+    costs_by_model = defaultdict(lambda: {'input': 0, 'output': 0,
+                                          'cache_creation': 0, 'cache_read': 0})
     for session in sessions:
         model = session['model'] or 'claude-sonnet-4-5-20250929'
         costs_by_model[model]['input'] += session['input_tokens']
         costs_by_model[model]['output'] += session['output_tokens']
+        costs_by_model[model]['cache_creation'] += session.get('cache_creation_tokens', 0)
+        costs_by_model[model]['cache_read'] += session.get('cache_read_tokens', 0)
 
     total_cost = 0
     total_carbon = 0
     for model, tokens in costs_by_model.items():
-        cost, carbon = calculate_costs(tokens['input'], tokens['output'], model)
+        cost, carbon = calculate_costs(tokens['input'], tokens['output'], model,
+                                       tokens['cache_creation'], tokens['cache_read'])
         total_cost += cost['total']
         total_carbon += carbon
 
@@ -152,7 +187,9 @@ def generate_report(sessions, output_path=None):
 |--------|-------|
 | **Input Tokens** | {total_input:,} |
 | **Output Tokens** | {total_output:,} |
-| **Total Tokens** | {total_input + total_output:,} |
+| **Cache Create Tokens** | {total_cache_create:,} |
+| **Cache Read Tokens** | {total_cache_read:,} |
+| **Total Tokens** | {total_input + total_output + total_cache_create + total_cache_read:,} |
 | **Messages** | {total_messages:,} |
 | **Total Cost** | ${total_cost:.2f} |
 | **Total Carbon** | {total_carbon:.2f}g CO₂e |
@@ -172,7 +209,9 @@ def generate_report(sessions, output_path=None):
     if sessions:
         current = sessions[0]
         model = current['model'] or 'claude-sonnet-4-5-20250929'
-        cost, carbon = calculate_costs(current['input_tokens'], current['output_tokens'], model)
+        cost, carbon = calculate_costs(current['input_tokens'], current['output_tokens'], model,
+                                       current.get('cache_creation_tokens', 0),
+                                       current.get('cache_read_tokens', 0))
 
         duration = "Unknown"
         if current['start_time'] and current['end_time']:
@@ -204,7 +243,9 @@ def generate_report(sessions, output_path=None):
 
         for session in sessions[:20]:  # Last 20 sessions
             model = session['model'] or 'claude-sonnet-4-5-20250929'
-            cost, carbon = calculate_costs(session['input_tokens'], session['output_tokens'], model)
+            cost, carbon = calculate_costs(session['input_tokens'], session['output_tokens'], model,
+                                           session.get('cache_creation_tokens', 0),
+                                           session.get('cache_read_tokens', 0))
 
             date = session['start_time'].strftime('%Y-%m-%d') if session['start_time'] else 'Unknown'
             duration = "?"
@@ -229,7 +270,8 @@ def generate_report(sessions, output_path=None):
 """
 
     for model, tokens in costs_by_model.items():
-        cost, carbon = calculate_costs(tokens['input'], tokens['output'], model)
+        cost, carbon = calculate_costs(tokens['input'], tokens['output'], model,
+                                       tokens['cache_creation'], tokens['cache_read'])
         model_name = model.split('-')[1].title() if '-' in model else model
         sessions_count = sum(1 for s in sessions if (s['model'] or 'claude-sonnet-4-5-20250929') == model)
 
@@ -237,6 +279,8 @@ def generate_report(sessions, output_path=None):
 - Sessions: {sessions_count}
 - Input: {tokens['input']:,} tokens (${cost['input']:.2f})
 - Output: {tokens['output']:,} tokens (${cost['output']:.2f})
+- Cache Create: {tokens['cache_creation']:,} tokens (${cost['cache_creation']:.2f})
+- Cache Read: {tokens['cache_read']:,} tokens (${cost['cache_read']:.2f})
 - Total: ${cost['total']:.2f} / {carbon:.2f}g CO₂e
 
 """
@@ -297,20 +341,27 @@ if __name__ == '__main__':
 
     total_input = sum(s['input_tokens'] for s in sessions)
     total_output = sum(s['output_tokens'] for s in sessions)
+    total_cache_create = sum(s.get('cache_creation_tokens', 0) for s in sessions)
+    total_cache_read = sum(s.get('cache_read_tokens', 0) for s in sessions)
 
-    costs_by_model = defaultdict(lambda: {'input': 0, 'output': 0})
+    costs_by_model = defaultdict(lambda: {'input': 0, 'output': 0,
+                                          'cache_creation': 0, 'cache_read': 0})
     for session in sessions:
         model = session['model'] or 'claude-sonnet-4-5-20250929'
         costs_by_model[model]['input'] += session['input_tokens']
         costs_by_model[model]['output'] += session['output_tokens']
+        costs_by_model[model]['cache_creation'] += session.get('cache_creation_tokens', 0)
+        costs_by_model[model]['cache_read'] += session.get('cache_read_tokens', 0)
 
     total_cost = 0
     total_carbon = 0
     for model, tokens in costs_by_model.items():
-        cost, carbon = calculate_costs(tokens['input'], tokens['output'], model)
+        cost, carbon = calculate_costs(tokens['input'], tokens['output'], model,
+                                       tokens['cache_creation'], tokens['cache_read'])
         total_cost += cost['total']
         total_carbon += carbon
 
-    print(f"   Tokens: {total_input + total_output:,}")
+    all_tokens = total_input + total_output + total_cache_create + total_cache_read
+    print(f"   Tokens: {all_tokens:,} (input: {total_input:,}, output: {total_output:,}, cache: {total_cache_create + total_cache_read:,})")
     print(f"   Cost: ${total_cost:.2f}")
     print(f"   Carbon: {total_carbon:.2f}g CO₂e")

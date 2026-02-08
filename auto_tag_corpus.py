@@ -6,6 +6,7 @@ Run every 2 weeks to keep knowledge graph fresh
 """
 
 import os
+import sys
 import re
 from pathlib import Path
 from collections import Counter, defaultdict
@@ -28,47 +29,113 @@ class TFIDFTagger:
         print("📚 Loading corpus...")
 
         for corpus_dir in self.corpus_dirs:
-            articles_dir = corpus_dir / 'articles'
-            if not articles_dir.exists():
-                print(f"   ⚠️  {articles_dir} not found, skipping")
-                continue
+            loaded = 0
 
-            for md_file in articles_dir.glob('*.md'):
-                content = md_file.read_text(encoding='utf-8')
-                self.documents.append({
-                    'path': md_file,
-                    'content': content
-                })
+            # Pattern 1: articles/*.md (most sources)
+            articles_dir = corpus_dir / 'articles'
+            if articles_dir.exists():
+                for md_file in articles_dir.glob('*.md'):
+                    content = md_file.read_text(encoding='utf-8')
+                    self.documents.append({
+                        'path': md_file,
+                        'content': content
+                    })
+                    loaded += 1
+
+            # Pattern 2: episodes/*/transcript.md (Lenny's Podcast)
+            episodes_dir = corpus_dir / 'episodes'
+            if episodes_dir.exists():
+                for md_file in episodes_dir.glob('*/transcript.md'):
+                    content = md_file.read_text(encoding='utf-8')
+                    self.documents.append({
+                        'path': md_file,
+                        'content': content
+                    })
+                    loaded += 1
+
+            # Pattern 3: how-i-ai/*.md (ChatPRD deep dives)
+            howiai_dir = corpus_dir / 'how-i-ai'
+            if howiai_dir.exists():
+                for md_file in howiai_dir.glob('*.md'):
+                    content = md_file.read_text(encoding='utf-8')
+                    self.documents.append({
+                        'path': md_file,
+                        'content': content
+                    })
+                    loaded += 1
+
+            if loaded == 0:
+                print(f"   ⚠️  No content found in {corpus_dir}")
+            else:
+                print(f"   ✅ {corpus_dir.name}: {loaded} documents")
 
         self.num_docs = len(self.documents)
-        print(f"   Loaded {self.num_docs} articles")
+        print(f"   Total: {self.num_docs} documents")
+
+    # Comprehensive stop words + web/markdown noise
+    STOP_WORDS = {
+        # Standard English stop words
+        'the', 'and', 'for', 'that', 'this', 'with', 'from', 'are', 'was',
+        'were', 'been', 'have', 'has', 'had', 'will', 'would', 'could',
+        'should', 'can', 'may', 'might', 'must', 'about', 'into', 'through',
+        'during', 'before', 'after', 'above', 'below', 'between', 'under',
+        'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where',
+        'why', 'how', 'all', 'both', 'each', 'few', 'more', 'most', 'other',
+        'some', 'such', 'only', 'own', 'same', 'than', 'too', 'very',
+        'also', 'just', 'like', 'know', 'think', 'want', 'going', 'really',
+        'make', 'made', 'much', 'many', 'well', 'back', 'even', 'still',
+        'way', 'take', 'come', 'came', 'went', 'look', 'see', 'seen',
+        'over', 'down', 'part', 'long', 'what', 'which', 'their', 'them',
+        'they', 'your', 'you', 'our', 'his', 'her', 'its', 'does', 'did',
+        'doing', 'done', 'being', 'those', 'these', 'because', 'while',
+        'until', 'since', 'though', 'actually', 'around', 'never', 'always',
+        'right', 'thing', 'things', 'something', 'anything', 'everything',
+        'nothing', 'someone', 'anyone', 'everyone', 'people', 'need',
+        'first', 'last', 'next', 'every', 'another', 'without', 'within',
+        'along', 'across', 'behind', 'beside', 'toward', 'whether',
+        'already', 'enough', 'rather', 'maybe', 'often', 'quite',
+        'especially', 'simply', 'however', 'although', 'getting',
+        'start', 'started', 'says', 'said', 'tell', 'told', 'keep',
+        'goes', 'gone', 'give', 'gave', 'given', 'feel', 'felt',
+        'trying', 'tried', 'able', 'sure', 'okay',
+        # Web/markdown/HTML noise
+        'http', 'https', 'www', 'html', 'href', 'image', 'file', 'link',
+        'click', 'read', 'subscribe', 'email', 'newsletter', 'sign',
+        'free', 'download', 'upload', 'post', 'blog', 'website', 'page',
+        'content', 'format', 'auto', 'scale', 'redirect', 'quality',
+        'width', 'height', 'display', 'none', 'block', 'inline',
+        'media', 'source', 'type', 'text', 'data', 'info', 'update',
+        'updates', 'live', 'news', 'list', 'public', 'share', 'view',
+        'open', 'close', 'help', 'using', 'used', 'uses',
+        'beehiiv', 'utm', 'campaign', 'medium', 'referral',
+        # Podcast/transcript noise
+        'yeah', 'okay', 'sort', 'kind', 'mean', 'guess', 'stuff',
+    }
 
     def tokenize(self, text):
-        """Extract meaningful terms (2-3 word phrases and single words)"""
+        """Extract meaningful terms (multi-word phrases preferred over singles)"""
         # Remove existing [[wiki-links]] to avoid re-tagging
         text = re.sub(r'\[\[(.*?)\]\]', r'\1', text)
+        # Remove URLs
+        text = re.sub(r'https?://\S+', '', text)
+        # Remove markdown image/link syntax
+        text = re.sub(r'!\[.*?\]\(.*?\)', '', text)
+        text = re.sub(r'\[.*?\]\(.*?\)', '', text)
 
-        # Convert to lowercase
         text = text.lower()
 
-        # Extract multi-word phrases (2-3 words)
-        # Pattern: word word OR word word word
-        phrases = re.findall(r'\b([a-z]+(?:\s+[a-z]+){1,2})\b', text)
+        # Extract multi-word phrases (2-3 words, all 4+ char words)
+        phrases = re.findall(r'\b([a-z]{4,}(?:\s+[a-z]{4,}){1,2})\b', text)
+        # Filter phrases containing stop words
+        phrases = [
+            p for p in phrases
+            if not any(w in self.STOP_WORDS for w in p.split())
+        ]
 
-        # Extract single words (longer than 3 chars, not common stop words)
-        stop_words = {
-            'the', 'and', 'for', 'that', 'this', 'with', 'from', 'are', 'was',
-            'were', 'been', 'have', 'has', 'had', 'will', 'would', 'could',
-            'should', 'can', 'may', 'might', 'must', 'about', 'into', 'through',
-            'during', 'before', 'after', 'above', 'below', 'between', 'under',
-            'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where',
-            'why', 'how', 'all', 'both', 'each', 'few', 'more', 'most', 'other',
-            'some', 'such', 'only', 'own', 'same', 'than', 'too', 'very'
-        }
-
+        # Single words: 5+ chars, not stop words
         words = [
-            word for word in re.findall(r'\b[a-z]{4,}\b', text)
-            if word not in stop_words
+            word for word in re.findall(r'\b[a-z]{5,}\b', text)
+            if word not in self.STOP_WORDS
         ]
 
         return phrases + words
@@ -106,19 +173,29 @@ class TFIDFTagger:
         print(f"   Computed scores for {len(self.doc_freq)} unique terms")
         return tfidf_scores
 
-    def extract_top_concepts(self, min_tfidf=0.01, min_doc_freq=3, max_concepts=500):
-        """Extract top concepts across entire corpus"""
+    def extract_top_concepts(self, min_tfidf=0.01, min_doc_freq=10,
+                             max_doc_ratio=0.4, max_concepts=200):
+        """Extract top concepts across entire corpus
+
+        Args:
+            min_tfidf: Minimum aggregated TF-IDF score
+            min_doc_freq: Must appear in at least this many docs
+            max_doc_ratio: Skip terms appearing in more than this fraction of docs
+            max_concepts: Maximum number of concepts to return
+        """
         print("🎯 Extracting top concepts...")
 
         tfidf_scores = self.compute_tfidf()
+        max_doc_count = int(self.num_docs * max_doc_ratio)
 
         # Aggregate TF-IDF scores across all documents
         concept_scores = Counter()
 
         for doc_id, scores in tfidf_scores.items():
             for term, score in scores.items():
-                # Only include terms that appear in multiple documents
-                if self.doc_freq[term] >= min_doc_freq:
+                df = self.doc_freq[term]
+                # Band-pass filter: not too rare, not too common
+                if min_doc_freq <= df <= max_doc_count:
                     concept_scores[term] += score
 
         # Get top concepts
@@ -127,32 +204,32 @@ class TFIDFTagger:
             if score >= min_tfidf
         ]
 
-        print(f"   Found {len(top_concepts)} top concepts")
+        print(f"   Found {len(top_concepts)} concepts "
+              f"(doc_freq: {min_doc_freq}-{max_doc_count}, "
+              f"max_doc_ratio: {max_doc_ratio})")
         return top_concepts
 
     def tag_document(self, content, concepts):
-        """Add [[wiki-links]] to content for discovered concepts"""
+        """Add [[wiki-links]] to content for discovered concepts.
+        Only tags first occurrence per concept to avoid over-linking."""
         # Sort concepts by length (longest first) to avoid partial matches
         concepts = sorted(concepts, key=len, reverse=True)
 
         for concept in concepts:
-            # Case-insensitive match, preserve original case
             pattern = re.compile(r'\b(' + re.escape(concept) + r')\b', re.IGNORECASE)
 
-            def replace_if_not_tagged(match):
-                # Check if already inside [[...]] or [...](...)
-                start = max(0, match.start() - 3)
-                end = min(len(content), match.end() + 3)
-                context = content[start:end]
+            # Tag only first occurrence (count=1) to keep articles readable
+            def make_replacer(full_content):
+                def replace_if_not_tagged(match):
+                    start = max(0, match.start() - 3)
+                    end = min(len(full_content), match.end() + 3)
+                    context = full_content[start:end]
+                    if '[[' in context or ']]' in context:
+                        return match.group(0)
+                    return f"[[{match.group(0)}]]"
+                return replace_if_not_tagged
 
-                if '[[' in context or ']]' in context:
-                    return match.group(0)
-                if context[match.start()-start-1:match.start()-start] == '[':
-                    return match.group(0)
-
-                return f"[[{match.group(0)}]]"
-
-            content = pattern.sub(replace_if_not_tagged, content)
+            content = pattern.sub(make_replacer(content), content, count=1)
 
         return content
 
@@ -212,8 +289,8 @@ def main():
     corpora = [
         '~/Development/jesse-cannon',
         '~/Development/cherie-hu',
-        '~/Development/chatprd',
-        '~/Development/lenny',
+        '~/Development/chatprd-blog',
+        '~/Development/lennys-podcast-transcripts',
         '~/Development/indie-hackers/pieter-levels',
         '~/Development/indie-hackers/justin-welsh',
         '~/Development/indie-hackers/daniel-vassallo'
@@ -230,11 +307,12 @@ def main():
     # Load corpus
     tagger.load_corpus()
 
-    # Extract concepts
+    # Extract concepts with band-pass filter
     concepts = tagger.extract_top_concepts(
-        min_tfidf=0.01,      # Minimum TF-IDF score
-        min_doc_freq=5,      # Must appear in at least 5 articles
-        max_concepts=300     # Top 300 concepts max
+        min_tfidf=0.01,       # Minimum TF-IDF score
+        min_doc_freq=10,      # Must appear in at least 10 articles
+        max_doc_ratio=0.4,    # Skip terms in >40% of docs (too common)
+        max_concepts=200      # Top 200 concepts max
     )
 
     print(f"\n📊 Top 20 Concepts:")
@@ -246,7 +324,10 @@ def main():
     tagger.tag_corpus(concepts, dry_run=True)
 
     # Confirm before actually tagging
-    response = input("\n⚠️  Tag corpus for real? This will modify files. (yes/no): ")
+    if '--auto-confirm' in sys.argv:
+        response = 'yes'
+    else:
+        response = input("\n⚠️  Tag corpus for real? This will modify files. (yes/no): ")
 
     if response.lower() == 'yes':
         tagger.tag_corpus(concepts, dry_run=False)

@@ -1,0 +1,157 @@
+# Advanced Multimedia Tools (Python 3.14 Compatible)
+# Extends requirements-working.txt with specialized tools
+
+# ========================================
+# AUDIO - ADVANCED
+# ========================================
+
+# Spotify's professional audio effects library
+pedalboard>=0.9.0
+# - Reverb, Delay, Distortion, Chorus, Compressor, Limiter
+# - Built on JUCE, same framework as our plugins
+# - VST3 plugin hosting capability
+# - Professional DSP algorithms
+
+# Time stretching and pitch shifting
+pyrubberband>=0.4.0
+# - Rubberband audio time-stretcher library
+# - Independent pitch and tempo control
+# - Formant preservation
+# - Real-time capable
+
+# aubio - Music analysis (FAILED - Python 3.14 incompatible)
+# - Onset detection, pitch tracking, beat tracking
+# - Wait for Python 3.14 support or use older Python
+
+# ========================================
+# IMAGE - ADVANCED
+# ========================================
+
+# ImageMagick Python bindings
+wand>=0.6.0
+# - Advanced image manipulation
+# - Format conversion
+# - Effects and filters
+# - More powerful than Pillow for complex operations
+
+# RAW photo processing
+rawpy>=0.26.0
+# - Read RAW camera formats (CR2, NEF, DNG, etc.)
+# - Convert to RGB/grayscale
+# - White balance and exposure control
+# - Professional photo workflow
+
+# ========================================
+# VIDEO - ADVANCED (to test)
+# ========================================
+
+# vidgear>=0.3.0  # High-performance video I/O
+# av>=13.0.0      # PyAV - low-level video access
+# scikit-video>=1.1.0  # Video analysis
+
+# ========================================
+# USAGE EXAMPLES
+# ========================================
+
+# Pedalboard (Audio Effects)
+"""
+from pedalboard import Pedalboard, Reverb, Compressor, Distortion
+from pedalboard.io import AudioFile
+
+# Create effect chain
+board = Pedalboard([
+    Compressor(threshold_db=-20, ratio=4),
+    Distortion(drive_db=25),
+    Reverb(room_size=0.5)
+])
+
+# Apply to audio file
+with AudioFile('input.wav') as f:
+    audio = f.read(f.frames)
+    effected = board(audio, f.samplerate)
+    with AudioFile('output.wav', 'w', f.samplerate, audio.shape[0]) as out:
+        out.write(effected)
+"""
+
+# Pyrubberband (Time Stretching)
+"""
+import pyrubberband as pyrb
+import soundfile as sf
+
+# Load audio
+audio, sr = sf.read('input.wav')
+
+# Time stretch (2x slower) without pitch change
+stretched = pyrb.time_stretch(audio, sr, 2.0)
+
+# Pitch shift (+5 semitones) without tempo change
+shifted = pyrb.pitch_shift(audio, sr, 5)
+
+sf.write('stretched.wav', stretched, sr)
+"""
+
+# Wand (ImageMagick)
+"""
+from wand.image import Image
+
+with Image(filename='photo.jpg') as img:
+    # Resize
+    img.resize(800, 600)
+
+    # Apply effects
+    img.modulate(brightness=110, saturation=120)
+    img.sharpen(radius=0, sigma=1.0)
+
+    # Save
+    img.save(filename='processed.jpg')
+"""
+
+# Rawpy (RAW Photos)
+"""
+import rawpy
+import imageio
+
+# Open RAW file
+with rawpy.imread('photo.CR2') as raw:
+    # Process with auto white balance
+    rgb = raw.postprocess(
+        use_camera_wb=True,
+        half_size=False,
+        no_auto_bright=False,
+        output_bps=16
+    )
+
+# Save as TIFF
+imageio.imsave('photo.tiff', rgb)
+"""
+
+# ========================================
+# INSTALLATION NOTES
+# ========================================
+
+# System dependencies (macOS):
+# - ImageMagick: brew install imagemagick
+# - Rubberband: brew install rubberband
+
+# Python 3.14 compatibility:
+# ✅ pedalboard - Works
+# ✅ pyrubberband - Works
+# ✅ wand - Works
+# ✅ rawpy - Works
+# ❌ aubio - Compilation fails, wait for update
+
+# ========================================
+# INTEGRATION WITH EXISTING TOOLS
+# ========================================
+
+# Combine with requirements-working.txt:
+# - Use librosa for analysis
+# - Use pedalboard for effects
+# - Use pyrubberband for time/pitch
+# - Use soundfile for I/O
+
+# Example workflow:
+# 1. librosa.load() -> Load audio
+# 2. pyrubberband.pitch_shift() -> Transpose
+# 3. pedalboard effects -> Apply reverb/distortion
+# 4. soundfile.write() -> Save result

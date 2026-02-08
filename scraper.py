@@ -381,7 +381,7 @@ class BeehiivScraper(AdvisorScraper):
                     from datetime import datetime
                     parsed_date = datetime.strptime(date[:20], fmt).strftime('%Y-%m-%d')
                     break
-                except:
+                except (ValueError, TypeError):
                     continue
             if not parsed_date:
                 parsed_date = date[:10]  # First 10 chars fallback
@@ -809,20 +809,850 @@ class SmallBetsScraper(AdvisorScraper):
         }
 
 
+class JNDScraper(AdvisorScraper):
+    """Scraper for jnd.org (Don Norman essays/articles) - WordPress"""
+
+    def extract_article_urls(self, archive_url):
+        """Extract article URLs from jnd.org/essay-articles/ with pagination"""
+        urls = []
+        base_archive = archive_url.rstrip('/') + '/essay-articles/'
+        page = 1
+        max_pages = 30
+
+        while page <= max_pages:
+            page_url = f"{base_archive}page/{page}/" if page > 1 else base_archive
+            print(f"   Checking page {page}...")
+
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                if href.startswith('https://jnd.org/') and href != 'https://jnd.org/' \
+                   and '/essay-articles/' not in href and '/category/' not in href \
+                   and '/tag/' not in href and '/page/' not in href \
+                   and '/books/' not in href and '/videos/' not in href \
+                   and '/about' not in href and '#' not in href \
+                   and href not in urls:
+                    # Check it looks like an article slug
+                    path = urlparse(href).path.strip('/')
+                    if path and '/' not in path:
+                        urls.append(href)
+                        found += 1
+
+            if found == 0:
+                break
+            page += 1
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract Don Norman article content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title: use <title> tag and strip site suffix
+        title = None
+        title_tag = soup.find('title')
+        if title_tag:
+            title = title_tag.text.strip()
+            # Strip common suffixes
+            for suffix in [" – Don Norman's JND.org", " - Don Norman", " | jnd.org"]:
+                if suffix in title:
+                    title = title.split(suffix)[0].strip()
+        if not title or title.lower() == 'jnd.org':
+            title = 'Untitled'
+
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem:
+            date = time_elem.get('datetime', time_elem.text.strip())
+        if not date:
+            meta_date = soup.find('meta', property='article:published_time')
+            if meta_date:
+                date = meta_date.get('content', '')
+
+        author = 'Don Norman'
+
+        # Content: use editor-content div (JND-specific) then fallbacks
+        content = None
+        content_div = soup.find('div', class_='editor-content')
+        if content_div:
+            content = md(str(content_div))
+        if not content:
+            # Fallback: category-tab-content
+            content_div = soup.find('div', class_='category-tab-content')
+            if content_div:
+                content = md(str(content_div))
+        if not content:
+            main = soup.find('main', class_='site-main')
+            if main:
+                content = md(str(main))
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date[:10] if date else '',
+            'author': author,
+            'content': content
+        }
+
+
+class NNGroupScraper(AdvisorScraper):
+    """Scraper for nngroup.com articles (Nielsen Norman Group)"""
+
+    def extract_article_urls(self, archive_url):
+        """Extract article URLs from nngroup.com/articles/ with pagination"""
+        urls = []
+        base_archive = 'https://www.nngroup.com/articles/'
+        page = 1
+        max_pages = 50
+
+        while page <= max_pages:
+            page_url = f"{base_archive}?page={page}" if page > 1 else base_archive
+            print(f"   Checking page {page}...")
+
+            response = self.fetch_page(page_url)
+            if not response:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin('https://www.nngroup.com', href)
+                if '/articles/' in href and href != '/articles/' \
+                   and '?page=' not in href and full_url not in urls:
+                    path = urlparse(full_url).path
+                    parts = [p for p in path.split('/') if p]
+                    if len(parts) == 2 and parts[0] == 'articles':
+                        urls.append(full_url)
+                        found += 1
+
+            if found == 0:
+                break
+            page += 1
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract NNGroup article content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        title = None
+        h1 = soup.find('h1')
+        if h1:
+            title = h1.text.strip()
+        if not title:
+            title = 'Untitled'
+
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem:
+            date = time_elem.get('datetime', time_elem.text.strip())
+        if not date:
+            meta_date = soup.find('meta', property='article:published_time')
+            if meta_date:
+                date = meta_date.get('content', '')
+
+        author = 'Nielsen Norman Group'
+        author_elem = soup.find('span', class_='article-author') or soup.find('a', rel='author')
+        if author_elem:
+            author = author_elem.text.strip()
+
+        content = None
+        article = soup.find('article')
+        if article:
+            content = md(str(article))
+        if not content or len(content) < 100:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date[:10] if date else '',
+            'author': author,
+            'content': content
+        }
+
+
+class ValhallaScraper(AdvisorScraper):
+    """Scraper for Valhalla DSP blog (Sean Costello)"""
+
+    def extract_article_urls(self, archive_url):
+        """Extract article URLs from valhalladsp.com/blog/"""
+        urls = []
+        page = 1
+        max_pages = 20
+
+        while page <= max_pages:
+            page_url = f"{self.base_url}/blog/page/{page}/" if page > 1 else f"{self.base_url}/blog/"
+            print(f"   Checking page {page}...")
+
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                if 'valhalladsp.com/' in href and '/blog/' not in href \
+                   and '/category/' not in href and '/tag/' not in href \
+                   and '/page/' not in href and '/author/' not in href \
+                   and '#' not in href:
+                    # Match date-based WordPress URLs: /YYYY/MM/DD/slug/
+                    path = urlparse(href).path.strip('/')
+                    parts = path.split('/')
+                    if len(parts) >= 4:
+                        try:
+                            int(parts[0])  # year
+                            int(parts[1])  # month
+                            int(parts[2])  # day
+                            if href not in urls:
+                                urls.append(href)
+                                found += 1
+                        except (ValueError, IndexError):
+                            pass
+
+            if found == 0:
+                break
+            page += 1
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract Valhalla DSP article content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        title = None
+        for selector in ['h1', 'h2.entry-title', 'h1.entry-title']:
+            elem = soup.select_one(selector)
+            if elem and elem.text.strip():
+                title = elem.text.strip()
+                break
+        if not title:
+            title = 'Untitled'
+
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem:
+            date = time_elem.get('datetime', time_elem.text.strip())
+        if not date:
+            meta_date = soup.find('meta', property='article:published_time')
+            if meta_date:
+                date = meta_date.get('content', '')
+
+        author = 'Sean Costello'
+
+        content = None
+        for cls in ['entry-content', 'post-content', 'hentry']:
+            content_div = soup.find('div', class_=cls)
+            if content_div:
+                content = md(str(content_div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date[:10] if date else '',
+            'author': author,
+            'content': content
+        }
+
+
+class AirwindowsScraper(AdvisorScraper):
+    """Scraper for airwindows.com (Chris Johnson - open source plugins)"""
+
+    def extract_article_urls(self, archive_url):
+        """Extract article URLs from airwindows.com - WordPress with pagination"""
+        urls = []
+        page = 1
+        max_pages = 100  # Large site, many posts
+
+        while page <= max_pages:
+            page_url = f"{self.base_url}/page/{page}/" if page > 1 else self.base_url
+            print(f"   Checking page {page}...")
+
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+
+            # Airwindows uses h2 > a for post titles
+            for h2 in soup.find_all('h2'):
+                link = h2.find('a', href=True)
+                if link:
+                    href = link['href']
+                    if 'airwindows.com/' in href and '/page/' not in href \
+                       and '/category/' not in href and '/tag/' not in href \
+                       and '#' not in href and href not in urls:
+                        urls.append(href)
+                        found += 1
+
+            if found == 0:
+                break
+            page += 1
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract Airwindows article content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title: use <title> tag first (most reliable), strip site suffix
+        title = None
+        title_tag = soup.find('title')
+        if title_tag:
+            title = title_tag.text.strip()
+            for suffix in [' | Airwindows', ' - Airwindows']:
+                if suffix in title:
+                    title = title.split(suffix)[0].strip()
+        if not title or title.lower() in ['airwindows', '']:
+            # Fallback: first h2 with a link
+            h2 = soup.find('h2')
+            if h2:
+                title_link = h2.find('a')
+                title = title_link.text.strip() if title_link else h2.text.strip()
+        if not title:
+            title = 'Untitled'
+
+        # Date from metadata dl/dd/span list
+        date = ''
+        # Strategy 1: look for spans with date-like text
+        for span in soup.find_all('span'):
+            text = span.text.strip()
+            if text and any(m in text for m in ['January', 'February', 'March', 'April',
+                'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']):
+                if ',' in text and len(text) < 30:
+                    date = text
+                    break
+        # Strategy 2: dl/dt/dd
+        if not date:
+            dt_elements = soup.find_all('dt')
+            for dt in dt_elements:
+                if 'Date' in dt.text:
+                    dd = dt.find_next_sibling('dd')
+                    if dd:
+                        date = dd.text.strip()
+                        break
+        if not date:
+            time_elem = soup.find('time')
+            if time_elem:
+                date = time_elem.get('datetime', time_elem.text.strip())
+
+        # Parse date
+        parsed_date = ''
+        if date:
+            for fmt in ['%B %d, %Y', '%Y-%m-%d', '%b %d, %Y']:
+                try:
+                    parsed_date = datetime.strptime(date.strip(), fmt).strftime('%Y-%m-%d')
+                    break
+                except (ValueError, TypeError):
+                    continue
+            if not parsed_date:
+                parsed_date = date[:10]
+
+        author = 'Chris Johnson'
+
+        # Extract content - stop before comments
+        content = None
+        for cls in ['entry-content', 'post-content']:
+            content_div = soup.find('div', class_=cls)
+            if content_div:
+                content = md(str(content_div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        if not content:
+            # Fallback: get all content between title and comments
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': parsed_date,
+            'author': author,
+            'content': content
+        }
+
+
+class EFluxScraper(AdvisorScraper):
+    """Scraper for e-flux Journal (art critical theory)"""
+
+    def extract_article_urls(self, archive_url):
+        """Extract article URLs from e-flux journal - issue-based"""
+        urls = []
+
+        # Scrape issues 1 through 160
+        for issue_num in range(1, 161):
+            issue_url = f"https://www.e-flux.com/journal/{issue_num}/"
+            print(f"   Checking issue {issue_num}/160...")
+
+            response = self.fetch_page(issue_url)
+            if not response:
+                continue
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin('https://www.e-flux.com', href)
+                # Match pattern: /journal/NNN/NNNNNNN/slug
+                if f'/journal/{issue_num}/' in full_url and full_url.count('/') >= 6:
+                    path = urlparse(full_url).path.strip('/')
+                    parts = path.split('/')
+                    if len(parts) >= 3 and parts[0] == 'journal':
+                        if full_url not in urls:
+                            urls.append(full_url)
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract e-flux article content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        title = None
+        h1 = soup.find('h1', class_='article__header-title')
+        if h1:
+            title = h1.text.strip()
+        if not title:
+            h1 = soup.find('h1')
+            if h1:
+                title = h1.text.strip()
+        if not title:
+            title = 'Untitled'
+
+        # Author
+        author = 'e-flux'
+        author_elem = soup.find('h2', class_='article__header-authors')
+        if author_elem and author_elem.text.strip():
+            author = author_elem.text.strip()
+
+        # Date/Issue
+        date = ''
+        date_div = soup.find('div', class_='journalarticle__date')
+        if date_div:
+            date = date_div.text.strip()
+        issue_div = soup.find('div', class_='journalarticle__issue')
+        issue_info = issue_div.text.strip() if issue_div else ''
+
+        # Content
+        content = None
+        body = soup.find('div', class_='article__body')
+        if body:
+            content = md(str(body))
+        if not content:
+            content_div = soup.find('div', class_='article__content')
+            if content_div:
+                content = md(str(content_div))
+        if not content:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        if not content:
+            content = "Content extraction failed"
+
+        # Prepend issue info
+        if issue_info:
+            content = f"*{issue_info}*\n\n{content}"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date,
+            'author': author,
+            'content': content
+        }
+
+
+class HyperallegicScraper(AdvisorScraper):
+    """Scraper for Hyperallergic (art criticism/news) - Ghost CMS"""
+
+    def extract_article_urls(self, archive_url):
+        """Extract article URLs from hyperallergic.com with pagination"""
+        urls = []
+        page = 1
+        max_pages = 50  # ~500 articles
+
+        while page <= max_pages:
+            page_url = f"{self.base_url}/page/{page}/" if page > 1 else self.base_url
+            print(f"   Checking page {page}...")
+
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                # Skip tag, author, page links
+                if 'hyperallergic.com/' in full_url \
+                   and '/tag/' not in full_url \
+                   and '/author/' not in full_url \
+                   and '/page/' not in full_url \
+                   and '#' not in full_url \
+                   and full_url != self.base_url \
+                   and full_url != self.base_url + '/':
+                    path = urlparse(full_url).path.strip('/')
+                    # Articles are slug-only (no nested paths)
+                    if path and '/' not in path and len(path) > 5:
+                        if full_url not in urls:
+                            urls.append(full_url)
+                            found += 1
+
+            if found == 0:
+                break
+            page += 1
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract Hyperallergic article content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        title = None
+        h1 = soup.find('h1')
+        if h1:
+            title = h1.text.strip()
+        if not title:
+            title = 'Untitled'
+
+        # Try JSON-LD structured data first
+        date = ''
+        author = 'Hyperallergic'
+        script = soup.find('script', type='application/ld+json')
+        if script:
+            try:
+                data = json.loads(script.string)
+                if isinstance(data, list):
+                    data = data[0]
+                date = data.get('datePublished', '')[:10]
+                author_data = data.get('author', {})
+                if isinstance(author_data, dict):
+                    author = author_data.get('name', author)
+                elif isinstance(author_data, list) and author_data:
+                    author = author_data[0].get('name', author)
+            except (json.JSONDecodeError, AttributeError, TypeError):
+                pass
+
+        if not date:
+            time_elem = soup.find('time')
+            if time_elem:
+                date = time_elem.get('datetime', time_elem.text.strip())[:10]
+
+        # Content - Ghost CMS uses gh-content class
+        content = None
+        for cls in ['gh-content', 'post-content', 'article-content', 'entry-content']:
+            content_div = soup.find('div', class_=cls)
+            if content_div:
+                content = md(str(content_div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        if not content:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date,
+            'author': author,
+            'content': content
+        }
+
+
+class FabFilterScraper(AdvisorScraper):
+    """Scraper for FabFilter Learn (audio education)"""
+
+    def extract_article_urls(self, archive_url):
+        """Extract tutorial URLs from fabfilter.com/learn - spider all categories"""
+        urls = []
+        categories = [
+            'equalization', 'compression', 'reverb', 'mixing',
+            'science-of-sound', 'synthesis-and-sound-design'
+        ]
+
+        # Spider each category page for article links
+        for cat in categories:
+            cat_url = f'https://www.fabfilter.com/learn/{cat}/'
+            print(f"   Checking category: {cat}...")
+
+            response = self.fetch_page(cat_url)
+            if not response:
+                continue
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin('https://www.fabfilter.com', href)
+                if f'/learn/{cat}/' in full_url and full_url != cat_url:
+                    path = urlparse(full_url).path.strip('/')
+                    parts = [p for p in path.split('/') if p]
+                    if len(parts) == 3 and parts[0] == 'learn':
+                        if full_url not in urls:
+                            urls.append(full_url)
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract FabFilter tutorial content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title: use <title> tag and strip site/prefix names
+        title = None
+        title_tag = soup.find('title')
+        if title_tag:
+            title = title_tag.text.strip()
+            # Strip prefixes and suffixes
+            for pattern in [' | FabFilter', ' - FabFilter']:
+                if pattern in title:
+                    title = title.split(pattern)[0].strip()
+            # Strip "FabFilter Learn - Category - " prefix
+            if title.startswith('FabFilter Learn'):
+                parts = title.split(' - ')
+                if len(parts) >= 3:
+                    title = ' - '.join(parts[2:]).strip()
+                elif len(parts) >= 2:
+                    title = parts[-1].strip()
+        if not title or title == 'FabFilter' or title == 'FabFilter Learn':
+            # Try h2 elements (skip "menu" and category headers)
+            for h2 in soup.find_all('h2'):
+                text = h2.text.strip()
+                if text.lower() not in ['menu', 'equalization', 'compression',
+                    'reverb', 'mixing', 'science of sound', 'synthesis and sound design']:
+                    title = text
+                    break
+        if not title:
+            title = 'Untitled'
+
+        # Category from URL
+        path_parts = urlparse(url).path.strip('/').split('/')
+        category = path_parts[1] if len(path_parts) >= 2 else 'general'
+
+        author = 'FabFilter'
+        date = ''
+
+        # Content: use main-content div (FabFilter-specific)
+        content = None
+        content_div = soup.find('div', class_='main-content')
+        if content_div:
+            content = md(str(content_div))
+        if not content:
+            content_div = soup.find('div', class_='article-page')
+            if content_div:
+                content = md(str(content_div))
+        if not content:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        if not content:
+            content = "Content extraction failed"
+
+        # Prepend category
+        content = f"*Category: {category.replace('-', ' ').title()}*\n\n{content}"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date,
+            'author': author,
+            'content': content
+        }
+
+
+class CreativeCapitalScraper(AdvisorScraper):
+    """Scraper for Creative Capital awardees (grant data for Atrium skill)"""
+
+    def extract_article_urls(self, archive_url):
+        """Extract awardee/event URLs from creative-capital.org"""
+        urls = []
+
+        # Try awardee index
+        for page_path in ['/awardee-index/', '/explore-stories/', '/explore-stories/events/']:
+            page_url = urljoin(self.base_url, page_path)
+            print(f"   Checking {page_path}...")
+
+            response = self.fetch_page(page_url)
+            if not response:
+                continue
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                if 'creative-capital.org/' in full_url:
+                    path = urlparse(full_url).path.strip('/')
+                    # Match event or awardee pages
+                    if path.startswith('events/') or path.startswith('awardees/') \
+                       or path.startswith('projects/'):
+                        if full_url not in urls:
+                            urls.append(full_url)
+
+        # Paginate through events
+        page = 2
+        max_pages = 20
+        while page <= max_pages:
+            page_url = f"{self.base_url}/explore-stories/events/page/{page}/"
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                if 'creative-capital.org/events/' in full_url and full_url not in urls:
+                    urls.append(full_url)
+                    found += 1
+            if found == 0:
+                break
+            page += 1
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract Creative Capital awardee/event content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        title = None
+        h1 = soup.find('h1')
+        if h1:
+            title = h1.text.strip()
+        if not title:
+            title = 'Untitled'
+
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem:
+            date = time_elem.get('datetime', time_elem.text.strip())
+
+        author = 'Creative Capital'
+
+        content = None
+        article = soup.find('article')
+        if article:
+            content = md(str(article))
+        if not content:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        if not content:
+            # Largest text block fallback
+            candidates = soup.find_all(['div', 'section'])
+            max_length = 0
+            best = None
+            for c in candidates:
+                length = len(c.get_text(strip=True))
+                if length > max_length:
+                    max_length = length
+                    best = c
+            if best and max_length > 200:
+                content = md(str(best))
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date[:10] if date else '',
+            'author': author,
+            'content': content
+        }
+
+
 def main():
     """CLI entry point"""
     if len(sys.argv) < 3:
         print("Usage: python scraper.py <source-type> <base-url> <output-dir>")
         print("\nSource types:")
-        print("  beehiiv       - Beehiiv newsletters (Jesse Cannon, etc.)")
-        print("  chatprd       - ChatPRD blog")
-        print("  waterandmusic - Water & Music research platform (Cherie Hu)")
-        print("  levelsio      - levels.io blog (Pieter Levels)")
-        print("  justinwelsh   - Justin Welsh articles")
-        print("  smallbets     - Small Bets newsletter (Daniel Vassallo)")
+        print("  beehiiv          - Beehiiv newsletters (Jesse Cannon, etc.)")
+        print("  chatprd          - ChatPRD blog")
+        print("  waterandmusic    - Water & Music research platform (Cherie Hu)")
+        print("  levelsio         - levels.io blog (Pieter Levels)")
+        print("  justinwelsh      - Justin Welsh articles")
+        print("  smallbets        - Small Bets newsletter (Daniel Vassallo)")
+        print("  jnd              - Don Norman essays (jnd.org)")
+        print("  nngroup          - Nielsen Norman Group articles")
+        print("  valhalla         - Valhalla DSP blog (Sean Costello)")
+        print("  airwindows       - Airwindows plugins blog (Chris Johnson)")
+        print("  eflux            - e-flux Journal (art critical theory)")
+        print("  hyperallergic    - Hyperallergic (art criticism)")
+        print("  fabfilter        - FabFilter Learn (audio education)")
+        print("  creativecapital  - Creative Capital awardees (grants)")
         print("\nExample:")
         print("  python scraper.py beehiiv https://musicmarketingtrends.beehiiv.com ~/Development/jesse-cannon")
-        print("  python scraper.py levelsio https://levels.io ~/Development/indie-hackers/pieter-levels")
+        print("  python scraper.py valhalla https://valhalladsp.com ~/Development/valhalla-dsp")
+        print("  python scraper.py eflux https://www.e-flux.com ~/Development/e-flux-journal")
         sys.exit(1)
 
     source_type = sys.argv[1]
@@ -837,6 +1667,14 @@ def main():
         'levelsio': LevelsIOScraper,
         'justinwelsh': JustinWelshScraper,
         'smallbets': SmallBetsScraper,
+        'jnd': JNDScraper,
+        'nngroup': NNGroupScraper,
+        'valhalla': ValhallaScraper,
+        'airwindows': AirwindowsScraper,
+        'eflux': EFluxScraper,
+        'hyperallergic': HyperallegicScraper,
+        'fabfilter': FabFilterScraper,
+        'creativecapital': CreativeCapitalScraper,
     }
 
     if source_type not in scrapers:
