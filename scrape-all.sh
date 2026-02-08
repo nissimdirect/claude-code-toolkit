@@ -125,6 +125,12 @@ python "$TOOLS_DIR/scraper.py" creativecapital \
     https://creative-capital.org \
     "$DEV_DIR/art-criticism/creative-capital"
 
+# Kilohearts Blog (Plugin Development + Sound Design)
+echo "1️⃣5️⃣ Kilohearts - Plugin Development & Sound Design"
+python "$TOOLS_DIR/scraper.py" kilohearts \
+    https://kilohearts.com/blog \
+    "$DEV_DIR/plugin-devs/kilohearts"
+
 echo ""
 echo "✅ All sources scraped!"
 echo ""
@@ -145,6 +151,7 @@ echo "   e-flux Journal: $(find $DEV_DIR/art-criticism/e-flux-journal/articles -
 echo "   Hyperallergic: $(find $DEV_DIR/art-criticism/hyperallergic/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo "   FabFilter: $(find $DEV_DIR/plugin-devs/fabfilter/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo "   Creative Capital: $(find $DEV_DIR/art-criticism/creative-capital/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
+echo "   Kilohearts: $(find $DEV_DIR/plugin-devs/kilohearts/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo ""
 echo "💰 Tokens burned: 0"
 echo "🌳 Carbon impact: Minimal (code execution only)"

@@ -1090,6 +1090,80 @@ class ValhallaScraper(AdvisorScraper):
         }
 
 
+class KiloheartsScraper(AdvisorScraper):
+    """Scraper for kilohearts.com/blog (plugin development + sound design)"""
+
+    def extract_article_urls(self, archive_url):
+        """Extract article URLs from kilohearts.com/blog - single page, all posts"""
+        urls = []
+        response = self.fetch_page(f"{self.base_url}/blog")
+        if not response:
+            return urls
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            if href.startswith('/blog/') and href != '/blog/' and href != '/blog':
+                full_url = f"{self.base_url}{href}" if not href.startswith('http') else href
+                if full_url not in urls:
+                    urls.append(full_url)
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract Kilohearts blog post content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        title = None
+        for selector in ['h1', 'h2']:
+            elem = soup.select_one(selector)
+            if elem and elem.text.strip():
+                title = elem.text.strip()
+                break
+        if not title:
+            title = 'Untitled'
+
+        date = ''
+        meta_date = soup.find('meta', property='article:published_time')
+        if meta_date:
+            date = meta_date.get('content', '')
+        if not date:
+            time_elem = soup.find('time')
+            if time_elem:
+                date = time_elem.get('datetime', time_elem.text.strip())
+
+        author = 'Kilohearts'
+
+        content = None
+        for cls in ['article-content', 'post-content', 'entry-content', 'blog-content']:
+            content_div = soup.find('div', class_=cls)
+            if content_div:
+                content = md(str(content_div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        if not content:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date[:10] if date else '',
+            'author': author,
+            'content': content
+        }
+
+
 class AirwindowsScraper(AdvisorScraper):
     """Scraper for airwindows.com (Chris Johnson - open source plugins)"""
 
@@ -2246,6 +2320,8 @@ def main():
         'brandnew': BrandNewScraper,
         'designobserver': DesignObserverScraper,
         'creativereview': CreativeReviewScraper,
+        # Plugin dev blogs
+        'kilohearts': KiloheartsScraper,
     }
 
     if source_type not in scrapers:
