@@ -1,0 +1,117 @@
+================================================================================
+CLAUDE CODE HIDDEN COSTS - TRANSCRIPT ANALYSIS
+================================================================================
+
+## VERIFIED INSIGHTS (Patterns confirmed across multiple videos)
+
+### Cost Drivers (what causes unexpected bills):
+  - prompt[s]? (mentioned in 16 videos)
+  - session[s]? (mentioned in 13 videos)
+  - context window (mentioned in 5 videos)
+  - token usage (mentioned in 3 videos)
+  - cache (mentioned in 3 videos)
+
+### Reduction Strategies:
+  - Check local ~/.claude/ directory for data (mentioned in 4 videos)
+  - Use Claude Code Usage Monitor (mentioned in 2 videos)
+
+### Warnings About Cost Traps:
+  - Anthropic hides cost data from users (mentioned in 2 videos)
+  - Light users may subsidize power users (mentioned in 1 videos)
+  - Hitting quota means no access for hours (mentioned in 1 videos)
+  - Estimates can be wrong without --plan flag (mentioned in 1 videos)
+  - Power users caused weekly caps (mentioned in 1 videos)
+
+================================================================================
+## CLAIMS NEEDING VERIFICATION (Pricing changes constantly)
+
+### Pricing Tier Mentions (VERIFY CURRENT PRICES):
+  - pro (mentioned in 1649 videos)
+  - API (mentioned in 192 videos)
+  - max (mentioned in 63 videos)
+  - Max (mentioned in 48 videos)
+  - Pro (mentioned in 45 videos)
+  - $100  (mentioned in 29 videos)
+  - monthly plan (mentioned in 28 videos)
+  - $20  (mentioned in 26 videos)
+  - $20 a month (mentioned in 19 videos)
+  - $200  (mentioned in 18 videos)
+  - $100 a month (mentioned in 16 videos)
+  - $200 a month (mentioned in 15 videos)
+  - subscription (mentioned in 15 videos)
+  - $1 (mentioned in 9 videos)
+  - api (mentioned in 6 videos)
+
+WARNING: These prices are from YouTube videos and may be outdated.
+Always check https://www.anthropic.com/pricing for current rates.
+
+================================================================================
+## ALTERNATIVE TOOLS MENTIONED
+
+  - Cursor (mentioned in 9 videos)
+    ^ BIAS INDICATOR: Video may be promoting alternative
+  - Copilot (mentioned in 1 videos)
+  - Windsurf (mentioned in 1 videos)
+
+================================================================================
+## ACTIONABLE COST SAVINGS WE COULD IMPLEMENT
+
+1. ALREADY IMPLEMENTED: We have resource tracker (track_resources.py)
+   - 3-layer system: Budget/Value/Environmental
+   - Tracks 5-hour rolling window
+   - Outputs to ~/Documents/Obsidian/process/RESOURCE-TRACKER.md
+
+2. EVALUATE: API vs Monthly Plan
+   - Use monthly view to compare actual usage vs $100/month plan
+   - If typically using <$100/month in API costs, switch to API
+   - Resource tracker already shows this data
+
+3. DATA ACCESS: ~/.claude/projects/ contains JSONL files
+   - Each session creates a file with token counts
+   - input_tokens and output_tokens are logged per message
+   - Can build custom analytics from this data
+
+4. CONTEXT MANAGEMENT (from CLAUDE.md):
+   - Use /compact at ~50% context usage (don't wait for 75%)
+   - Check files before reading with context_db.should_reread_file()
+   - Budget automation hooks already active
+
+================================================================================
+## PER-VIDEO DETAILS
+
+Video ID: 4nthc76rSl8.en
+  Text Length: 308058 chars
+
+Video ID: 7WuKgc3-_-s.en
+  Text Length: 47211 chars
+
+Video ID: Ak6qpQ5qdgk.en
+  Text Length: 53045 chars
+
+Video ID: Br5Ofobq6Is.en
+  Text Length: 13726 chars
+
+Video ID: CSt23RTkmbQ.en
+  Text Length: 55318 chars
+
+... and 14 more videos
+
+================================================================================
+## CONTRADICTIONS BETWEEN CREATORS
+
+(Analyzing comparative claims...)
+
+WARNING: Multiple different monthly price points mentioned:
+  - $100.0/month (in 16 videos)
+  - $17.0/month (in 1 videos)
+  - $20.0/month (in 22 videos)
+  - $200.0/month (in 15 videos)
+  - $37.0/month (in 3 videos)
+
+This likely indicates pricing has changed over time.
+VERIFY current pricing at https://www.anthropic.com/pricing
+
+================================================================================
+ANALYSIS COMPLETE
+Processed 19 transcript files
+================================================================================

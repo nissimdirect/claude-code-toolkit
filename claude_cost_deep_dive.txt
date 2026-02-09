@@ -1,0 +1,65 @@
+================================================================================
+CLAUDE CODE COSTS - TECHNICAL DEEP DIVE
+================================================================================
+
+## TECHNICAL IMPLEMENTATION DETAILS
+
+### Commands Available:
+  - /cost
+  - /install
+  - /model
+
+### Data Formats:
+  - JSON
+  - JSONL
+
+================================================================================
+## KEY INSIGHTS (Direct Quotes)
+
+### Video: HCko-NxCD_8
+
+1. Anthropic has all the information on your token usage and cost usage that would help you answer that question, but it hides it from you rather than shows it to you.
+
+2. pricing or a monthly plan will be cheaper for your use cases.
+
+3. token usage and cost usage that would help you answer that question, but it hides it from you rather than shows it to you.
+
+4. message to start the reset window so it resets earlier in their workday.
+
+5. token usage and cost usage is sitting right on your computer and Claude code is just choosing not to provide it for you.
+
+================================================================================
+## IMPLEMENTATION RECOMMENDATIONS
+
+Based on the technical details extracted:
+
+1. LOCAL DATA ACCESS
+   Location: ~/.claude/projects/
+   Format: JSONL (one JSON object per line)
+   Contains: input_tokens, output_tokens per message
+   ACTION: Build custom analytics from this raw data
+
+2. USAGE MONITORING
+   Tool: Claude Code Usage Monitor (open-source)
+   GitHub: Search for 'claude-code-usage-monitor'
+   Features: --plan flag, --view flag (session/daily/monthly)
+   ACTION: Install and integrate with our resource tracker
+
+3. COST CALCULATION
+   Method: token_count * price_per_token
+   Pricing: Check anthropic.com/pricing (changes frequently)
+   Compare: Monthly subscription vs API usage-based
+   ACTION: Monthly review to optimize plan choice
+
+4. QUOTA MANAGEMENT
+   Window: 5-hour rolling reset
+   Limits: Both token AND message quotas (hit either = blocked)
+   Tracking: Session view shows time until next reset
+   ACTION: Monitor quota usage to avoid mid-session blocks
+
+5. HIDDEN COST AWARENESS
+   - /cost command only works with API key (not monthly plans)
+   - Anthropic has data but doesn't surface it in UI
+   - Light users likely subsidizing power users
+   - Top 5% of users forced introduction of caps
+   ACTION: Be aware of incentive misalignment

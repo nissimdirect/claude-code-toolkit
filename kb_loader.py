@@ -638,10 +638,13 @@ class KBLoader:
                 continue
 
             # Use ripgrep for fast search (fall back to grep)
+            import re as _re
             for term in terms:
+                # Escape regex special chars to prevent ReDoS / unintended matches
+                safe_term = _re.escape(term)
                 try:
                     result = subprocess.run(
-                        ["rg", "-l", "-i", term, str(article_dir)],
+                        ["rg", "-l", "-i", safe_term, str(article_dir)],
                         capture_output=True, text=True, timeout=10
                     )
                     if result.returncode == 0:
@@ -652,7 +655,7 @@ class KBLoader:
                     # Fall back to grep
                     try:
                         result = subprocess.run(
-                            ["grep", "-rl", "-i", term, str(article_dir)],
+                            ["grep", "-rl", "-i", safe_term, str(article_dir)],
                             capture_output=True, text=True, timeout=10
                         )
                         if result.returncode == 0:
