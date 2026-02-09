@@ -531,7 +531,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Pending Tier 1 scraping
+        "article_count": 3,  # 3 educational guides (prosody, rhyme-scheme, flow-taxonomy)
         "excerpt_lines": 60,
     },
     "ghostwriter": {
@@ -543,7 +543,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Populated by genius_scraper.py
+        "article_count": 3,  # 3 educational guides + lyrics populated by genius_scraper.py
         "excerpt_lines": 50,
     },
 }
