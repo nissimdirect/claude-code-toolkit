@@ -44,7 +44,7 @@ ADVISORS = {
         ],
         "index_dir": Path("~/Development/lennys-podcast-transcripts/index").expanduser(),
         "pattern": "*.md",
-        "article_count": 3831,  # 303 + 175 + 273 + 471 + 2118 + 45 + 34 + 18 + 281 + 114 (Lenny uses full UX stack)
+        "article_count": 4006,  # Verified 2026-02-09
         "excerpt_lines": 80,  # Transcripts are huge, take more context
     },
     "cherie": {
@@ -89,9 +89,9 @@ ADVISORS = {
     },
     "cto": {
         "name": "CTO / Technical Knowledge",
-        "source": "Obsidian Docs + Plugin Dev Blogs (Valhalla, Airwindows, FabFilter) + Circuit Modeling KB",
+        "source": "Plugin Dev Blogs (Valhalla, Airwindows, FabFilter) + Circuit Modeling KB + CTO Leaders",
         "article_dirs": [
-            Path("~/Development/obsidian-docs/raw").expanduser(),
+            # Plugin dev blogs (core DSP knowledge)
             Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser(),
             Path("~/Development/plugin-devs/airwindows/articles").expanduser(),
             Path("~/Development/plugin-devs/fabfilter/articles").expanduser(),
@@ -103,10 +103,34 @@ ADVISORS = {
             Path("~/Development/circuit-modeling/articles/ml").expanduser(),
             Path("~/Development/circuit-modeling/articles/whitebox").expanduser(),
             Path("~/Development/circuit-modeling/articles/clippers").expanduser(),
+            # CTO thought leaders (Wave 1-3 scrape targets)
+            Path("~/Development/cto-leaders/melatonin/articles").expanduser(),
+            Path("~/Development/cto-leaders/pamplejuce/articles").expanduser(),
+            Path("~/Development/cto-leaders/ross-bencina/articles").expanduser(),
+            Path("~/Development/cto-leaders/patrick-mckenzie/articles").expanduser(),
+            Path("~/Development/cto-leaders/julia-evans/articles").expanduser(),
+            Path("~/Development/cto-leaders/wolfsound/articles").expanduser(),
+            Path("~/Development/cto-leaders/getdunne/articles").expanduser(),
+            Path("~/Development/cto-leaders/simon-willison/articles").expanduser(),
+            Path("~/Development/cto-leaders/kent-beck/articles").expanduser(),
+            Path("~/Development/cto-leaders/swyx/articles").expanduser(),
+            # Security leaders
+            Path("~/Development/security-leaders/daniel-miessler/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 693,
+        "article_count": 674,  # Verified 2026-02-09 (will grow as waves scraped)
+        "excerpt_lines": 40,
+    },
+    "obsidian-docs": {
+        "name": "Obsidian Documentation",
+        "source": "Obsidian Help Docs (App Usage)",
+        "article_dirs": [
+            Path("~/Development/obsidian-docs/raw").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 165,
         "excerpt_lines": 40,
     },
     "don-norman": {
@@ -122,10 +146,11 @@ ADVISORS = {
             Path("~/Development/ux-design/deceptive-design/articles").expanduser(),
             Path("~/Development/ux-design/alistapart/articles").expanduser(),
             Path("~/Development/ux-design/smashingmag/articles").expanduser(),
+            Path("~/Development/tools/kb/accessibility").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 3529,  # 175 + 273 + 471 + 2118 + 45 + 34 + 18 + 281 + 114
+        "article_count": 3714,  # Verified 2026-02-09
         "excerpt_lines": 40,
     },
     "nngroup": {
@@ -213,13 +238,14 @@ ADVISORS = {
             Path("~/Development/art-criticism/e-flux-journal/articles").expanduser(),
             # New art direction sources (scrapers in progress)
             Path("~/Development/art-direction/its-nice-that/articles").expanduser(),
-            Path("~/Development/art-direction/creative-boom/articles").expanduser(),
-            Path("~/Development/art-direction/fonts-in-use/articles").expanduser(),
+            Path("~/Development/creative-boom/articles").expanduser(),
+            Path("~/Development/fonts-in-use/articles").expanduser(),
             Path("~/Development/art-direction/the-brand-identity/articles").expanduser(),
+            Path("~/Development/tools/kb/accessibility").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 6183,  # 4062+12+12+538+1559 (+ new sources pending scraping)
+        "article_count": 6194,  # 4062+12+12+538+1559+11 (+ new sources pending scraping)
         "excerpt_lines": 40,
     },
     "brandnew": {
@@ -455,7 +481,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 64,
+        "article_count": 85,  # Verified 2026-02-09
         "excerpt_lines": 60,
     },
     # ── Music Composition + Production ──
@@ -504,7 +530,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 2403,  # 2347 + 56 circuit modeling articles
+        "article_count": 2380,  # Verified 2026-02-09
         "excerpt_lines": 50,
     },
     # ── Creative Interviews ──
@@ -513,13 +539,11 @@ ADVISORS = {
         "source": "Brian Eno (More Dark Than Shark) + The Creative Independent + David Lynch (LynchNet) + BOMB Magazine",
         "article_dirs": [
             Path("~/Development/creative-interviews/brian-eno/articles").expanduser(),
-            Path("~/Development/creative-interviews/creative-independent/articles").expanduser(),
-            Path("~/Development/creative-interviews/david-lynch/articles").expanduser(),
-            Path("~/Development/creative-interviews/bomb-magazine/articles").expanduser(),
+            # creative-independent, david-lynch, bomb-magazine — not yet scraped, add when available
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Pending scraping
+        "article_count": 12,  # Brian Eno interviews (verified 2026-02-09)
         "excerpt_lines": 60,
     },
     # ── Lyric Analyst + Ghostwriter ──
@@ -592,6 +616,11 @@ ALIASES = {
     "saturation": "circuit-modeling",
     "diode-clipper": "circuit-modeling",
     "adaa": "circuit-modeling",
+    # Obsidian docs
+    "obsidian-docs": "obsidian-docs",
+    "obsidian": "obsidian-docs",
+    "obsidian-help": "obsidian-docs",
+    "vault": "obsidian-docs",
     # Don Norman / UX
     "don-norman": "don-norman",
     "don": "don-norman",
@@ -639,6 +668,38 @@ ALIASES = {
     "bierut": "designobserver",
     "creativereview": "creativereview",
     "creative-review": "creativereview",
+    # CTO thought leaders
+    "melatonin": "cto",
+    "melatonin-dev": "cto",
+    "code-signing": "cto",
+    "notarization": "cto",
+    "pamplejuce": "cto",
+    "ross-bencina": "cto",
+    "bencina": "cto",
+    "lock-free": "cto",
+    "real-time-audio": "cto",
+    "patrick-mckenzie": "cto",
+    "patio11": "cto",
+    "kalzumeus": "cto",
+    "bitsaboutmoney": "cto",
+    "julia-evans": "cto",
+    "jvns": "cto",
+    "b0rk": "cto",
+    "wolfsound": "cto",
+    "wolf-sound": "cto",
+    "getdunne": "cto",
+    "simon-willison": "cto",
+    "simonw": "cto",
+    "kent-beck": "cto",
+    "tidy-first": "cto",
+    "swyx": "cto",
+    "latent-space": "cto",
+    # Security leaders
+    "daniel-miessler": "cto",
+    "miessler": "cto",
+    "ai-security": "cto",
+    "red-team": "cto",
+    "fabric": "cto",
     # Plugin devs
     "valhalla": "valhalla",
     "valhalla-dsp": "valhalla",
