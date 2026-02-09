@@ -199,6 +199,16 @@ python "$TOOLS_DIR/scraper.py" thebrandidentity \
     https://the-brand-identity.com \
     "$DEV_DIR/art-direction/the-brand-identity"
 
+# ===== CIRCUIT MODELING (Added 2026-02-09) =====
+
+echo ""
+
+# Circuit Modeling KB (PDFs, HTML, GitHub repos, forums)
+echo "2️⃣4️⃣ Circuit Modeling - VA/WDF/SPICE/ML/Spring Reverb"
+python "$TOOLS_DIR/scrape_circuit_modeling.py"
+# Re-index into SQLite
+python "$TOOLS_DIR/index_circuit_modeling.py"
+
 echo ""
 echo "✅ All sources scraped!"
 echo ""
@@ -230,6 +240,8 @@ echo "   It's Nice That: $(find $DEV_DIR/art-direction/its-nice-that/articles -n
 echo "   Creative Boom: $(find $DEV_DIR/art-direction/creative-boom/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo "   Fonts In Use: $(find $DEV_DIR/art-direction/fonts-in-use/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo "   The Brand Identity: $(find $DEV_DIR/art-direction/the-brand-identity/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
+echo "   --- Circuit Modeling ---"
+echo "   Circuit Modeling: $(find $DEV_DIR/circuit-modeling/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles, $(find $DEV_DIR/circuit-modeling/pdfs -name '*.pdf' 2>/dev/null | wc -l | tr -d ' ') PDFs, $(ls -d $DEV_DIR/circuit-modeling/repos/*/ 2>/dev/null | wc -l | tr -d ' ') repos"
 echo ""
 echo "💰 Tokens burned: 0"
 echo "🌳 Carbon impact: Minimal (code execution only)"

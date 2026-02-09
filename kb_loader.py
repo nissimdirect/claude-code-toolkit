@@ -89,16 +89,23 @@ ADVISORS = {
     },
     "cto": {
         "name": "CTO / Technical Knowledge",
-        "source": "Obsidian Docs + Plugin Dev Blogs (Valhalla, Airwindows, FabFilter)",
+        "source": "Obsidian Docs + Plugin Dev Blogs (Valhalla, Airwindows, FabFilter) + Circuit Modeling KB",
         "article_dirs": [
             Path("~/Development/obsidian-docs/raw").expanduser(),
             Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser(),
             Path("~/Development/plugin-devs/airwindows/articles").expanduser(),
             Path("~/Development/plugin-devs/fabfilter/articles").expanduser(),
+            # Circuit modeling (VA, WDF, SPICE, ML, schematics)
+            Path("~/Development/circuit-modeling/articles/wdf").expanduser(),
+            Path("~/Development/circuit-modeling/articles/va").expanduser(),
+            Path("~/Development/circuit-modeling/articles/spice").expanduser(),
+            Path("~/Development/circuit-modeling/articles/nodal").expanduser(),
+            Path("~/Development/circuit-modeling/articles/ml").expanduser(),
+            Path("~/Development/circuit-modeling/articles/whitebox").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 637,  # 214 + 400 + 23 (+ Obsidian docs)
+        "article_count": 693,  # 637 + 56 circuit modeling articles
         "excerpt_lines": 40,
     },
     "don-norman": {
@@ -424,6 +431,31 @@ ADVISORS = {
         "article_count": 637,  # 214 + 400 + 23
         "excerpt_lines": 40,
     },
+    # ── Circuit Modeling (VA, WDF, SPICE, ML, Spring Reverb) ──
+    "circuit-modeling": {
+        "name": "Circuit Modeling (VA, WDF, SPICE, Neural, Spring Reverb)",
+        "source": "DAFx papers, ElectroSmash, CCRMA, KVR, GitHub repos (chowdsp_wdf, RTNeural, NAM, etc.)",
+        "article_dirs": [
+            Path("~/Development/circuit-modeling/articles/wdf").expanduser(),
+            Path("~/Development/circuit-modeling/articles/va").expanduser(),
+            Path("~/Development/circuit-modeling/articles/spice").expanduser(),
+            Path("~/Development/circuit-modeling/articles/nodal").expanduser(),
+            Path("~/Development/circuit-modeling/articles/newton-raphson").expanduser(),
+            Path("~/Development/circuit-modeling/articles/schematics").expanduser(),
+            Path("~/Development/circuit-modeling/articles/distortion").expanduser(),
+            Path("~/Development/circuit-modeling/articles/space-echo").expanduser(),
+            Path("~/Development/circuit-modeling/articles/spring-reverb").expanduser(),
+            Path("~/Development/circuit-modeling/articles/ml").expanduser(),
+            Path("~/Development/circuit-modeling/articles/whitebox").expanduser(),
+            Path("~/Development/circuit-modeling/articles/textbooks").expanduser(),
+            Path("~/Development/circuit-modeling/articles/juce").expanduser(),
+            Path("~/Development/circuit-modeling/forums").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 56,  # 47 HTML + 9 forums scraped
+        "excerpt_lines": 60,
+    },
     # ── Music Composition + Production ──
     "music-composer": {
         "name": "Music Composer (DnB Production + Sound Design + Music Tech)",
@@ -455,17 +487,22 @@ ADVISORS = {
         "excerpt_lines": 40,
     },
     "audio-production": {
-        "name": "Audio Production (DSP + Sound Design + Music Tech)",
-        "source": "Plugin Devs + Cherie Hu",
+        "name": "Audio Production (DSP + Sound Design + Music Tech + Circuit Modeling)",
+        "source": "Plugin Devs + Cherie Hu + Circuit Modeling KB (spring reverb, distortion, schematics)",
         "article_dirs": [
             Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser(),
             Path("~/Development/plugin-devs/airwindows/articles").expanduser(),
             Path("~/Development/plugin-devs/fabfilter/articles").expanduser(),
             Path("~/Development/cherie-hu/articles").expanduser(),
+            # Circuit modeling (production-relevant: reverb, distortion, schematics)
+            Path("~/Development/circuit-modeling/articles/spring-reverb").expanduser(),
+            Path("~/Development/circuit-modeling/articles/distortion").expanduser(),
+            Path("~/Development/circuit-modeling/articles/schematics").expanduser(),
+            Path("~/Development/circuit-modeling/articles/space-echo").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 2347,  # 214 + 400 + 23 + 1710
+        "article_count": 2403,  # 2347 + 56 circuit modeling articles
         "excerpt_lines": 50,
     },
     # ── Creative Interviews ──
@@ -509,6 +546,18 @@ ALIASES = {
     "daniel": "indie-trinity",
     "daniel-vassallo": "indie-trinity",
     "cto": "cto",
+    # Circuit Modeling
+    "circuit-modeling": "circuit-modeling",
+    "circuit": "circuit-modeling",
+    "wdf": "circuit-modeling",
+    "wave-digital": "circuit-modeling",
+    "spice": "circuit-modeling",
+    "virtual-analog": "circuit-modeling",
+    "va-modeling": "circuit-modeling",
+    "spring-reverb": "circuit-modeling",
+    "pedal-schematics": "circuit-modeling",
+    "neural-amp": "circuit-modeling",
+    "nodal-analysis": "circuit-modeling",
     # Don Norman / UX
     "don-norman": "don-norman",
     "don": "don-norman",
