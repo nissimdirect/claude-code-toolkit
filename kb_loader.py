@@ -95,17 +95,18 @@ ADVISORS = {
             Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser(),
             Path("~/Development/plugin-devs/airwindows/articles").expanduser(),
             Path("~/Development/plugin-devs/fabfilter/articles").expanduser(),
-            # Circuit modeling (VA, WDF, SPICE, ML, schematics)
+            # Circuit modeling (VA, WDF, SPICE, ML, schematics, clippers)
             Path("~/Development/circuit-modeling/articles/wdf").expanduser(),
             Path("~/Development/circuit-modeling/articles/va").expanduser(),
             Path("~/Development/circuit-modeling/articles/spice").expanduser(),
             Path("~/Development/circuit-modeling/articles/nodal").expanduser(),
             Path("~/Development/circuit-modeling/articles/ml").expanduser(),
             Path("~/Development/circuit-modeling/articles/whitebox").expanduser(),
+            Path("~/Development/circuit-modeling/articles/clippers").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 693,  # 637 + 56 circuit modeling articles
+        "article_count": 693,
         "excerpt_lines": 40,
     },
     "don-norman": {
@@ -433,8 +434,8 @@ ADVISORS = {
     },
     # ── Circuit Modeling (VA, WDF, SPICE, ML, Spring Reverb) ──
     "circuit-modeling": {
-        "name": "Circuit Modeling (VA, WDF, SPICE, Neural, Spring Reverb)",
-        "source": "DAFx papers, ElectroSmash, CCRMA, KVR, GitHub repos (chowdsp_wdf, RTNeural, NAM, etc.)",
+        "name": "Circuit Modeling (VA, WDF, SPICE, Neural, Spring Reverb, Clippers)",
+        "source": "DAFx papers, ElectroSmash, CCRMA, KVR, GitHub repos (chowdsp_wdf, RTNeural, NAM, PeakEater, etc.)",
         "article_dirs": [
             Path("~/Development/circuit-modeling/articles/wdf").expanduser(),
             Path("~/Development/circuit-modeling/articles/va").expanduser(),
@@ -449,11 +450,12 @@ ADVISORS = {
             Path("~/Development/circuit-modeling/articles/whitebox").expanduser(),
             Path("~/Development/circuit-modeling/articles/textbooks").expanduser(),
             Path("~/Development/circuit-modeling/articles/juce").expanduser(),
+            Path("~/Development/circuit-modeling/articles/clippers").expanduser(),
             Path("~/Development/circuit-modeling/forums").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 56,  # 47 HTML + 9 forums scraped
+        "article_count": 64,
         "excerpt_lines": 60,
     },
     # ── Music Composition + Production ──
@@ -520,6 +522,30 @@ ADVISORS = {
         "article_count": 0,  # Pending scraping
         "excerpt_lines": 60,
     },
+    # ── Lyric Analyst + Ghostwriter ──
+    "lyric-analyst": {
+        "name": "Lyric Analyst (Poetry + Prosody Education)",
+        "source": "Poetry Foundation + Poets.org + Songwriting Education",
+        "article_dirs": [
+            Path("~/Development/lyric-analyst/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 0,  # Pending Tier 1 scraping
+        "excerpt_lines": 60,
+    },
+    "ghostwriter": {
+        "name": "Ghostwriter (Lyrics KB + Analysis + Songwriting Education)",
+        "source": "Genius Lyrics (enriched) + Songwriting Education",
+        "article_dirs": [
+            Path("~/Development/ghostwriter/articles").expanduser(),
+            Path("~/Development/ghostwriter/education").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 0,  # Populated by genius_scraper.py
+        "excerpt_lines": 50,
+    },
 }
 
 # Aliases for flexible matching
@@ -558,6 +584,14 @@ ALIASES = {
     "pedal-schematics": "circuit-modeling",
     "neural-amp": "circuit-modeling",
     "nodal-analysis": "circuit-modeling",
+    "clipper": "circuit-modeling",
+    "clippers": "circuit-modeling",
+    "waveshaper": "circuit-modeling",
+    "soft-clipping": "circuit-modeling",
+    "hard-clipping": "circuit-modeling",
+    "saturation": "circuit-modeling",
+    "diode-clipper": "circuit-modeling",
+    "adaa": "circuit-modeling",
     # Don Norman / UX
     "don-norman": "don-norman",
     "don": "don-norman",
@@ -679,6 +713,20 @@ ALIASES = {
     "lynch-interviews": "creative-interviews",
     "creative-independent": "creative-interviews",
     "tci": "creative-interviews",
+    # Lyric Analyst
+    "lyric-analyst": "lyric-analyst",
+    "lyrics": "lyric-analyst",
+    "prosody": "lyric-analyst",
+    "rhyme-scheme": "lyric-analyst",
+    "syllables": "lyric-analyst",
+    "meter": "lyric-analyst",
+    "poetry": "lyric-analyst",
+    # Ghostwriter
+    "ghostwriter": "ghostwriter",
+    "ghostwrite": "ghostwriter",
+    "songwriting": "ghostwriter",
+    "rap-lyrics": "ghostwriter",
+    "verse-writing": "ghostwriter",
 }
 
 

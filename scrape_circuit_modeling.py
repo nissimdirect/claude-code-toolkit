@@ -434,6 +434,128 @@ SOURCES = [
      "diyaudio-tube-spice.md", "spice", 4, "DIYAudio Tube SPICE Models"),
     ("https://forum.juce.com/t/juce-module-for-analogue-modelling/28534",
      "juce-forum-analogue-modelling.md", "juce", 4, "JUCE Forum Analogue Modelling Module"),
+
+    # ══════════════════════════════════════════════════════════
+    # EXPANSION 2 (2026-02-09): Clippers + More VA/WDF/ML repos
+    # ══════════════════════════════════════════════════════════
+
+    # ── NEW CATEGORY: CLIPPERS ───────────────────────────────
+
+    # Tier 1: Clipper PDFs/Papers
+    ("https://dafx.de/paper-archive/2023/DAFx23_paper_61.pdf",
+     "dafx2023-antialiasing-piecewise-poly.pdf", "clippers", 1, "Antialiasing Piecewise Polynomial Waveshapers (DAFx 2023)"),
+    ("https://dafx.de/paper-archive/2024/papers/DAFx24_paper_33.pdf",
+     "dafx2024-interpolation-adaa.pdf", "clippers", 1, "Interpolation Filters for ADAA (DAFx 2024)"),
+
+    # Tier 2: Clipper Articles
+    ("https://ccrma.stanford.edu/~jatin/Notebooks/adaa.html",
+     "jatin-adaa-notebook.md", "clippers", 2, "Jatin Chowdhury ADAA Practical Considerations"),
+    ("https://hackaudio.com/digital-signal-processing/distortion-effects/soft-clipping/",
+     "hackaudio-soft-clipping.md", "clippers", 2, "Hack Audio Soft Clipping Tutorial"),
+    ("https://www.electronics-tutorials.ws/diode/diode-clipping-circuits.html",
+     "electronics-tutorials-diode-clipping.md", "clippers", 2, "Electronics Tutorials Diode Clipping Circuits"),
+    ("https://www.guitarpedalx.com/news/news/a-brief-hobbyist-primer-on-clipping-diodes",
+     "guitarpedalx-clipping-diodes.md", "clippers", 2, "GuitarPedalX Primer on Clipping Diodes"),
+    ("http://www.dedalofx.com.ar/bioroids/experiments/e06_distortiongraphs.php",
+     "dedalofx-mosfet-clipping.md", "clippers", 2, "Dedalofx MOSFET Clipping Waveform Analysis"),
+    ("https://www.muzique.com/lab/zenmos.htm",
+     "amz-zenmos-diode-clipping.md", "clippers", 2, "AMZ ZenMos Diode Clipping (Germanium/Silicon/LED/MOSFET)"),
+    ("https://www.gerlttechnologies.com/index.php/more-info/circuits/165-clipping-configurations",
+     "gerlt-clipping-configurations.md", "clippers", 2, "Gerlt Technologies Clipping Configurations"),
+    ("https://unison.audio/soft-clipping-vs-hard-clipping/",
+     "unison-soft-vs-hard-clipping.md", "clippers", 2, "Unison Audio Soft vs Hard Clipping 101"),
+    ("https://www.sageaudio.com/articles/audio-clippers-comparing-the-5-most-popular-clipping-plugins",
+     "sageaudio-5-popular-clippers.md", "clippers", 2, "Sage Audio Comparing 5 Popular Clipper Plugins"),
+    ("https://www.diystompboxes.com/pedals/diodes.html",
+     "diystompboxes-diode-types.md", "clippers", 2, "DIYStompboxes Diode Types Guide"),
+
+    # Tier 3: Clipper GitHub Repos
+    ("https://github.com/vvvar/PeakEater",
+     "peakeater", "clippers", 3, "PeakEater — 6-Algorithm Open Source Waveshaper/Clipper (404 stars)"),
+    ("https://github.com/wolf-plugins/wolf-shaper",
+     "wolf-shaper", "clippers", 3, "wolf-shaper — Spline-Based Waveshaper (243 stars)"),
+    ("https://github.com/Dimethoxy/Plasma",
+     "plasma", "clippers", 3, "Plasma — Asymmetrical Distortion Plugin (94 stars)"),
+    ("https://github.com/jatinchowdhury18/ADAA",
+     "adaa", "clippers", 3, "ADAA — Antiderivative Antialiasing Experiments (Chowdhury)"),
+    ("https://github.com/unevens/Overdraw",
+     "overdraw", "clippers", 3, "Overdraw — Waveshaper with Transfer Function Editor (23 stars)"),
+    ("https://github.com/gusanthon/diode-clipper-wdf",
+     "diode-clipper-wdf", "clippers", 3, "Diode Clipper WDF Python Implementation (16 stars)"),
+    ("https://github.com/erroreyes/hardclipper",
+     "hardclipper", "clippers", 3, "hardclipper — Hard Clipper VST3/CLAP (6 stars)"),
+    ("https://github.com/JDSherbert/Audio-Soft-Clip-Distortion",
+     "audio-soft-clip", "clippers", 3, "Audio Soft Clip Distortion C++ Implementation"),
+    ("https://github.com/sigurd4/saturation",
+     "saturation-functions", "clippers", 3, "Saturation — Collection of Signal Clipping Functions"),
+    ("https://github.com/VoggLyster/DiodeLadderFilter",
+     "diode-ladder-filter", "clippers", 3, "DiodeLadderFilter — VCS3 Diode Ladder VA Implementation"),
+
+    # Tier 4: Clipper Forum Threads
+    ("https://www.kvraudio.com/forum/viewtopic.php?t=587580",
+     "kvr-amp-clipping-vs-waveshaper.md", "clippers", 4, "KVR Amp Natural Clipping vs WaveShaper"),
+    ("https://www.kvraudio.com/forum/viewtopic.php?t=122309",
+     "kvr-transparent-clipper.md", "clippers", 4, "KVR Transparent Clipper Design"),
+    ("https://www.kvraudio.com/forum/viewtopic.php?t=348999",
+     "kvr-open-distortion-project.md", "clippers", 4, "KVR Open Distortion Project"),
+    ("https://www.kvraudio.com/forum/viewtopic.php?t=281178",
+     "kvr-waveshaping-cookbook.md", "clippers", 4, "KVR Waveshaping/Overdrive Cookbook"),
+    ("https://www.kvraudio.com/forum/viewtopic.php?t=332930",
+     "kvr-tanh-table-lookup.md", "clippers", 4, "KVR Table Lookup for tanh()"),
+    ("https://www.kvraudio.com/forum/viewtopic.php?t=262823",
+     "kvr-tanh-approximations.md", "clippers", 4, "KVR Tanh Approximations"),
+    ("https://www.kvraudio.com/forum/viewtopic.php?t=388650",
+     "kvr-fast-tanh.md", "clippers", 4, "KVR Fast Tanh Approximation"),
+
+    # ── MORE WDF REPOS ───────────────────────────────────────
+    ("https://github.com/RT-WDF/rt-wdf_lib",
+     "rt-wdf-lib", "wdf", 3, "RT-WDF — Real-Time WDF Library (100 stars)"),
+    ("https://github.com/gusanthon/pywdf",
+     "pywdf", "wdf", 3, "pywdf — Wave Digital Filter Elements in Python (39 stars)"),
+    ("https://github.com/Simon-L/WDR-8-rack",
+     "wdr-8-rack", "wdf", 3, "WDR-8 — TR-808 WDF Models (32 stars)"),
+    ("https://github.com/SMCFY/VirtualAnalog",
+     "smcfy-virtual-analog", "wdf", 3, "SMCFY VirtualAnalog — NodalDK + WDF (26 stars)"),
+    ("https://github.com/jatinchowdhury18/wdf-bakeoff",
+     "wdf-bakeoff", "wdf", 3, "WDF Bakeoff — WDF Implementation Comparison (14 stars)"),
+    ("https://github.com/praffensperger/wavechild670",
+     "wavechild670", "wdf", 3, "wavechild670 — Fairchild 670 WDF Emulation"),
+    ("https://github.com/polimi-ispl/viola",
+     "viola", "wdf", 3, "VIOLA — Auto-Generation of VA Audio Plug-ins"),
+    ("https://github.com/fergarciadlc/wdf-filters",
+     "wdf-filters-juce", "wdf", 3, "wdf-filters — JUCE WDF Analog Filter Emulation"),
+
+    # ── MORE VA REPOS ────────────────────────────────────────
+    ("https://github.com/damskaggep/WaveNetVA",
+     "wavenet-va", "va", 3, "WaveNetVA — WaveNet for VA Modeling (264 stars)"),
+    ("https://github.com/JordanTHarris/VAStateVariableFilter",
+     "va-svf", "va", 3, "VA State Variable Filter — 8 Types (57 stars)"),
+    ("https://github.com/thezhe/SOUL-VA",
+     "soul-va", "va", 3, "SOUL-VA — Virtual Analog Library in SOUL (54 stars)"),
+    ("https://github.com/SpotlightKid/faustfilters",
+     "faustfilters", "va", 3, "Faust Filters — VA Filter Multi-Format Plugins (48 stars)"),
+    ("https://github.com/FigBug/VirtualAnalog",
+     "figbug-virtual-analog", "va", 3, "VirtualAnalog — VA VST/AU Plugin (32 stars)"),
+    ("https://github.com/jatinchowdhury18/Aphex_Exciter",
+     "aphex-exciter", "va", 3, "Aphex Exciter — VA Model of Aural Exciter (21 stars)"),
+    ("https://github.com/jardamacak/NodalDKFramework",
+     "nodal-dk-framework", "nodal", 3, "NodalDKFramework — Nodal DK Method (19 stars)"),
+    ("https://github.com/thezhe/VirtualAnalogCompressors",
+     "va-compressors", "va", 3, "VirtualAnalogCompressors — TPT Compressor (12 stars)"),
+    ("https://github.com/fabianesqueda/virtual-analog-matlab",
+     "va-matlab", "va", 3, "Virtual Analog MATLAB Collection"),
+
+    # ── MORE ML REPOS ────────────────────────────────────────
+    ("https://github.com/GuitarML/PrincePedal",
+     "prince-pedal", "ml", 3, "PrincePedal — Prince of Tone Neural Model (37 stars)"),
+    ("https://github.com/GuitarML/ToneLibrary",
+     "tone-library", "ml", 3, "ToneLibrary — Collection of GuitarML Tone Models (32 stars)"),
+    ("https://github.com/mikeoliphant/neural-amp-modeler-lv2",
+     "nam-lv2", "ml", 3, "Neural Amp Modeler LV2 Port"),
+
+    # ── TUBE/DISTORTION ADDITIONS ────────────────────────────
+    ("https://github.com/thezhe/D-lay",
+     "d-lay", "space-echo", 3, "D-lay — Distorted BBD Delay Circuit Model"),
 ]
 
 # ============================================================
@@ -453,6 +575,7 @@ CATEGORIES = {
     "whitebox": "White-Box Circuit Analysis",
     "textbooks": "EE Textbooks",
     "juce": "JUCE Integration",
+    "clippers": "Clippers / Waveshapers / Saturation",
 }
 
 

@@ -36,6 +36,7 @@ CATEGORY_SKILL_MAP = {
     "whitebox": "cto",
     "textbooks": "cto",
     "juce": "cto",
+    "clippers": "cto",
 }
 
 # Category → source name
@@ -53,6 +54,7 @@ CATEGORY_SOURCE_MAP = {
     "whitebox": "Circuit Modeling — White-Box",
     "textbooks": "Circuit Modeling — EE Textbooks",
     "juce": "Circuit Modeling — JUCE",
+    "clippers": "Circuit Modeling — Clippers/Waveshapers",
 }
 
 
