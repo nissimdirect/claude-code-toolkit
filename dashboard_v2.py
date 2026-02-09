@@ -565,10 +565,47 @@ def get_system_memory():
     return cached("system_memory", _load_system_memory, ttl=15)
 
 
+def co2_equivalence(co2_g):
+    """Convert CO2 grams to a relatable real-world equivalent.
+
+    Sources (all EPA / IEA / peer-reviewed):
+    - Driving: 404g CO2/mile (EPA avg passenger vehicle, 8,887g/gal ÷ 22 mpg)
+    - Smartphone charge: 8g CO2 (EPA, 0.012 kWh * 380g/kWh US avg + embodied)
+    - Google search: 0.3g CO2 (Google Environmental Report 2024)
+    - Netflix streaming 1hr: 36g CO2 (IEA 2023, device + network + datacenter)
+    - LED bulb 1hr (10W): 3.8g CO2 (10 Wh * 380g/kWh)
+    - Boiling 1 cup water: 15g CO2 (0.1 kWh kettle * 150g/kWh gas-electric mix)
+    """
+    if co2_g < 1:
+        return "< 1 Google search"
+    elif co2_g < 8:
+        searches = co2_g / 0.3
+        return f"~{searches:.0f} Google searches"
+    elif co2_g < 36:
+        charges = co2_g / 8
+        if charges < 1.5:
+            return "~1 smartphone charge"
+        return f"~{charges:.0f} smartphone charges"
+    elif co2_g < 200:
+        hours = co2_g / 36
+        if hours < 1.5:
+            return "~1 hr Netflix streaming"
+        return f"~{hours:.0f} hrs Netflix streaming"
+    elif co2_g < 1000:
+        miles = co2_g / 404
+        return f"~{miles:.1f} miles driving"
+    elif co2_g < 5000:
+        miles = co2_g / 404
+        return f"~{miles:.1f} miles driving"
+    else:
+        miles = co2_g / 404
+        return f"~{miles:.0f} miles driving"
+
+
 def get_environmental_impact(data):
     """Read environmental impact from budget state JSON."""
     if data is None:
-        return {"co2_g": 0, "wh": 0, "level": "Unknown", "color": "dim"}
+        return {"co2_g": 0, "wh": 0, "level": "Unknown", "color": "dim", "equiv": ""}
 
     env = data.get("environmental", {})
     co2_g = env.get("total_carbon_g", 0)
@@ -589,6 +626,7 @@ def get_environmental_impact(data):
         "wh": round(wh, 1),
         "level": level,
         "color": color,
+        "equiv": co2_equivalence(co2_g),
     }
 
 
@@ -669,6 +707,8 @@ def render_usage_panel(usage, env_impact, usage_warnings):
     text.append(f"{env_impact['wh']:.0f} Wh", style="dim")
     text.append(f"  |  ", style="dim")
     text.append(f"{env_impact['co2_g']:.0f}g CO2", style=env_impact["color"])
+    if env_impact.get("equiv"):
+        text.append(f"  ({env_impact['equiv']})", style="dim italic")
     text.append("\n")
 
     # Usage warnings
