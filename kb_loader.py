@@ -98,7 +98,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 601,  # 214 + 364 + 23 (+ Obsidian docs)
+        "article_count": 637,  # 214 + 400 + 23 (+ Obsidian docs)
         "excerpt_lines": 40,
     },
     "don-norman": {
@@ -251,7 +251,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/plugin-devs/airwindows/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 364,
+        "article_count": 400,
         "excerpt_lines": 40,
     },
     "fabfilter": {
@@ -269,7 +269,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/e-flux-journal/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 261,
+        "article_count": 1559,
         "excerpt_lines": 40,
     },
     "hyperallergic": {
@@ -278,7 +278,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/hyperallergic/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 467,
+        "article_count": 538,
         "excerpt_lines": 40,
     },
     "creative-capital": {
@@ -403,7 +403,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 7660,  # Total across 12 sources (verified 2026-02-07)
+        "article_count": 8099,  # Total across 12 sources (updated 2026-02-08: eflux 1559, hyperallergic 538)
         "excerpt_lines": 50,
     },
     "plugin-devs": {
@@ -583,6 +583,26 @@ ALIASES = {
     "texte-zur-kunst": "texte-zur-kunst",
     "tzk": "texte-zur-kunst",
     "momus": "momus",
+    # Music Composition + Production
+    "music-composer": "music-composer",
+    "composer": "music-composer",
+    "composition": "music-composer",
+    "dnb": "music-composer",
+    "drum-and-bass": "music-composer",
+    "music-production": "music-composer",
+    # Record Label
+    "label": "label",
+    "record-label": "label",
+    "music-business": "label",
+    "music-industry": "label",
+    "distribution": "label",
+    # Audio Production
+    "audio-production": "audio-production",
+    "audio": "audio-production",
+    "dsp": "audio-production",
+    "sound-design": "audio-production",
+    "mixing": "audio-production",
+    "mastering": "audio-production",
 }
 
 

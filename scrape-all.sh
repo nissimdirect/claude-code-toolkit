@@ -131,6 +131,40 @@ python "$TOOLS_DIR/scraper.py" kilohearts \
     https://kilohearts.com/blog \
     "$DEV_DIR/plugin-devs/kilohearts"
 
+# ===== CREATIVE INTERVIEW SOURCES (Added 2026-02-08) =====
+
+echo ""
+
+# Brian Eno Interviews (moredarkthanshark.org)
+echo "1️⃣6️⃣ Brian Eno - Interview Archive"
+python "$TOOLS_DIR/scraper.py" eno \
+    https://www.moredarkthanshark.org \
+    "$DEV_DIR/creative-interviews/brian-eno"
+
+echo ""
+
+# The Creative Independent (1,000+ creative interviews)
+echo "1️⃣7️⃣ The Creative Independent - Creative Interviews"
+python "$TOOLS_DIR/scraper.py" creative-independent \
+    https://thecreativeindependent.com \
+    "$DEV_DIR/creative-interviews/creative-independent"
+
+echo ""
+
+# David Lynch Interviews (lynchnet.com)
+echo "1️⃣8️⃣ David Lynch - Interview Archive"
+python "$TOOLS_DIR/scraper.py" lynchnet \
+    https://www.lynchnet.com \
+    "$DEV_DIR/creative-interviews/david-lynch"
+
+echo ""
+
+# BOMB Magazine Interviews
+echo "1️⃣9️⃣ BOMB Magazine - Artist Interviews"
+python "$TOOLS_DIR/scraper.py" bomb-magazine \
+    https://bombmagazine.org \
+    "$DEV_DIR/creative-interviews/bomb-magazine"
+
 echo ""
 echo "✅ All sources scraped!"
 echo ""
@@ -152,6 +186,11 @@ echo "   Hyperallergic: $(find $DEV_DIR/art-criticism/hyperallergic/articles -na
 echo "   FabFilter: $(find $DEV_DIR/plugin-devs/fabfilter/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo "   Creative Capital: $(find $DEV_DIR/art-criticism/creative-capital/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo "   Kilohearts: $(find $DEV_DIR/plugin-devs/kilohearts/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
+echo "   --- Creative Interviews ---"
+echo "   Brian Eno: $(find $DEV_DIR/creative-interviews/brian-eno/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
+echo "   Creative Independent: $(find $DEV_DIR/creative-interviews/creative-independent/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
+echo "   David Lynch: $(find $DEV_DIR/creative-interviews/david-lynch/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
+echo "   BOMB Magazine: $(find $DEV_DIR/creative-interviews/bomb-magazine/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo ""
 echo "💰 Tokens burned: 0"
 echo "🌳 Carbon impact: Minimal (code execution only)"

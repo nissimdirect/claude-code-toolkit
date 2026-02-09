@@ -39,20 +39,14 @@ import tempfile
 
 # === CONFIGURATION ===
 
-RESOURCE_TRACKER = Path.home() / ".claude/.locks/.resource-tracker.json"
+BUDGET_STATE = Path.home() / ".claude/.locks/.budget-state.json"
 ACTIVE_TASKS = Path.home() / "Documents/Obsidian/ACTIVE-TASKS.md"
 SCRAPING_QUEUE = Path.home() / "Documents/Obsidian/process/SCRAPING-QUEUE.md"
 ERROR_LOG = Path.home() / ".claude/.locks/dashboard_errors.json"
 
 # Subscription model (Max plan)
 SUBSCRIPTION_COST = 200.00
-DAILY_LIMIT = 50
-WEEKLY_LIMIT = 250
-MONTHLY_LIMIT = 1000
-
-# Environmental impact constants
-CO2_PER_RESPONSE_G = 4.0
-MILES_PER_KG_CO2 = 2.58
+FIVE_HOUR_TOKEN_BUDGET = 220_000
 
 # Knowledge base sources — VERIFIED directory names and structures
 KB_SOURCES = {
@@ -231,24 +225,23 @@ def validate_usage(usage, data):
     """Validate usage data isn't stale or corrupted."""
     warnings = []
 
-    # Check if resource tracker file exists and is recent
-    if not RESOURCE_TRACKER.exists():
-        warnings.append("Resource tracker file missing — counts may be zero")
+    if not BUDGET_STATE.exists():
+        warnings.append("Budget state file missing — run track_resources.py")
         return warnings
 
     try:
-        mtime = RESOURCE_TRACKER.stat().st_mtime
-        age_hours = (time.time() - mtime) / 3600
-        if age_hours > 24:
-            warnings.append(f"Resource tracker not updated in {int(age_hours)}h")
-            log_error("usage", "recent data", f"{int(age_hours)}h old", "stale tracker")
+        mtime = BUDGET_STATE.stat().st_mtime
+        age_min = (time.time() - mtime) / 60
+        if age_min > 30:
+            warnings.append(f"Budget data is {int(age_min)}m old — run track_resources.py")
+            log_error("usage", "recent data", f"{int(age_min)}m old", "stale budget state")
     except OSError:
         pass
 
-    # Sanity: today's count shouldn't exceed daily limit by 10x
-    if usage["today"] > DAILY_LIMIT * 10:
-        warnings.append(f"Today's count suspiciously high: {usage['today']}")
-        log_error("usage", f"<{DAILY_LIMIT * 10}", usage["today"], "suspicious count")
+    # Sanity: percentage shouldn't exceed 100 by much
+    if usage["percentage"] > 110:
+        warnings.append(f"Window percentage suspiciously high: {usage['percentage']:.0f}%")
+        log_error("usage", "<110%", usage["percentage"], "suspicious percentage")
 
     return warnings
 
@@ -256,13 +249,13 @@ def validate_usage(usage, data):
 # === DATA LOADERS ===
 
 def _load_tracker_data():
-    """Load resource tracking data from session tracker."""
-    if not RESOURCE_TRACKER.exists():
-        return {"sessions": {}, "daily": {}}
+    """Load budget state from .budget-state.json (written by track_resources.py)."""
+    if not BUDGET_STATE.exists():
+        return None
     try:
-        return json.loads(RESOURCE_TRACKER.read_text())
+        return json.loads(BUDGET_STATE.read_text())
     except (json.JSONDecodeError, OSError, UnicodeDecodeError):
-        return {"sessions": {}, "daily": {}}
+        return None
 
 
 def load_tracker_data():
@@ -271,39 +264,37 @@ def load_tracker_data():
 
 
 def get_usage_stats(data):
-    """Calculate usage for today, this week, this month."""
-    now = datetime.now()
-    today_key = now.strftime("%Y-%m-%d")
-    daily = data.get("daily", {})
-    if not isinstance(daily, dict):
-        daily = {}
+    """Extract 5-hour window usage from budget state JSON."""
+    if data is None:
+        return {
+            "percentage": 0,
+            "tokens_used": 0,
+            "budget": FIVE_HOUR_TOKEN_BUDGET,
+            "remaining": FIVE_HOUR_TOKEN_BUDGET,
+            "messages": 0,
+            "model_recommendation": "opus",
+            "alert_level": "ok",
+            "weekly_opus_tokens": 0,
+            "weekly_opus_messages": 0,
+            "weekly_sonnet_tokens": 0,
+            "weekly_sonnet_messages": 0,
+        }
 
-    today_responses = daily.get(today_key, {}).get("responses", 0)
-
-    week_start = now - timedelta(days=now.weekday())
-    week_responses = 0
-    for date_str, day_data in daily.items():
-        try:
-            date = datetime.strptime(date_str, "%Y-%m-%d")
-            if date >= week_start.replace(hour=0, minute=0, second=0):
-                week_responses += day_data.get("responses", 0)
-        except ValueError:
-            continue
-
-    month_start = now.replace(day=1, hour=0, minute=0, second=0)
-    month_responses = 0
-    for date_str, day_data in daily.items():
-        try:
-            date = datetime.strptime(date_str, "%Y-%m-%d")
-            if date >= month_start:
-                month_responses += day_data.get("responses", 0)
-        except ValueError:
-            continue
+    window = data.get("five_hour_window", {})
+    weekly = data.get("weekly", {})
 
     return {
-        "today": today_responses,
-        "week": week_responses,
-        "month": month_responses,
+        "percentage": window.get("percentage", 0),
+        "tokens_used": window.get("tokens_used", 0),
+        "budget": window.get("budget", FIVE_HOUR_TOKEN_BUDGET),
+        "remaining": window.get("remaining", FIVE_HOUR_TOKEN_BUDGET),
+        "messages": window.get("messages", 0),
+        "model_recommendation": data.get("model_recommendation", "opus"),
+        "alert_level": data.get("alert_level", "ok"),
+        "weekly_opus_tokens": weekly.get("opus_tokens", 0),
+        "weekly_opus_messages": weekly.get("opus_messages", 0),
+        "weekly_sonnet_tokens": weekly.get("sonnet_tokens", 0),
+        "weekly_sonnet_messages": weekly.get("sonnet_messages", 0),
     }
 
 
@@ -574,15 +565,19 @@ def get_system_memory():
     return cached("system_memory", _load_system_memory, ttl=15)
 
 
-def get_environmental_impact(month_responses):
-    """Calculate environmental impact estimates."""
-    co2_kg = (month_responses * CO2_PER_RESPONSE_G) / 1000
-    miles_equiv = co2_kg * MILES_PER_KG_CO2
+def get_environmental_impact(data):
+    """Read environmental impact from budget state JSON."""
+    if data is None:
+        return {"co2_g": 0, "wh": 0, "level": "Unknown", "color": "dim"}
 
-    if co2_kg < 0.5:
+    env = data.get("environmental", {})
+    co2_g = env.get("total_carbon_g", 0)
+    wh = env.get("total_wh", 0)
+
+    if co2_g < 500:
         level = "Low"
         color = "green"
-    elif co2_kg < 2.0:
+    elif co2_g < 2000:
         level = "Moderate"
         color = "yellow"
     else:
@@ -590,8 +585,8 @@ def get_environmental_impact(month_responses):
         color = "red"
 
     return {
-        "co2_kg": round(co2_kg, 2),
-        "miles": round(miles_equiv, 1),
+        "co2_g": round(co2_g, 1),
+        "wh": round(wh, 1),
         "level": level,
         "color": color,
     }
@@ -621,43 +616,60 @@ def render_next_action_panel(action_text, action_style, warnings):
 
 
 def render_usage_panel(usage, env_impact, usage_warnings):
-    """Render Usage & Limits panel — TOP of dashboard per user request."""
+    """Render Usage & Limits panel — 5-hour rolling window + model recommendation."""
     text = Text()
 
-    # Dynamic width for large numbers (QA BUG #11: overflow at 10000+)
-    w = max(4, len(str(max(usage["today"], usage["week"], usage["month"], MONTHLY_LIMIT))))
+    pct = usage["percentage"]
+    remaining = usage["remaining"]
+    tokens_used = usage["tokens_used"]
+    budget = usage["budget"]
+    model_rec = usage["model_recommendation"]
+    alert_level = usage["alert_level"]
 
-    # Daily
-    day_pct = min(100, int((usage["today"] / DAILY_LIMIT) * 100)) if DAILY_LIMIT else 0
-    day_left = max(0, DAILY_LIMIT - usage["today"])
-    day_color = "green" if day_pct < 70 else ("yellow" if day_pct < 90 else "red")
-    text.append("  Today:      ", style="bold")
-    text.append(f"{usage['today']:{w}} / {DAILY_LIMIT}", style=day_color)
-    text.append(f"   ({day_left} left)\n", style="dim")
+    # Color based on alert level
+    level_colors = {
+        "ok": "green", "info": "cyan", "warning": "yellow",
+        "critical": "red", "limit": "red bold",
+    }
+    bar_color = level_colors.get(alert_level, "white")
 
-    # Weekly
-    wk_pct = min(100, int((usage["week"] / WEEKLY_LIMIT) * 100)) if WEEKLY_LIMIT else 0
-    wk_left = max(0, WEEKLY_LIMIT - usage["week"])
-    wk_color = "green" if wk_pct < 70 else ("yellow" if wk_pct < 90 else "red")
-    text.append("  This Week:  ", style="bold")
-    text.append(f"{usage['week']:{w}} / {WEEKLY_LIMIT}", style=wk_color)
-    text.append(f"   ({wk_left} left)\n", style="dim")
+    # Progress bar
+    bar_width = 30
+    filled = int(min(pct, 100) / 100 * bar_width)
+    bar = "\u2588" * filled + "\u2591" * (bar_width - filled)
 
-    # Monthly
-    mo_pct = min(100, int((usage["month"] / MONTHLY_LIMIT) * 100)) if MONTHLY_LIMIT else 0
-    mo_left = max(0, MONTHLY_LIMIT - usage["month"])
-    mo_color = "green" if mo_pct < 70 else ("yellow" if mo_pct < 90 else "red")
-    text.append("  This Month: ", style="bold")
-    text.append(f"{usage['month']:{w}} / {MONTHLY_LIMIT}", style=mo_color)
-    text.append(f"   ({mo_left} left)\n", style="dim")
+    text.append("  5-Hour Window: ", style="bold")
+    text.append(bar, style=bar_color)
+    text.append(f"  {pct:.0f}%\n", style=bar_color + " bold")
 
-    # Subscription
-    text.append(f"\n  Plan: Max (${SUBSCRIPTION_COST:.0f}/mo)", style="dim")
+    text.append(f"  Tokens:   {tokens_used:>10,} / {budget:,}", style=bar_color)
+    text.append(f"   ({remaining:,} left)\n", style="dim")
+    text.append(f"  Messages: {usage['messages']}\n", style="dim")
 
-    # Environmental impact
-    text.append(f"   |   Carbon: ", style="dim")
-    text.append(f"{env_impact['co2_kg']} kg CO2", style=env_impact["color"])
-    text.append(f" ({env_impact['miles']} mi driven)\n", style="dim")
+    # Model recommendation
+    text.append("\n  Model: ", style="bold")
+    rec_styles = {
+        "opus": ("green", "Opus (full power)"),
+        "sonnet": ("yellow", "Sonnet recommended (save budget)"),
+        "wind_down": ("red bold", "WIND DOWN — close agents"),
+    }
+    rec_style, rec_label = rec_styles.get(model_rec, ("white", model_rec))
+    text.append(rec_label, style=rec_style)
+    text.append("\n")
+
+    # Weekly breakdown
+    text.append(f"\n  Weekly: ", style="bold")
+    text.append(f"Opus {usage['weekly_opus_tokens']:,}tok/{usage['weekly_opus_messages']}msg", style="dim")
+    text.append(f"  |  ", style="dim")
+    text.append(f"Sonnet {usage['weekly_sonnet_tokens']:,}tok/{usage['weekly_sonnet_messages']}msg\n", style="dim")
+
+    # Subscription + environmental
+    text.append(f"  Plan: Max (${SUBSCRIPTION_COST:.0f}/mo)", style="dim")
+    text.append(f"   |   ", style="dim")
+    text.append(f"{env_impact['wh']:.0f} Wh", style="dim")
+    text.append(f"  |  ", style="dim")
+    text.append(f"{env_impact['co2_g']:.0f}g CO2", style=env_impact["color"])
+    text.append("\n")
 
     # Usage warnings
     if usage_warnings:
@@ -733,58 +745,53 @@ def render_kb_panel(stats, total, kb_warnings):
 
 
 def render_sessions_panel(data):
-    """Render Recent Sessions with CLEAR labels."""
-    table = Table(
-        show_header=True,
-        header_style="bold",
-        box=None,
-        padding=(0, 1),
-    )
-    table.add_column("Session", width=12)
-    table.add_column("Responses", justify="right", width=10)
-    table.add_column("Last Active", width=18)
-    table.add_column("Status", width=10)
+    """Render budget state info panel."""
+    text = Text()
 
-    sessions = data.get("sessions", {})
-    def _sort_key(item):
-        val = item[1].get("last_response", 0)
-        try:
-            return float(val)
-        except (ValueError, TypeError):
-            return 0.0
+    if data is None:
+        text.append("  No budget data available.\n", style="dim")
+        text.append("  Run: python3 ~/Development/tools/track_resources.py\n", style="dim")
+    else:
+        # Show when data was generated
+        generated = data.get("generated", "Unknown")
+        if generated != "Unknown":
+            try:
+                gen_dt = datetime.fromisoformat(generated.replace("Z", "+00:00"))
+                age_min = (datetime.now(gen_dt.tzinfo) - gen_dt).total_seconds() / 60
+                text.append("  Data Age: ", style="bold")
+                if age_min < 5:
+                    text.append(f"{age_min:.0f}m ago", style="green")
+                elif age_min < 30:
+                    text.append(f"{age_min:.0f}m ago", style="yellow")
+                else:
+                    text.append(f"{age_min:.0f}m ago (stale)", style="red")
+                text.append("\n")
+            except (ValueError, TypeError):
+                text.append(f"  Generated: {generated}\n", style="dim")
 
-    items = sorted(
-        sessions.items(),
-        key=_sort_key,
-        reverse=True,
-    )[:10]
+        # Alert level indicator
+        alert = data.get("alert_level", "ok")
+        alert_display = {
+            "ok": ("[green]OK[/green]", "Budget healthy"),
+            "info": ("[cyan]INFO[/cyan]", "Budget above 50%"),
+            "warning": ("[yellow]WARNING[/yellow]", "Switch to Sonnet"),
+            "critical": ("[red]CRITICAL[/red]", "Sonnet only"),
+            "limit": ("[red bold]LIMIT[/red bold]", "Wind down now"),
+        }
+        icon, desc = alert_display.get(alert, ("[dim]?[/dim]", "Unknown"))
+        text.append(f"\n  Alert: {icon}  ", style="bold")
+        text.append(f"{desc}\n", style="dim")
 
-    for session_id, sdata in items:
-        resp_count = sdata.get("response_count", 0)
+        # Environmental breakdown
+        env = data.get("environmental", {})
+        text.append(f"\n  Energy:  {env.get('total_wh', 0):.0f} Wh (lifetime)\n", style="dim")
+        text.append(f"  Carbon:  {env.get('total_carbon_g', 0):.0f}g CO2e\n", style="dim")
 
-        last_ts = sdata.get("last_response", 0)
-        try:
-            last_dt = datetime.fromtimestamp(last_ts)
-            age_hours = (datetime.now() - last_dt).total_seconds() / 3600
-            last_str = last_dt.strftime("%b %d  %H:%M")
-
-            if age_hours < 1:
-                status = "[green]Active[/green]"
-            elif age_hours < 24:
-                status = "[yellow]Recent[/yellow]"
-            else:
-                status = "[dim]Old[/dim]"
-        except (ValueError, TypeError, OSError):
-            last_str = "Unknown"
-            status = "[dim]Unknown[/dim]"
-
-        short_id = session_id.replace("session-", "")
-
-        table.add_row(short_id, str(resp_count), last_str, status)
+        text.append(f"\n  Source: .budget-state.json\n", style="dim")
 
     return Panel(
-        table,
-        title="[bold blue]  RECENT SESSIONS  [/bold blue]",
+        text,
+        title="[bold blue]  BUDGET STATE  [/bold blue]",
         border_style="blue",
         padding=(0, 0),
     )
@@ -875,7 +882,7 @@ def generate_layout():
     # Load all data
     data = load_tracker_data()
     usage = get_usage_stats(data)
-    env_impact = get_environmental_impact(usage["month"])
+    env_impact = get_environmental_impact(data)
     kb_stats, kb_total = get_knowledge_base_stats()
     tasks = parse_active_tasks()
     services = check_background_services()
@@ -897,7 +904,7 @@ def generate_layout():
     layout.split_column(
         Layout(name="header", size=3),
         Layout(name="next_action", size=5),
-        Layout(name="usage", size=9),
+        Layout(name="usage", size=12),
         Layout(name="middle", size=15),
         Layout(name="bottom", size=14),
         Layout(name="footer", size=3),

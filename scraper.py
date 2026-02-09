@@ -2253,6 +2253,632 @@ class CreativeReviewScraper(AdvisorScraper):
         return {'title': title, 'url': url, 'date': date[:10] if date else '', 'author': author, 'content': content}
 
 
+class EnoScraper(AdvisorScraper):
+    """Scraper for moredarkthanshark.org (Brian Eno interviews archive)"""
+
+    def __init__(self, base_url, output_dir, rate_limit=1.5):
+        super().__init__(base_url, output_dir, rate_limit)
+
+    def extract_article_urls(self, archive_url):
+        """Extract interview URLs from moredarkthanshark.org main page"""
+        urls = []
+        response = self.fetch_page(self.base_url)
+        if not response:
+            return urls
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Main page has links to interview pages (plain HTML archive)
+        for link in soup.find_all('a', href=True):
+            href = link['href']
+            full_url = urljoin(self.base_url, href)
+            # Skip external links, anchors, and non-content pages
+            if 'moredarkthanshark.org' not in full_url and not href.startswith('/'):
+                continue
+            full_url = urljoin(self.base_url, href)
+            parsed = urlparse(full_url)
+            # Only keep paths that look like content (HTML files or subpages)
+            if parsed.path and parsed.path != '/' \
+               and not parsed.path.endswith(('.jpg', '.png', '.gif', '.css', '.js')) \
+               and '#' not in href \
+               and 'mailto:' not in href \
+               and full_url not in urls:
+                # Filter for interview-like pages (skip index, about, etc.)
+                path = parsed.path.strip('/')
+                if path and path not in ['index.html', 'index.htm', 'links.html', 'links.htm']:
+                    urls.append(full_url)
+
+        # Also try known subpages that may contain interview links
+        for subpage in ['interviews.html', 'interviews.htm', 'texts.html', 'texts.htm']:
+            sub_url = urljoin(self.base_url, subpage)
+            if sub_url in urls:
+                continue
+            response = self.fetch_page(sub_url)
+            if not response:
+                continue
+            soup = BeautifulSoup(response.content, 'html.parser')
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                if 'moredarkthanshark.org' in full_url or href.startswith('/') or not href.startswith('http'):
+                    full_url = urljoin(self.base_url, href)
+                    parsed = urlparse(full_url)
+                    if parsed.path and parsed.path != '/' \
+                       and not parsed.path.endswith(('.jpg', '.png', '.gif', '.css', '.js')) \
+                       and '#' not in href \
+                       and 'mailto:' not in href \
+                       and full_url not in urls:
+                        urls.append(full_url)
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract Brian Eno interview content from plain HTML pages"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title: try multiple strategies for old-school HTML
+        title = None
+        # Strategy 1: <title> tag
+        title_tag = soup.find('title')
+        if title_tag and title_tag.text.strip():
+            title = title_tag.text.strip()
+            # Clean common suffixes
+            for suffix in [' - More Dark Than Shark', ' | More Dark Than Shark']:
+                if suffix in title:
+                    title = title.split(suffix)[0].strip()
+        # Strategy 2: first h1 or h2
+        if not title or title.lower() in ['', 'more dark than shark']:
+            for tag in ['h1', 'h2', 'h3']:
+                elem = soup.find(tag)
+                if elem and elem.text.strip():
+                    title = elem.text.strip()
+                    break
+        # Strategy 3: derive from URL
+        if not title or title.lower() in ['', 'more dark than shark']:
+            path = urlparse(url).path.strip('/')
+            title = path.replace('.html', '').replace('.htm', '').replace('-', ' ').replace('_', ' ').title()
+        if not title:
+            title = 'Untitled'
+
+        # Date: old HTML archives rarely have structured dates
+        date = ''
+        # Look for year mentions in the page
+        import re
+        for elem in soup.find_all(['p', 'span', 'div', 'i', 'em', 'b', 'strong']):
+            text = elem.text.strip()
+            if len(text) < 80:
+                # Look for patterns like "1978", "January 1995", "Interview from 1983"
+                year_match = re.search(r'\b(19[6-9]\d|20[0-2]\d)\b', text)
+                if year_match and any(kw in text.lower() for kw in ['interview', 'published', 'date', 'year', 'from', ',']):
+                    date = text
+                    break
+
+        author = 'Brian Eno'  # Default, interviews are about/with Eno
+
+        # Content: plain HTML - use body or largest text block
+        content = None
+        # Strategy 1: <body> minus nav elements
+        body = soup.find('body')
+        if body:
+            # Remove nav/header/footer if present
+            for tag in body.find_all(['nav', 'header', 'footer']):
+                tag.decompose()
+            content = md(str(body))
+
+        # Strategy 2: largest text block
+        if not content or len(content) < 200:
+            candidates = soup.find_all(['div', 'td', 'article', 'section', 'blockquote'])
+            max_length = 0
+            best_candidate = None
+            for candidate in candidates:
+                text_length = len(candidate.get_text(strip=True))
+                if text_length > max_length:
+                    max_length = text_length
+                    best_candidate = candidate
+            if best_candidate and max_length > 200:
+                content = md(str(best_candidate))
+
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date,
+            'author': author,
+            'content': content
+        }
+
+
+class CreativeIndependentScraper(AdvisorScraper):
+    """Scraper for thecreativeindependent.com (1,000+ creative interviews)"""
+
+    def __init__(self, base_url, output_dir, rate_limit=1.5):
+        super().__init__(base_url, output_dir, rate_limit)
+
+    def extract_article_urls(self, archive_url):
+        """Extract interview URLs from The Creative Independent archive pages"""
+        urls = []
+        page = 1
+        max_pages = 100  # Large archive, 1000+ interviews
+
+        while page <= max_pages:
+            if page == 1:
+                page_url = f"{self.base_url}/people"
+            else:
+                page_url = f"{self.base_url}/people?page={page}"
+            print(f"   Checking page {page}...")
+
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                # Interview URLs pattern: /people/[slug]
+                if '/people/' in full_url and full_url != f"{self.base_url}/people" \
+                   and full_url != f"{self.base_url}/people/" \
+                   and '?page=' not in full_url \
+                   and '#' not in full_url \
+                   and full_url not in urls:
+                    path = urlparse(full_url).path.strip('/')
+                    parts = path.split('/')
+                    if len(parts) == 2 and parts[0] == 'people':
+                        urls.append(full_url)
+                        found += 1
+
+            if found == 0:
+                break
+            page += 1
+
+        # Also try /guides and /essays for additional content
+        for section in ['/guides', '/essays']:
+            section_url = f"{self.base_url}{section}"
+            response = self.fetch_page(section_url)
+            if not response:
+                continue
+            soup = BeautifulSoup(response.content, 'html.parser')
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                if (f'{section}/' in full_url or '/people/' in full_url) \
+                   and full_url not in urls \
+                   and '#' not in full_url \
+                   and '?page=' not in full_url:
+                    path = urlparse(full_url).path.strip('/')
+                    parts = path.split('/')
+                    if len(parts) == 2:
+                        urls.append(full_url)
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract The Creative Independent interview content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title
+        title = None
+        h1 = soup.find('h1')
+        if h1:
+            title = h1.text.strip()
+        if not title:
+            title_tag = soup.find('title')
+            if title_tag:
+                title = title_tag.text.strip()
+                for suffix in [' | The Creative Independent', ' — The Creative Independent',
+                               ' - The Creative Independent']:
+                    if suffix in title:
+                        title = title.split(suffix)[0].strip()
+        if not title:
+            title = 'Untitled'
+
+        # Date
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem:
+            date = time_elem.get('datetime', time_elem.text.strip())
+        if not date:
+            meta_date = soup.find('meta', property='article:published_time')
+            if meta_date:
+                date = meta_date.get('content', '')
+
+        # Author / Interviewee
+        author = 'The Creative Independent'
+        # Try to extract from meta or byline
+        meta_author = soup.find('meta', attrs={'name': 'author'})
+        if meta_author:
+            author = meta_author.get('content', author)
+        # Check for byline element
+        byline = soup.find('span', class_='byline') or soup.find('div', class_='byline') \
+                 or soup.find('p', class_='byline')
+        if byline:
+            author = byline.text.strip()
+
+        # Content
+        content = None
+        # Strategy 1: interview/article body div
+        for cls in ['interview-body', 'article-body', 'entry-content',
+                     'post-content', 'guide-body', 'essay-body']:
+            content_div = soup.find('div', class_=cls)
+            if content_div:
+                content = md(str(content_div))
+                break
+        # Strategy 2: article tag
+        if not content or len(content) < 200:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        # Strategy 3: main tag
+        if not content or len(content) < 200:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        # Strategy 4: largest text block
+        if not content or len(content) < 200:
+            candidates = soup.find_all(['div', 'section'])
+            max_length = 0
+            best_candidate = None
+            for candidate in candidates:
+                text_length = len(candidate.get_text(strip=True))
+                if text_length > max_length:
+                    max_length = text_length
+                    best_candidate = candidate
+            if best_candidate and max_length > 500:
+                content = md(str(best_candidate))
+
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date[:10] if date else '',
+            'author': author,
+            'content': content
+        }
+
+
+class LynchNetScraper(AdvisorScraper):
+    """Scraper for lynchnet.com (David Lynch interviews archive)"""
+
+    def __init__(self, base_url, output_dir, rate_limit=1.5):
+        super().__init__(base_url, output_dir, rate_limit)
+
+    def extract_article_urls(self, archive_url):
+        """Extract interview URLs from lynchnet.com"""
+        urls = []
+
+        # Start with the main page and known sections
+        pages_to_crawl = [
+            self.base_url,
+            urljoin(self.base_url, '/lif/'),
+            urljoin(self.base_url, '/lif/lif.html'),
+        ]
+
+        visited = set()
+
+        for page_url in pages_to_crawl:
+            if page_url in visited:
+                continue
+            visited.add(page_url)
+
+            response = self.fetch_page(page_url)
+            if not response:
+                continue
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(page_url, href)
+                parsed = urlparse(full_url)
+
+                # Only keep lynchnet.com URLs
+                if 'lynchnet.com' not in parsed.netloc and parsed.netloc != '':
+                    continue
+
+                full_url = urljoin(self.base_url, parsed.path)
+
+                # Skip non-content files
+                if parsed.path.endswith(('.jpg', '.png', '.gif', '.css', '.js', '.ico')):
+                    continue
+                if '#' in href or 'mailto:' in href:
+                    continue
+                if parsed.path in ['/', '', '/index.html', '/index.htm']:
+                    continue
+
+                # Keep HTML pages that look like interviews
+                path = parsed.path.strip('/')
+                if path and full_url not in urls:
+                    # Add interview-like pages
+                    if any(kw in path.lower() for kw in ['lif/', 'interview', 'press', 'article']):
+                        urls.append(full_url)
+                    # Also add HTML files in subdirectories
+                    elif path.endswith(('.html', '.htm')):
+                        urls.append(full_url)
+
+        # Second pass: crawl discovered interview index pages for deeper links
+        interview_indexes = [u for u in urls if any(kw in u.lower() for kw in ['index', 'lif.html', 'lif/'])]
+        for idx_url in interview_indexes[:5]:  # Limit to prevent infinite crawl
+            if idx_url in visited:
+                continue
+            visited.add(idx_url)
+            response = self.fetch_page(idx_url)
+            if not response:
+                continue
+            soup = BeautifulSoup(response.content, 'html.parser')
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(idx_url, href)
+                parsed = urlparse(full_url)
+                if parsed.path.endswith(('.jpg', '.png', '.gif', '.css', '.js', '.ico')):
+                    continue
+                if '#' in href or 'mailto:' in href:
+                    continue
+                full_url = urljoin(self.base_url, parsed.path)
+                if full_url not in urls and parsed.path.strip('/'):
+                    urls.append(full_url)
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract David Lynch interview content from plain HTML"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title
+        title = None
+        title_tag = soup.find('title')
+        if title_tag and title_tag.text.strip():
+            title = title_tag.text.strip()
+            for suffix in [' - LynchNet', ' | LynchNet', ' - Lynch Net']:
+                if suffix in title:
+                    title = title.split(suffix)[0].strip()
+        if not title or title.lower() in ['', 'lynchnet', 'lynch net']:
+            for tag in ['h1', 'h2', 'h3']:
+                elem = soup.find(tag)
+                if elem and elem.text.strip():
+                    title = elem.text.strip()
+                    break
+        if not title:
+            path = urlparse(url).path.strip('/')
+            title = path.replace('.html', '').replace('.htm', '').replace('/', ' - ').replace('-', ' ').replace('_', ' ').title()
+        if not title:
+            title = 'Untitled'
+
+        # Date: look for year mentions in old HTML
+        date = ''
+        import re
+        for elem in soup.find_all(['p', 'span', 'div', 'i', 'em', 'b', 'strong', 'font']):
+            text = elem.text.strip()
+            if len(text) < 80:
+                year_match = re.search(r'\b(19[6-9]\d|20[0-2]\d)\b', text)
+                if year_match and any(kw in text.lower() for kw in ['interview', 'published', 'date', 'from', ',']):
+                    date = text
+                    break
+
+        author = 'David Lynch'
+
+        # Content: plain HTML
+        content = None
+        body = soup.find('body')
+        if body:
+            # Remove nav elements if present
+            for tag in body.find_all(['nav', 'header', 'footer', 'script', 'style']):
+                tag.decompose()
+            content = md(str(body))
+
+        if not content or len(content) < 200:
+            candidates = soup.find_all(['div', 'td', 'article', 'section', 'blockquote'])
+            max_length = 0
+            best_candidate = None
+            for candidate in candidates:
+                text_length = len(candidate.get_text(strip=True))
+                if text_length > max_length:
+                    max_length = text_length
+                    best_candidate = candidate
+            if best_candidate and max_length > 200:
+                content = md(str(best_candidate))
+
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date,
+            'author': author,
+            'content': content
+        }
+
+
+class BombMagazineScraper(AdvisorScraper):
+    """Scraper for bombmagazine.org (interviews section, paginated)"""
+
+    def __init__(self, base_url, output_dir, rate_limit=1.5):
+        super().__init__(base_url, output_dir, rate_limit)
+
+    def extract_article_urls(self, archive_url):
+        """Extract interview URLs from BOMB Magazine interviews section"""
+        urls = []
+        page = 1
+        max_pages = 80  # BOMB has a deep archive
+
+        while page <= max_pages:
+            if page == 1:
+                page_url = f"{self.base_url}/interviews"
+            else:
+                page_url = f"{self.base_url}/interviews?page={page}"
+            print(f"   Checking page {page}...")
+
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                # Interview articles pattern: /articles/[slug] or /[slug]
+                if 'bombmagazine.org' in full_url or href.startswith('/'):
+                    full_url = urljoin(self.base_url, href)
+                    parsed = urlparse(full_url)
+                    path = parsed.path.strip('/')
+
+                    # Match article paths (skip nav, tags, categories)
+                    if path.startswith('articles/') and len(path.split('/')) == 2:
+                        if full_url not in urls and '#' not in href:
+                            urls.append(full_url)
+                            found += 1
+
+            if found == 0:
+                break
+            page += 1
+
+        # Also try direct archive sections
+        for section_path in ['/interviews/', '/articles/']:
+            section_url = urljoin(self.base_url, section_path)
+            response = self.fetch_page(section_url)
+            if not response:
+                continue
+            soup = BeautifulSoup(response.content, 'html.parser')
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                parsed = urlparse(full_url)
+                path = parsed.path.strip('/')
+                if path.startswith('articles/') and len(path.split('/')) == 2 \
+                   and full_url not in urls and '#' not in href:
+                    urls.append(full_url)
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract BOMB Magazine interview content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title
+        title = None
+        h1 = soup.find('h1')
+        if h1:
+            title = h1.text.strip()
+        if not title:
+            title_tag = soup.find('title')
+            if title_tag:
+                title = title_tag.text.strip()
+                for suffix in [' - BOMB Magazine', ' | BOMB Magazine', ' - BOMB', ' | BOMB']:
+                    if suffix in title:
+                        title = title.split(suffix)[0].strip()
+        if not title:
+            title = 'Untitled'
+
+        # Date
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem:
+            date = time_elem.get('datetime', time_elem.text.strip())
+        if not date:
+            meta_date = soup.find('meta', property='article:published_time')
+            if meta_date:
+                date = meta_date.get('content', '')
+        # BOMB often shows issue number/season, try to find that
+        if not date:
+            for elem in soup.find_all(['span', 'div', 'p']):
+                text = elem.text.strip()
+                if len(text) < 60 and ('BOMB' in text or 'Issue' in text or 'No.' in text):
+                    import re
+                    if re.search(r'\b(19[89]\d|20[0-2]\d)\b', text):
+                        date = text
+                        break
+
+        # Author - BOMB interviews typically list both interviewer and interviewee
+        author = 'BOMB Magazine'
+        # Try JSON-LD
+        script = soup.find('script', type='application/ld+json')
+        if script:
+            try:
+                data = json.loads(script.string)
+                if isinstance(data, list):
+                    data = data[0]
+                author_data = data.get('author', {})
+                if isinstance(author_data, dict):
+                    author = author_data.get('name', author)
+                elif isinstance(author_data, list) and author_data:
+                    author = ', '.join(a.get('name', '') for a in author_data if a.get('name'))
+            except (json.JSONDecodeError, AttributeError, TypeError):
+                pass
+        # Fallback: look for author elements
+        if author == 'BOMB Magazine':
+            author_elem = soup.find('a', rel='author') or soup.find('span', class_='author') \
+                          or soup.find('div', class_='author')
+            if author_elem:
+                author = author_elem.text.strip()
+
+        # Content
+        content = None
+        # Strategy 1: article body classes
+        for cls in ['article-body', 'article__body', 'article-content',
+                     'entry-content', 'post-content', 'interview-body']:
+            content_div = soup.find('div', class_=cls)
+            if content_div:
+                content = md(str(content_div))
+                break
+        # Strategy 2: article tag
+        if not content or len(content) < 200:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        # Strategy 3: main tag
+        if not content or len(content) < 200:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        # Strategy 4: largest text block
+        if not content or len(content) < 200:
+            candidates = soup.find_all(['div', 'section'])
+            max_length = 0
+            best_candidate = None
+            for candidate in candidates:
+                text_length = len(candidate.get_text(strip=True))
+                if text_length > max_length:
+                    max_length = text_length
+                    best_candidate = candidate
+            if best_candidate and max_length > 500:
+                content = md(str(best_candidate))
+
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date[:10] if date else '',
+            'author': author,
+            'content': content
+        }
+
+
 def main():
     """CLI entry point"""
     if len(sys.argv) < 3:
@@ -2282,6 +2908,10 @@ def main():
         print("  brandnew         - Brand New (brand identity critique)")
         print("  designobserver   - Design Observer (design criticism)")
         print("  creativereview   - Creative Review (advertising/branding)")
+        print("  eno              - Brian Eno interviews (moredarkthanshark.org)")
+        print("  creative-independent - The Creative Independent (1,000+ interviews)")
+        print("  lynchnet         - David Lynch interviews (lynchnet.com)")
+        print("  bomb-magazine    - BOMB Magazine interviews (bombmagazine.org)")
         print("\nExample:")
         print("  python scraper.py beehiiv https://musicmarketingtrends.beehiiv.com ~/Development/jesse-cannon")
         print("  python scraper.py valhalla https://valhalladsp.com ~/Development/valhalla-dsp")
@@ -2322,6 +2952,11 @@ def main():
         'creativereview': CreativeReviewScraper,
         # Plugin dev blogs
         'kilohearts': KiloheartsScraper,
+        # Creative interview sources
+        'eno': EnoScraper,
+        'creative-independent': CreativeIndependentScraper,
+        'lynchnet': LynchNetScraper,
+        'bomb-magazine': BombMagazineScraper,
     }
 
     if source_type not in scrapers:
