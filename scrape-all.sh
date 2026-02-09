@@ -165,6 +165,40 @@ python "$TOOLS_DIR/scraper.py" bomb-magazine \
     https://bombmagazine.org \
     "$DEV_DIR/creative-interviews/bomb-magazine"
 
+# ===== ART DIRECTION SOURCES (Added 2026-02-08) =====
+
+echo ""
+
+# It's Nice That (Art Direction Blog)
+echo "2️⃣0️⃣ It's Nice That - Art Direction Blog"
+python "$TOOLS_DIR/scraper.py" itsnicethat \
+    https://www.itsnicethat.com \
+    "$DEV_DIR/art-direction/its-nice-that"
+
+echo ""
+
+# Creative Boom (Art/Design Articles)
+echo "2️⃣1️⃣ Creative Boom - Art & Design Articles"
+python "$TOOLS_DIR/scraper.py" creativeboom \
+    https://www.creativeboom.com \
+    "$DEV_DIR/art-direction/creative-boom"
+
+echo ""
+
+# Fonts In Use (Typography Specimens)
+echo "2️⃣2️⃣ Fonts In Use - Typography Specimens"
+python "$TOOLS_DIR/scraper.py" fontsinuse \
+    https://fontsinuse.com \
+    "$DEV_DIR/art-direction/fonts-in-use"
+
+echo ""
+
+# The Brand Identity (Brand/Identity Design)
+echo "2️⃣3️⃣ The Brand Identity - Brand & Identity Design"
+python "$TOOLS_DIR/scraper.py" thebrandidentity \
+    https://the-brand-identity.com \
+    "$DEV_DIR/art-direction/the-brand-identity"
+
 echo ""
 echo "✅ All sources scraped!"
 echo ""
@@ -191,6 +225,11 @@ echo "   Brian Eno: $(find $DEV_DIR/creative-interviews/brian-eno/articles -name
 echo "   Creative Independent: $(find $DEV_DIR/creative-interviews/creative-independent/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo "   David Lynch: $(find $DEV_DIR/creative-interviews/david-lynch/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo "   BOMB Magazine: $(find $DEV_DIR/creative-interviews/bomb-magazine/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
+echo "   --- Art Direction ---"
+echo "   It's Nice That: $(find $DEV_DIR/art-direction/its-nice-that/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
+echo "   Creative Boom: $(find $DEV_DIR/art-direction/creative-boom/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
+echo "   Fonts In Use: $(find $DEV_DIR/art-direction/fonts-in-use/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
+echo "   The Brand Identity: $(find $DEV_DIR/art-direction/the-brand-identity/articles -name '*.md' 2>/dev/null | wc -l | tr -d ' ') articles"
 echo ""
 echo "💰 Tokens burned: 0"
 echo "🌳 Carbon impact: Minimal (code execution only)"

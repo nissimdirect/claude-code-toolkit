@@ -137,11 +137,22 @@ def update_experiment(exp_id: int, status: str, result: str = ''):
     experiments = load_experiments()
     for e in experiments:
         if e['id'] == exp_id:
+            old_status = e['status']
             e['status'] = status
             if result:
                 e['result'] = result
             if status == 'completed':
                 e['completed_date'] = datetime.now().strftime('%Y-%m-%d')
+                # Print highly visible completion banner
+                print('=' * 60)
+                print(f'  EXPERIMENT VALIDATED: EXP-{exp_id:03d}')
+                print(f'  "{e["hypothesis"]}"')
+                print(f'  Result: {result or "no result recorded"}')
+                print(f'  Duration: {e["created"]} -> {e["completed_date"]}')
+                print('=' * 60)
+                print(f'  Next: invoke /ask-lenny to codify as product learning')
+                print(f'  Then: run `python3 {__file__} archive {exp_id}` to clean up')
+                print('=' * 60)
             break
     else:
         print(f'Experiment EXP-{exp_id:03d} not found')
@@ -151,17 +162,75 @@ def update_experiment(exp_id: int, status: str, result: str = ''):
     sync_markdown(experiments)
 
 
+def archive_experiments():
+    """Move completed/failed/invalidated experiments to archive section.
+
+    Removes them from the active JSON list and appends to an archive file.
+    This keeps the active experiment list clean and focused.
+    """
+    experiments = load_experiments()
+    active = [e for e in experiments if e['status'] in ('pending', 'running')]
+    done = [e for e in experiments if e['status'] not in ('pending', 'running')]
+
+    if not done:
+        print('No completed experiments to archive.')
+        return
+
+    # Append to archive file
+    archive_file = Path.home() / 'Documents' / 'Obsidian' / 'process' / 'EXPERIMENTS-ARCHIVE.md'
+    archive_file.parent.mkdir(parents=True, exist_ok=True)
+
+    archive_lines = []
+    if archive_file.exists():
+        archive_lines = archive_file.read_text().strip().split('\n')
+    else:
+        archive_lines = [
+            '# Experiment Archive',
+            '',
+            '> Completed, failed, and invalidated experiments moved here from active tracking.',
+            '',
+        ]
+
+    archive_lines.append(f'\n## Archived {datetime.now().strftime("%Y-%m-%d")}')
+    archive_lines.append('')
+    for e in done:
+        status_icon = {'completed': '[VALIDATED]', 'failed': '[FAILED]', 'invalidated': '[INVALID]'}
+        icon = status_icon.get(e['status'], '[?]')
+        archive_lines.append(f'### {icon} EXP-{e["id"]:03d}: {e["hypothesis"]}')
+        archive_lines.append(f'- **Result:** {e.get("result", "none")}')
+        archive_lines.append(f'- **Period:** {e["created"]} - {e.get("completed_date", "?")}')
+        archive_lines.append(f'- **Method:** {e["method"]}')
+        archive_lines.append(f'- **Metric:** {e["metric"]}')
+        archive_lines.append('')
+
+    archive_file.write_text('\n'.join(archive_lines))
+
+    # Save only active experiments
+    save_experiments(active)
+    sync_markdown(active)
+
+    print(f'Archived {len(done)} experiments -> {archive_file}')
+    print(f'Active experiments remaining: {len(active)}')
+
+
 def session_check():
     """Session start/end check — returns summary for hook injection."""
     experiments = load_experiments()
     active = [e for e in experiments if e['status'] in ('pending', 'running')]
     running = [e for e in experiments if e['status'] == 'running']
 
-    if not active:
+    completed = [e for e in experiments if e['status'] == 'completed']
+
+    if not active and not completed:
         print(json.dumps({'status': 'no_experiments', 'message': 'No active experiments.'}))
         return
 
     summary_parts = []
+    if completed:
+        summary_parts.append(f'{len(completed)} VALIDATED (need archiving):')
+        for e in completed:
+            summary_parts.append(f'  EXP-{e["id"]:03d}: {e["hypothesis"][:50]} -> {e.get("result", "?")[:30]}')
+
     if running:
         summary_parts.append(f'{len(running)} running:')
         for e in running:
@@ -180,6 +249,7 @@ def session_check():
         'status': 'active',
         'active_count': len(active),
         'running_count': len(running),
+        'completed_count': len(completed),
         'message': message,
     }))
 
@@ -230,6 +300,7 @@ def main():
     subparsers.add_parser('list', help='List all experiments')
     subparsers.add_parser('check', help='Session check (JSON output)')
     subparsers.add_parser('report', help='Summary report')
+    subparsers.add_parser('archive', help='Archive completed/failed experiments')
 
     add_parser = subparsers.add_parser('add', help='Add experiment')
     add_parser.add_argument('hypothesis', help='What you believe to be true')
@@ -250,12 +321,15 @@ def main():
         session_check()
     elif args.command == 'report':
         report()
+    elif args.command == 'archive':
+        archive_experiments()
     elif args.command == 'add':
         exp = add_experiment(args.hypothesis, args.method, args.metric, args.source)
         print(f'Added EXP-{exp["id"]:03d}: {exp["hypothesis"]}')
     elif args.command == 'update':
         update_experiment(args.id, args.status, args.result)
-        print(f'Updated EXP-{args.id:03d} → {args.status}')
+        if args.status != 'completed':  # completed prints its own banner
+            print(f'Updated EXP-{args.id:03d} → {args.status}')
     else:
         parser.print_help()
 

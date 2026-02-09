@@ -196,17 +196,22 @@ ADVISORS = {
     # ── Art Direction Sources ──
     "art-director": {
         "name": "Art Director (Brand Identity + Visual Design)",
-        "source": "Brand New + Design Observer + Creative Review + Hyperallergic + e-flux",
+        "source": "Brand New + Design Observer + Creative Review + Hyperallergic + e-flux + It's Nice That + Creative Boom + Fonts In Use + The Brand Identity",
         "article_dirs": [
             Path("~/Development/art-direction/brandnew/articles").expanduser(),
             Path("~/Development/art-direction/designobserver/articles").expanduser(),
             Path("~/Development/art-direction/creativereview/articles").expanduser(),
             Path("~/Development/art-criticism/hyperallergic/articles").expanduser(),
             Path("~/Development/art-criticism/e-flux-journal/articles").expanduser(),
+            # New art direction sources (scrapers in progress)
+            Path("~/Development/art-direction/its-nice-that/articles").expanduser(),
+            Path("~/Development/art-direction/creative-boom/articles").expanduser(),
+            Path("~/Development/art-direction/fonts-in-use/articles").expanduser(),
+            Path("~/Development/art-direction/the-brand-identity/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 6183,  # 4062+12+12+538+1559
+        "article_count": 6183,  # 4062+12+12+538+1559 (+ new sources pending scraping)
         "excerpt_lines": 40,
     },
     "brandnew": {
@@ -463,6 +468,21 @@ ADVISORS = {
         "article_count": 2347,  # 214 + 400 + 23 + 1710
         "excerpt_lines": 50,
     },
+    # ── Creative Interviews ──
+    "creative-interviews": {
+        "name": "Creative Interviews (Artists, Musicians, Directors, Thinkers)",
+        "source": "Brian Eno (More Dark Than Shark) + The Creative Independent + David Lynch (LynchNet) + BOMB Magazine",
+        "article_dirs": [
+            Path("~/Development/creative-interviews/brian-eno/articles").expanduser(),
+            Path("~/Development/creative-interviews/creative-independent/articles").expanduser(),
+            Path("~/Development/creative-interviews/david-lynch/articles").expanduser(),
+            Path("~/Development/creative-interviews/bomb-magazine/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 0,  # Pending scraping
+        "excerpt_lines": 60,
+    },
 }
 
 # Aliases for flexible matching
@@ -603,6 +623,13 @@ ALIASES = {
     "sound-design": "audio-production",
     "mixing": "audio-production",
     "mastering": "audio-production",
+    # Creative Interviews
+    "creative-interviews": "creative-interviews",
+    "interviews": "creative-interviews",
+    "eno-interviews": "creative-interviews",
+    "lynch-interviews": "creative-interviews",
+    "creative-independent": "creative-interviews",
+    "tci": "creative-interviews",
 }
 
 

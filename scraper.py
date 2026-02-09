@@ -2879,6 +2879,619 @@ class BombMagazineScraper(AdvisorScraper):
         }
 
 
+class ItsNiceThatScraper(AdvisorScraper):
+    """Scraper for It's Nice That (itsnicethat.com) - art direction blog with categories"""
+
+    def __init__(self, base_url, output_dir, rate_limit=1.5):
+        super().__init__(base_url, output_dir, rate_limit)
+
+    def extract_article_urls(self, archive_url):
+        """Extract article URLs from itsnicethat.com across multiple categories"""
+        urls = []
+        categories = [
+            'graphic-design', 'illustration', 'photography', 'art',
+            'animation', 'fashion', 'architecture', 'design', 'miscellaneous'
+        ]
+
+        for cat in categories:
+            page = 1
+            max_pages = 15
+
+            while page <= max_pages:
+                if page == 1:
+                    page_url = f'{self.base_url}/{cat}'
+                else:
+                    page_url = f'{self.base_url}/{cat}?page={page}'
+                print(f"   [{cat}] page {page}...")
+
+                response = self.fetch_page(page_url)
+                if not response or response.status_code == 404:
+                    break
+
+                soup = BeautifulSoup(response.content, 'html.parser')
+                found = 0
+
+                for link in soup.find_all('a', href=True):
+                    href = link['href']
+                    full_url = urljoin(self.base_url, href)
+                    # Article URLs match pattern: /category/slug
+                    if f'/{cat}/' in full_url and full_url != f'{self.base_url}/{cat}' \
+                       and full_url != f'{self.base_url}/{cat}/' \
+                       and '?page=' not in full_url \
+                       and '#' not in full_url:
+                        path = urlparse(full_url).path.strip('/')
+                        parts = path.split('/')
+                        if len(parts) == 2 and parts[0] == cat:
+                            if full_url not in urls:
+                                urls.append(full_url)
+                                found += 1
+
+                if found == 0:
+                    break
+                page += 1
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract It's Nice That article content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title
+        title = None
+        h1 = soup.find('h1')
+        if h1:
+            title = h1.text.strip()
+        if not title:
+            title_tag = soup.find('title')
+            if title_tag:
+                title = title_tag.text.strip()
+                for suffix in [" | It's Nice That", " - It's Nice That"]:
+                    if suffix in title:
+                        title = title.split(suffix)[0].strip()
+        if not title:
+            title = 'Untitled'
+
+        # Date and author from JSON-LD first
+        date = ''
+        author = "It's Nice That"
+
+        script = soup.find('script', type='application/ld+json')
+        if script:
+            try:
+                data = json.loads(script.string)
+                if isinstance(data, list):
+                    data = data[0]
+                date = data.get('datePublished', '')[:10]
+                author_data = data.get('author', {})
+                if isinstance(author_data, dict):
+                    author = author_data.get('name', author)
+                elif isinstance(author_data, list) and author_data:
+                    author = author_data[0].get('name', author)
+            except (json.JSONDecodeError, AttributeError, TypeError):
+                pass
+
+        if not date:
+            meta_date = soup.find('meta', property='article:published_time')
+            if meta_date:
+                date = meta_date.get('content', '')[:10]
+        if not date:
+            time_elem = soup.find('time')
+            if time_elem:
+                date = time_elem.get('datetime', time_elem.text.strip())[:10]
+
+        if author == "It's Nice That":
+            author_elem = soup.find('a', rel='author') or soup.find('span', class_='author')
+            if author_elem:
+                author = author_elem.text.strip()
+
+        # Content - multiple strategies
+        content = None
+        for cls in ['article__body', 'article-body', 'article__content',
+                     'post-content', 'entry-content']:
+            content_div = soup.find('div', class_=cls)
+            if content_div:
+                content = md(str(content_div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        if not content:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        if not content or len(content) < 100:
+            candidates = soup.find_all(['div', 'section'])
+            max_length = 0
+            best = None
+            for c in candidates:
+                length = len(c.get_text(strip=True))
+                if length > max_length:
+                    max_length = length
+                    best = c
+            if best and max_length > 300:
+                content = md(str(best))
+        if not content:
+            content = "Content extraction failed"
+
+        # Prepend category from URL
+        path_parts = urlparse(url).path.strip('/').split('/')
+        category = path_parts[0] if path_parts else 'general'
+        content = f"*Category: {category.replace('-', ' ').title()}*\n\n{content}"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date,
+            'author': author,
+            'content': content
+        }
+
+
+class CreativeBoomScraper(AdvisorScraper):
+    """Scraper for Creative Boom (creativeboom.com) - art/design articles"""
+
+    def __init__(self, base_url, output_dir, rate_limit=1.5):
+        super().__init__(base_url, output_dir, rate_limit)
+
+    def extract_article_urls(self, archive_url):
+        """Extract article URLs from creativeboom.com with pagination"""
+        urls = []
+        page = 1
+        max_pages = 30
+
+        while page <= max_pages:
+            if page == 1:
+                page_url = f'{self.base_url}/inspiration'
+            else:
+                page_url = f'{self.base_url}/inspiration/page/{page}'
+            print(f"   Checking page {page}...")
+
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                if 'creativeboom.com/' in full_url \
+                   and '/page/' not in full_url \
+                   and '/tag/' not in full_url \
+                   and '/author/' not in full_url \
+                   and '/category/' not in full_url \
+                   and '/inspiration' not in full_url \
+                   and '#' not in full_url \
+                   and full_url != self.base_url \
+                   and full_url != self.base_url + '/':
+                    path = urlparse(full_url).path.strip('/')
+                    if path and len(path) > 5 and not path.startswith('about') \
+                       and not path.startswith('contact') \
+                       and not path.startswith('advertise') \
+                       and not path.startswith('submit'):
+                        if full_url not in urls:
+                            urls.append(full_url)
+                            found += 1
+
+            if found == 0:
+                break
+            page += 1
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract Creative Boom article content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title
+        title = None
+        h1 = soup.find('h1')
+        if h1:
+            title = h1.text.strip()
+        if not title:
+            title_tag = soup.find('title')
+            if title_tag:
+                title = title_tag.text.strip()
+                for suffix in [' | Creative Boom', ' - Creative Boom']:
+                    if suffix in title:
+                        title = title.split(suffix)[0].strip()
+        if not title:
+            title = 'Untitled'
+
+        # Date and author from JSON-LD
+        date = ''
+        author = 'Creative Boom'
+
+        script = soup.find('script', type='application/ld+json')
+        if script:
+            try:
+                data = json.loads(script.string)
+                if isinstance(data, list):
+                    data = data[0]
+                date = data.get('datePublished', '')[:10]
+                author_data = data.get('author', {})
+                if isinstance(author_data, dict):
+                    author = author_data.get('name', author)
+                elif isinstance(author_data, list) and author_data:
+                    author = author_data[0].get('name', author)
+            except (json.JSONDecodeError, AttributeError, TypeError):
+                pass
+
+        if not date:
+            meta_date = soup.find('meta', property='article:published_time')
+            if meta_date:
+                date = meta_date.get('content', '')[:10]
+        if not date:
+            time_elem = soup.find('time')
+            if time_elem:
+                date = time_elem.get('datetime', time_elem.text.strip())[:10]
+
+        if author == 'Creative Boom':
+            author_elem = soup.find('a', rel='author') or soup.find('span', class_='author')
+            if author_elem:
+                author = author_elem.text.strip()
+
+        # Content
+        content = None
+        for cls in ['article-content', 'article__content', 'post-content',
+                     'entry-content', 'article-body']:
+            content_div = soup.find('div', class_=cls)
+            if content_div:
+                content = md(str(content_div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        if not content:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        if not content or len(content) < 100:
+            candidates = soup.find_all(['div', 'section'])
+            max_length = 0
+            best = None
+            for c in candidates:
+                length = len(c.get_text(strip=True))
+                if length > max_length:
+                    max_length = length
+                    best = c
+            if best and max_length > 300:
+                content = md(str(best))
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date,
+            'author': author,
+            'content': content
+        }
+
+
+class FontsInUseScraper(AdvisorScraper):
+    """Scraper for Fonts In Use (fontsinuse.com) - typography specimens"""
+
+    def __init__(self, base_url, output_dir, rate_limit=1.5):
+        super().__init__(base_url, output_dir, rate_limit)
+
+    def extract_article_urls(self, archive_url):
+        """Extract specimen URLs from fontsinuse.com with pagination"""
+        urls = []
+        page = 1
+        max_pages = 40
+
+        while page <= max_pages:
+            if page == 1:
+                page_url = f'{self.base_url}/uses'
+            else:
+                page_url = f'{self.base_url}/uses?page={page}'
+            print(f"   Checking page {page}...")
+
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                # Specimen URLs match: /uses/NNNNN/slug
+                if '/uses/' in full_url and '?page=' not in full_url \
+                   and '#' not in full_url:
+                    path = urlparse(full_url).path.strip('/')
+                    parts = path.split('/')
+                    if len(parts) >= 2 and parts[0] == 'uses':
+                        try:
+                            int(parts[1])  # ID should be numeric
+                            if full_url not in urls:
+                                urls.append(full_url)
+                                found += 1
+                        except (ValueError, IndexError):
+                            pass
+
+            if found == 0:
+                break
+            page += 1
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract Fonts In Use specimen content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title
+        title = None
+        h1 = soup.find('h1')
+        if h1:
+            title = h1.text.strip()
+        if not title:
+            title_tag = soup.find('title')
+            if title_tag:
+                title = title_tag.text.strip()
+                for suffix in [' | Fonts In Use', ' - Fonts In Use']:
+                    if suffix in title:
+                        title = title.split(suffix)[0].strip()
+        if not title:
+            title = 'Untitled'
+
+        # Date
+        date = ''
+        time_elem = soup.find('time')
+        if time_elem:
+            date = time_elem.get('datetime', time_elem.text.strip())
+        if not date:
+            meta_date = soup.find('meta', property='article:published_time')
+            if meta_date:
+                date = meta_date.get('content', '')
+
+        # Author/contributor
+        author = 'Fonts In Use'
+        author_elem = soup.find('a', rel='author') or soup.find('span', class_='author')
+        if author_elem:
+            author = author_elem.text.strip()
+        # Check for "Added by" or "Curated by" pattern
+        for elem in soup.find_all(['span', 'p', 'div']):
+            text = elem.text.strip()
+            if text.startswith('Added by ') or text.startswith('Curated by '):
+                author = text.split('by ')[-1].strip()
+                break
+
+        # Extract fonts used (unique to this site)
+        fonts_info = ''
+        font_links = soup.find_all('a', href=lambda x: x and '/typefaces/' in x)
+        if font_links:
+            font_names = list(set([f.text.strip() for f in font_links if f.text.strip()]))
+            if font_names:
+                fonts_info = f"**Fonts Used:** {', '.join(font_names)}\n\n"
+
+        # Content
+        content = None
+        for cls in ['specimen-info', 'use-info', 'article-content', 'entry-content']:
+            content_div = soup.find('div', class_=cls)
+            if content_div:
+                content = md(str(content_div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        if not content:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        if not content or len(content) < 50:
+            candidates = soup.find_all(['div', 'section'])
+            max_length = 0
+            best = None
+            for c in candidates:
+                length = len(c.get_text(strip=True))
+                if length > max_length:
+                    max_length = length
+                    best = c
+            if best and max_length > 100:
+                content = md(str(best))
+        if not content:
+            content = "Content extraction failed"
+
+        # Prepend font info
+        if fonts_info:
+            content = fonts_info + content
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date[:10] if date else '',
+            'author': author,
+            'content': content
+        }
+
+
+class TheBrandIdentityScraper(AdvisorScraper):
+    """Scraper for The Brand Identity (the-brand-identity.com) - brand/identity design"""
+
+    def __init__(self, base_url, output_dir, rate_limit=1.5):
+        super().__init__(base_url, output_dir, rate_limit)
+
+    def extract_article_urls(self, archive_url):
+        """Extract article URLs from the-brand-identity.com with pagination"""
+        urls = []
+        page = 1
+        max_pages = 30
+
+        while page <= max_pages:
+            if page == 1:
+                page_url = self.base_url
+            else:
+                page_url = f'{self.base_url}/page/{page}'
+            print(f"   Checking page {page}...")
+
+            response = self.fetch_page(page_url)
+            if not response or response.status_code == 404:
+                break
+
+            soup = BeautifulSoup(response.content, 'html.parser')
+            found = 0
+
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                if 'the-brand-identity.com/' in full_url \
+                   and '/page/' not in full_url \
+                   and '/tag/' not in full_url \
+                   and '/category/' not in full_url \
+                   and '/author/' not in full_url \
+                   and '#' not in full_url \
+                   and full_url != self.base_url \
+                   and full_url != self.base_url + '/':
+                    path = urlparse(full_url).path.strip('/')
+                    if path and len(path) > 5 \
+                       and not path.startswith('about') \
+                       and not path.startswith('contact') \
+                       and not path.startswith('submit') \
+                       and not path.startswith('shop') \
+                       and not path.startswith('feed') \
+                       and not path.startswith('wp-') \
+                       and '/' not in path:
+                        if full_url not in urls:
+                            urls.append(full_url)
+                            found += 1
+
+            if found == 0:
+                break
+            page += 1
+
+        # Also try /project/ or /projects/ URL pattern
+        for section in ['projects', 'work']:
+            section_url = f'{self.base_url}/{section}'
+            response = self.fetch_page(section_url)
+            if not response or response.status_code == 404:
+                continue
+            soup = BeautifulSoup(response.content, 'html.parser')
+            for link in soup.find_all('a', href=True):
+                href = link['href']
+                full_url = urljoin(self.base_url, href)
+                if 'the-brand-identity.com/' in full_url \
+                   and f'/{section}/' in full_url \
+                   and full_url.rstrip('/') != f'{self.base_url}/{section}' \
+                   and full_url not in urls:
+                    urls.append(full_url)
+
+        return list(set(urls))
+
+    def extract_article_content(self, url):
+        """Extract The Brand Identity article content"""
+        response = self.fetch_page(url)
+        if not response:
+            return None
+
+        soup = BeautifulSoup(response.content, 'html.parser')
+
+        # Title
+        title = None
+        h1 = soup.find('h1')
+        if h1:
+            title = h1.text.strip()
+        if not title:
+            title_tag = soup.find('title')
+            if title_tag:
+                title = title_tag.text.strip()
+                for suffix in [' | The Brand Identity', ' - The Brand Identity',
+                               ' \u2014 The Brand Identity']:
+                    if suffix in title:
+                        title = title.split(suffix)[0].strip()
+        if not title:
+            title = 'Untitled'
+
+        # Date and author from JSON-LD
+        date = ''
+        author = 'The Brand Identity'
+
+        script = soup.find('script', type='application/ld+json')
+        if script:
+            try:
+                data = json.loads(script.string)
+                if isinstance(data, list):
+                    data = data[0]
+                date = data.get('datePublished', '')[:10]
+                author_data = data.get('author', {})
+                if isinstance(author_data, dict):
+                    author = author_data.get('name', author)
+                elif isinstance(author_data, list) and author_data:
+                    author = author_data[0].get('name', author)
+            except (json.JSONDecodeError, AttributeError, TypeError):
+                pass
+
+        if not date:
+            meta_date = soup.find('meta', property='article:published_time')
+            if meta_date:
+                date = meta_date.get('content', '')[:10]
+        if not date:
+            time_elem = soup.find('time')
+            if time_elem:
+                date = time_elem.get('datetime', time_elem.text.strip())[:10]
+
+        if author == 'The Brand Identity':
+            author_elem = soup.find('a', rel='author') or soup.find('span', class_='author')
+            if author_elem:
+                author = author_elem.text.strip()
+
+        # Content
+        content = None
+        for cls in ['entry-content', 'post-content', 'article-content',
+                     'article__content', 'article-body']:
+            content_div = soup.find('div', class_=cls)
+            if content_div:
+                content = md(str(content_div))
+                break
+        if not content:
+            article = soup.find('article')
+            if article:
+                content = md(str(article))
+        if not content:
+            main = soup.find('main')
+            if main:
+                content = md(str(main))
+        if not content or len(content) < 100:
+            candidates = soup.find_all(['div', 'section'])
+            max_length = 0
+            best = None
+            for c in candidates:
+                length = len(c.get_text(strip=True))
+                if length > max_length:
+                    max_length = length
+                    best = c
+            if best and max_length > 200:
+                content = md(str(best))
+        if not content:
+            content = "Content extraction failed"
+
+        return {
+            'title': title,
+            'url': url,
+            'date': date,
+            'author': author,
+            'content': content
+        }
+
+
 def main():
     """CLI entry point"""
     if len(sys.argv) < 3:
@@ -2912,10 +3525,15 @@ def main():
         print("  creative-independent - The Creative Independent (1,000+ interviews)")
         print("  lynchnet         - David Lynch interviews (lynchnet.com)")
         print("  bomb-magazine    - BOMB Magazine interviews (bombmagazine.org)")
+        print("  itsnicethat      - It's Nice That (art direction blog)")
+        print("  creativeboom     - Creative Boom (art/design articles)")
+        print("  fontsinuse       - Fonts In Use (typography specimens)")
+        print("  thebrandidentity - The Brand Identity (brand/identity design)")
         print("\nExample:")
         print("  python scraper.py beehiiv https://musicmarketingtrends.beehiiv.com ~/Development/jesse-cannon")
         print("  python scraper.py valhalla https://valhalladsp.com ~/Development/valhalla-dsp")
         print("  python scraper.py eflux https://www.e-flux.com ~/Development/e-flux-journal")
+        print("  python scraper.py itsnicethat https://www.itsnicethat.com ~/Development/art-direction/its-nice-that")
         sys.exit(1)
 
     source_type = sys.argv[1]
@@ -2957,6 +3575,11 @@ def main():
         'creative-independent': CreativeIndependentScraper,
         'lynchnet': LynchNetScraper,
         'bomb-magazine': BombMagazineScraper,
+        # Art Direction sources
+        'itsnicethat': ItsNiceThatScraper,
+        'creativeboom': CreativeBoomScraper,
+        'fontsinuse': FontsInUseScraper,
+        'thebrandidentity': TheBrandIdentityScraper,
     }
 
     if source_type not in scrapers:
