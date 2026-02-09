@@ -119,7 +119,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 674,  # Verified 2026-02-09 (will grow as waves scraped)
+        "article_count": 4662,  # Verified 2026-02-09 (plugin-devs 709 + circuit-modeling 229 + Wave 1: melatonin 20, pamplejuce 16, patrick-mckenzie 144, ross-bencina 14 + Wave 2: julia-evans 589, miessler 1794+, wolfsound 63, getdunne 30 + Wave 3: willison 500, kent-beck 407, swyx 147+)
         "excerpt_lines": 40,
     },
     "obsidian-docs": {
@@ -245,7 +245,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 6194,  # 4062+12+12+538+1559+11 (+ new sources pending scraping)
+        "article_count": 6212,  # Verified 2026-02-09 (brandnew 4062 + observer 12 + review 12 + hyperallergic 538 + eflux 1559 + creative-boom 18 + accessibility 11)
         "excerpt_lines": 40,
     },
     "brandnew": {
