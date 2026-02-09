@@ -960,15 +960,35 @@ LOCKFILE = Path.home() / ".claude/.locks/dashboard_v2.pid"
 
 def _acquire_lock():
     """Acquire PID lockfile. Returns True if lock acquired, False if another instance running."""
+    import subprocess
     LOCKFILE.parent.mkdir(parents=True, exist_ok=True)
+
+    # Check 1: Is another dashboard_v2.py process already running (regardless of lock file)?
+    try:
+        result = subprocess.run(
+            ["pgrep", "-f", "dashboard_v2.py"],
+            capture_output=True, text=True, timeout=5
+        )
+        running_pids = [
+            int(p) for p in result.stdout.strip().split("\n")
+            if p.strip() and int(p) != os.getpid()
+        ]
+        if running_pids:
+            # Update lock file to reflect actual running PID
+            LOCKFILE.write_text(str(running_pids[0]))
+            return False  # Another instance is genuinely running
+    except (subprocess.TimeoutExpired, ValueError, OSError):
+        pass
+
+    # Check 2: Lock file PID check (fallback)
     if LOCKFILE.exists():
         try:
             old_pid = int(LOCKFILE.read_text().strip())
-            # Check if the old process is still running
             os.kill(old_pid, 0)
             return False  # Process still alive
         except (ValueError, ProcessLookupError, PermissionError, OSError):
             pass  # Stale lockfile, safe to overwrite
+
     LOCKFILE.write_text(str(os.getpid()))
     return True
 
