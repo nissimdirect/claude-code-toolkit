@@ -119,7 +119,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 4662,  # Verified 2026-02-09 (plugin-devs 709 + circuit-modeling 229 + Wave 1: melatonin 20, pamplejuce 16, patrick-mckenzie 144, ross-bencina 14 + Wave 2: julia-evans 589, miessler 1794+, wolfsound 63, getdunne 30 + Wave 3: willison 500, kent-beck 407, swyx 147+)
+        "article_count": 6057,  # Verified 2026-02-09 (plugin-devs 637 + circuit 29 + Wave 1: 194 + Wave 2: julia-evans 589, miessler 2812, wolfsound 63, getdunne 30 + Wave 3: willison 500, kent-beck 407, swyx 796)
         "excerpt_lines": 40,
     },
     "obsidian-docs": {
