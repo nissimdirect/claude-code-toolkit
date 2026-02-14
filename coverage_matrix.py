@@ -1,12 +1,14 @@
 #!/usr/bin/env python3
-"""Coverage Matrix: Verify every mistake maps to ≥1 principle.
+"""Coverage Matrix + Rule Inflation Gate.
 
 Parses behavioral-principles.md cross-reference table and principle headers.
 Verifies no orphaned mistakes after compression.
+Enforces hard caps on rule counts to prevent re-inflation.
 
 Usage:
-    python3 ~/Development/tools/coverage_matrix.py verify
-    python3 ~/Development/tools/coverage_matrix.py report
+    python3 ~/Development/tools/coverage_matrix.py verify    # Coverage check
+    python3 ~/Development/tools/coverage_matrix.py report    # Full report
+    python3 ~/Development/tools/coverage_matrix.py gate      # Rule inflation gate
 """
 
 import re
@@ -115,9 +117,104 @@ def verify(content: str) -> dict:
     }
 
 
+CLAUDE_MD = Path.home() / '.claude' / 'CLAUDE.md'
+
+# Hard caps — these are the inflation guardrails.
+# Set to current post-compression counts. Adding = merging/replacing.
+# To increase a cap: run `gate --set-cap core_principles=50` (requires justification).
+CAPS = {
+    'core_principles': 45,      # Core Principles section (was 90, compressed to 45)
+    'domain_principles': 20,    # Domain Principles section (Music + UX + Security)
+    'meta_directives': 10,      # MD-1 through MD-N
+    'claude_md_rules': 12,      # Execution Gates + Core Rules in CLAUDE.md
+}
+
+
+def count_sections(content: str) -> dict:
+    """Count principles by section in behavioral-principles.md."""
+    counts = {
+        'core_principles': 0,
+        'domain_principles': 0,
+        'meta_directives': 0,
+    }
+
+    in_core = False
+    in_domain = False
+    in_meta = False
+
+    for line in content.split('\n'):
+        # Section detection
+        if '## Core Principles' in line:
+            in_core, in_domain, in_meta = True, False, False
+            continue
+        elif '## Meta-Directives' in line:
+            in_core, in_domain, in_meta = False, False, True
+            continue
+        elif '## Domain Principles' in line:
+            in_core, in_domain, in_meta = False, True, False
+            continue
+        elif line.startswith('## ') and '##' in line[:4]:
+            in_core, in_domain, in_meta = False, False, False
+            continue
+
+        # Count ### headers as individual principles
+        if line.startswith('### P') and in_core:
+            counts['core_principles'] += 1
+        elif line.startswith('### MD-') and in_meta:
+            counts['meta_directives'] += 1
+        elif line.startswith('- **P') and in_domain:
+            counts['domain_principles'] += 1
+
+    return counts
+
+
+def count_claude_md_rules(claude_md_path: Path) -> int:
+    """Count numbered rules in CLAUDE.md Core Rules section."""
+    if not claude_md_path.exists():
+        return 0
+    content = claude_md_path.read_text()
+    # Count lines matching "N. " pattern in Core Rules section
+    in_rules = False
+    count = 0
+    for line in content.split('\n'):
+        if 'Core Rules' in line:
+            in_rules = True
+            continue
+        if in_rules and line.startswith('---'):
+            break
+        if in_rules and re.match(r'^\d+\.\s', line.strip()):
+            count += 1
+    return count
+
+
+def gate_check() -> dict:
+    """Run the rule inflation gate. Returns pass/fail with details."""
+    content = PRINCIPLES_FILE.read_text()
+    counts = count_sections(content)
+    counts['claude_md_rules'] = count_claude_md_rules(CLAUDE_MD)
+
+    violations = []
+    for key, cap in CAPS.items():
+        actual = counts.get(key, 0)
+        if actual > cap:
+            violations.append({
+                'category': key,
+                'actual': actual,
+                'cap': cap,
+                'over_by': actual - cap,
+            })
+
+    return {
+        'counts': counts,
+        'caps': CAPS,
+        'violations': violations,
+        'passed': len(violations) == 0,
+    }
+
+
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ('verify', 'report'):
-        print('Usage: coverage_matrix.py verify|report')
+    if len(sys.argv) < 2 or sys.argv[1] not in ('verify', 'report', 'gate'):
+        print('Usage: coverage_matrix.py verify|report|gate')
         sys.exit(1)
 
     if not PRINCIPLES_FILE.exists():
@@ -164,6 +261,27 @@ def main():
         else:
             print(f"PASS: {result['covered']}/{result['total_mistakes']} covered ({result['coverage_pct']:.0f}%), {result['available_principles']} principles")
             sys.exit(0)
+
+    elif sys.argv[1] == 'gate':
+        gate = gate_check()
+        print("\n## Rule Inflation Gate")
+        print(f"{'Category':<25} {'Count':>5} {'Cap':>5} {'Status':>8}")
+        print("-" * 48)
+        for key, cap in CAPS.items():
+            actual = gate['counts'].get(key, 0)
+            status = 'PASS' if actual <= cap else f'OVER +{actual - cap}'
+            print(f"{key:<25} {actual:>5} {cap:>5} {status:>8}")
+
+        if gate['passed']:
+            print(f"\nGATE PASSED: All categories within caps.")
+            sys.exit(0)
+        else:
+            print(f"\nGATE FAILED: {len(gate['violations'])} cap(s) exceeded.")
+            for v in gate['violations']:
+                print(f"  {v['category']}: {v['actual']}/{v['cap']} (over by {v['over_by']})")
+            print("\nTo add a new rule, you must MERGE or REPLACE an existing one.")
+            print("Run: coverage_matrix.py report — to see full coverage.")
+            sys.exit(1)
 
 
 if __name__ == '__main__':

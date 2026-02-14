@@ -48,18 +48,20 @@ ADVISORS = {
         "excerpt_lines": 80,  # Transcripts are huge, take more context
     },
     "music-biz": {
-        "name": "Music Business (Cherie Hu + Jesse Cannon + Ari Herstand)",
-        "source": "Water & Music + Music Marketing Trends + Ari's Take + DMN + Bandzoogle + Sonicbids Guest Articles",
+        "name": "Music Business (Cherie Hu + Jesse Cannon + Ari Herstand + Bandzoogle Blog)",
+        "source": "Water & Music + Music Marketing Trends + Ari's Take + DMN + Bandzoogle Blog + Guest Articles",
         "article_dirs": [
             Path("~/Development/cherie-hu/articles").expanduser(),
             Path("~/Development/jesse-cannon/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand-dmn/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand-guest/articles").expanduser(),
+            # Full Bandzoogle blog (direct-to-fan marketing, artist websites)
+            Path("~/Development/music-marketing/bandzoogle-blog/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 2602,  # 1710 (cherie) + 148 (jesse) + 466 (ari) + 265 (dmn) + 13 (guest)
+        "article_count": 3068,  # 1710 (cherie) + 148 (jesse) + 466 (ari) + 265 (dmn) + 13 (guest) + 466 (bandzoogle blog)
         "excerpt_lines": 40,
     },
     "chatprd": {
@@ -506,8 +508,8 @@ ADVISORS = {
         "excerpt_lines": 50,
     },
     "label": {
-        "name": "Record Label (Music Business + Hypebot + MBW)",
-        "source": "Music Biz (Cherie + Jesse + Ari) + Hypebot + Music Business Worldwide",
+        "name": "Record Label (Music Business + Hypebot + MBW + Bandzoogle Blog)",
+        "source": "Music Biz (Cherie + Jesse + Ari) + Hypebot + Music Business Worldwide + Bandzoogle Blog",
         "article_dirs": [
             # All music-biz sources
             Path("~/Development/cherie-hu/articles").expanduser(),
@@ -515,6 +517,8 @@ ADVISORS = {
             Path("~/Development/music-marketing/ari-herstand/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand-dmn/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand-guest/articles").expanduser(),
+            # Bandzoogle blog (direct-to-fan, artist websites)
+            Path("~/Development/music-marketing/bandzoogle-blog/articles").expanduser(),
             # Hypebot (label-specific: indie news, streaming, deals)
             Path("~/Development/music-business/hypebot/articles").expanduser(),
             # Music Business Worldwide (streaming economics, label deals)
@@ -522,7 +526,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 5992,  # 2602 (music-biz) + 1390 (hypebot) + 2000 (mbw)
+        "article_count": 7068,  # 3068 (music-biz) + 2000 (hypebot) + 2000 (mbw)
         "excerpt_lines": 40,
     },
     "audio-production": {
@@ -566,6 +570,21 @@ ADVISORS = {
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 3,  # 3 educational guides + lyrics populated by genius_scraper.py
+        "excerpt_lines": 50,
+    },
+    # ── Marketing Hacker (SEO, GEO, Growth) ──
+    "marketing-hacker": {
+        "name": "Marketing Hacker (SEO + AI SEO/GEO + Growth Hacking)",
+        "source": "Kevin Indig, SparkToro, Arvid Kahl, Backlinko, Zyppy, Eli Schwartz, GEO Research",
+        "article_dirs": [
+            Path("~/Development/marketing-hacker/articles").expanduser(),
+            Path("~/Development/marketing-hacker/zyppy/articles").expanduser(),
+            Path("~/Development/marketing-hacker/arvid-kahl/articles").expanduser(),
+            Path("~/Development/marketing-hacker/sparktoro/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 904,  # Zyppy: 26, Arvid Kahl: 436, SparkToro: 442
         "excerpt_lines": 50,
     },
 }
@@ -803,6 +822,29 @@ ALIASES = {
     "songwriting": "ghostwriter",
     "rap-lyrics": "ghostwriter",
     "verse-writing": "ghostwriter",
+    # Marketing Hacker
+    "marketing-hacker": "marketing-hacker",
+    "marketing": "marketing-hacker",
+    "seo": "marketing-hacker",
+    "ai-seo": "marketing-hacker",
+    "geo": "marketing-hacker",
+    "growth-hack": "marketing-hacker",
+    "growth-hacking": "marketing-hacker",
+    "zero-click": "marketing-hacker",
+    "backlinks": "marketing-hacker",
+    "organic-traffic": "marketing-hacker",
+    "programmatic-seo": "marketing-hacker",
+    "kevin-indig": "marketing-hacker",
+    "sparktoro": "marketing-hacker",
+    "arvid-kahl": "marketing-hacker",
+    "backlinko": "marketing-hacker",
+    "zyppy": "marketing-hacker",
+    "cyrus-shepard": "marketing-hacker",
+    "brian-dean": "marketing-hacker",
+    "content-marketing": "marketing-hacker",
+    "guerrilla-marketing": "marketing-hacker",
+    # Bandzoogle Blog (full blog → music-biz, different from guest posts)
+    "bandzoogle-blog": "music-biz",
 }
 
 
