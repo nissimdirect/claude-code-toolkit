@@ -49,16 +49,17 @@ ADVISORS = {
     },
     "music-biz": {
         "name": "Music Business (Cherie Hu + Jesse Cannon + Ari Herstand)",
-        "source": "Water & Music + Music Marketing Trends + Ari's Take + DMN Guest Articles",
+        "source": "Water & Music + Music Marketing Trends + Ari's Take + DMN + Bandzoogle + Sonicbids Guest Articles",
         "article_dirs": [
             Path("~/Development/cherie-hu/articles").expanduser(),
             Path("~/Development/jesse-cannon/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand-dmn/articles").expanduser(),
+            Path("~/Development/music-marketing/ari-herstand-guest/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 2589,  # 1710 (cherie) + 148 (jesse) + 466 (ari) + 265 (dmn)
+        "article_count": 2602,  # 1710 (cherie) + 148 (jesse) + 466 (ari) + 265 (dmn) + 13 (guest)
         "excerpt_lines": 40,
     },
     "chatprd": {
@@ -505,20 +506,23 @@ ADVISORS = {
         "excerpt_lines": 50,
     },
     "label": {
-        "name": "Record Label (Music Business + Hypebot News)",
-        "source": "Music Biz (Cherie + Jesse + Ari) + Hypebot",
+        "name": "Record Label (Music Business + Hypebot + MBW)",
+        "source": "Music Biz (Cherie + Jesse + Ari) + Hypebot + Music Business Worldwide",
         "article_dirs": [
             # All music-biz sources
             Path("~/Development/cherie-hu/articles").expanduser(),
             Path("~/Development/jesse-cannon/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand-dmn/articles").expanduser(),
+            Path("~/Development/music-marketing/ari-herstand-guest/articles").expanduser(),
             # Hypebot (label-specific: indie news, streaming, deals)
             Path("~/Development/music-business/hypebot/articles").expanduser(),
+            # Music Business Worldwide (streaming economics, label deals)
+            Path("~/Development/music-business/music-biz-worldwide/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 3979,  # 2589 (music-biz) + 1390 (hypebot)
+        "article_count": 5992,  # 2602 (music-biz) + 1390 (hypebot) + 2000 (mbw)
         "excerpt_lines": 40,
     },
     "audio-production": {
@@ -764,6 +768,11 @@ ALIASES = {
     "ari-herstand": "music-biz",
     "ari": "music-biz",
     "aristake": "music-biz",
+    "bandzoogle": "music-biz",
+    "sonicbids": "music-biz",
+    # Music Business Worldwide
+    "mbw": "label",
+    "music-business-worldwide": "label",
     # Brian Eno / EnoWeb → Art Director (creative philosophy)
     "enoweb": "art-director",
     "eno": "art-director",
