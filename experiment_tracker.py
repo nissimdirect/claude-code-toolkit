@@ -213,6 +213,87 @@ def archive_experiments():
     print(f'Active experiments remaining: {len(active)}')
 
 
+def observe_experiment(exp_id: int, observation: str):
+    """Log an intermediate observation without completing the experiment.
+
+    Observations accumulate in the 'observations' field and help build
+    evidence toward completion or invalidation.
+    """
+    experiments = load_experiments()
+    for e in experiments:
+        if e['id'] == exp_id:
+            if 'observations' not in e:
+                e['observations'] = []
+            e['observations'].append({
+                'date': datetime.now().strftime('%Y-%m-%d'),
+                'text': observation,
+            })
+            save_experiments(experiments)
+            obs_count = len(e['observations'])
+            print(f'Observation #{obs_count} logged for EXP-{exp_id:03d}')
+            print(f'  "{observation}"')
+            if obs_count >= 3:
+                print(f'  {obs_count} observations — consider completing or invalidating.')
+            return
+    print(f'Experiment EXP-{exp_id:03d} not found')
+    sys.exit(1)
+
+
+# Trigger definitions: maps experiment ID to a natural-language trigger condition
+# that Claude should watch for during normal session work.
+TRIGGERS = {
+    1: "When switching models (Opus→Sonnet) mid-session. Note: rate limit hits before/after.",
+    2: "When the skill_gate hook fires (look for 'Skill keyword detected' in hook output). Did Claude invoke the skill?",
+    3: "When processing large text (>5000 tokens). Compare: preprocessed vs raw ingestion token counts.",
+    4: "When using /compact. Note: was it manual at ~50% or auto at ~75%? How much context was retained?",
+    5: "When using MCP tools vs gh CLI. Compare token counts for same task.",
+    6: "When additionalContext from hooks appears. Did it change behavior?",
+    8: "When CLAUDE.md execution gates fire. Did the STOP AND CHECK block prevent a miss?",
+    10: "When editing agent.md or SKILL.md files. Does the change take effect in the same session?",
+    12: "When typing messages during a Task agent run. Do they queue or get lost?",
+    13: "When canceling a sub-agent. Does any context from the canceled agent propagate?",
+    14: "When using /compact with custom focus instructions. Compare summary quality.",
+    16: "When referencing @file.md in a message. Does it actually load the file?",
+    20: "After any behavioral error. Was a hook supposed to catch it? Which layer failed?",
+}
+
+
+def watchlist():
+    """Output actionable trigger conditions for running experiments.
+
+    Called by /today at session start. Tells Claude exactly what to
+    watch for during the session and what to do when it happens.
+    """
+    experiments = load_experiments()
+    running = [e for e in experiments if e['status'] == 'running']
+
+    if not running:
+        print("No running experiments to watch for.")
+        return
+
+    print(f"EXPERIMENT WATCHLIST ({len(running)} running)")
+    print("=" * 60)
+    print()
+
+    for e in running:
+        exp_id = e['id']
+        trigger = TRIGGERS.get(exp_id, "No trigger defined — needs manual observation.")
+        obs_count = len(e.get('observations', []))
+
+        print(f"EXP-{exp_id:03d}: {e['hypothesis'][:65]}")
+        print(f"  WATCH FOR: {trigger}")
+        print(f"  Observations so far: {obs_count}")
+        if obs_count >= 3:
+            print(f"  → READY TO RESOLVE (3+ observations)")
+        print(f"  To log: experiment_tracker.py observe {exp_id} \"what happened\"")
+        print(f"  To complete: experiment_tracker.py update {exp_id} completed \"result\"")
+        print()
+
+    print("=" * 60)
+    print("TIP: Most experiments can be observed during normal work.")
+    print("When you notice a trigger condition, log it immediately.")
+
+
 def session_check():
     """Session start/end check — returns summary for hook injection."""
     experiments = load_experiments()
@@ -234,7 +315,8 @@ def session_check():
     if running:
         summary_parts.append(f'{len(running)} running:')
         for e in running:
-            summary_parts.append(f'  EXP-{e["id"]:03d}: {e["hypothesis"][:60]}')
+            obs_count = len(e.get('observations', []))
+            summary_parts.append(f'  EXP-{e["id"]:03d}: {e["hypothesis"][:55]} ({obs_count} obs)')
 
     pending = [e for e in experiments if e['status'] == 'pending']
     if pending:
@@ -301,6 +383,7 @@ def main():
     subparsers.add_parser('check', help='Session check (JSON output)')
     subparsers.add_parser('report', help='Summary report')
     subparsers.add_parser('archive', help='Archive completed/failed experiments')
+    subparsers.add_parser('watchlist', help='Actionable trigger conditions for running experiments')
 
     add_parser = subparsers.add_parser('add', help='Add experiment')
     add_parser.add_argument('hypothesis', help='What you believe to be true')
@@ -313,6 +396,10 @@ def main():
     update_parser.add_argument('status', choices=['pending', 'running', 'completed', 'failed', 'invalidated'])
     update_parser.add_argument('result', nargs='?', default='', help='Result description')
 
+    observe_parser = subparsers.add_parser('observe', help='Log intermediate observation')
+    observe_parser.add_argument('id', type=int, help='Experiment ID')
+    observe_parser.add_argument('observation', help='What you observed')
+
     args = parser.parse_args()
 
     if args.command == 'list':
@@ -323,6 +410,8 @@ def main():
         report()
     elif args.command == 'archive':
         archive_experiments()
+    elif args.command == 'watchlist':
+        watchlist()
     elif args.command == 'add':
         exp = add_experiment(args.hypothesis, args.method, args.metric, args.source)
         print(f'Added EXP-{exp["id"]:03d}: {exp["hypothesis"]}')
@@ -330,6 +419,8 @@ def main():
         update_experiment(args.id, args.status, args.result)
         if args.status != 'completed':  # completed prints its own banner
             print(f'Updated EXP-{args.id:03d} → {args.status}')
+    elif args.command == 'observe':
+        observe_experiment(args.id, args.observation)
     else:
         parser.print_help()
 
