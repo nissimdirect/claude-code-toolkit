@@ -23,6 +23,7 @@ Usage: python3 dashboard_v2.py
 import os
 import re
 import json
+import sys
 import subprocess
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -232,8 +233,8 @@ def validate_usage(usage, data):
     try:
         mtime = BUDGET_STATE.stat().st_mtime
         age_min = (time.time() - mtime) / 60
-        if age_min > 30:
-            warnings.append(f"Budget data is {int(age_min)}m old — run track_resources.py")
+        if age_min > 5:
+            warnings.append(f"Budget data is {int(age_min)}m old — refreshing...")
             log_error("usage", "recent data", f"{int(age_min)}m old", "stale budget state")
     except OSError:
         pass
@@ -1042,6 +1043,30 @@ def _release_lock():
         pass
 
 
+TRACKER_SCRIPT = Path.home() / "Development" / "tools" / "track_resources.py"
+BUDGET_REFRESH_INTERVAL = 120  # Refresh budget data every 2 minutes
+
+
+def _refresh_budget_data():
+    """Run track_resources.py in the background to update .budget-state.json.
+
+    Non-blocking: spawns subprocess and returns immediately.
+    Root cause fix: dashboard was read-only consumer of a file that only
+    got updated on prompt submission (via budget_check.py hook). Between
+    prompts, data went stale — showing 60% when actual usage was 96%.
+    """
+    if not TRACKER_SCRIPT.exists():
+        return
+    try:
+        subprocess.Popen(
+            [sys.executable, str(TRACKER_SCRIPT)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        pass
+
+
 def main():
     """Run the dashboard with proper live updating (no infinite scroll)."""
     if not _acquire_lock():
@@ -1052,12 +1077,23 @@ def main():
 
     consecutive_errors = 0
     max_consecutive_errors = 5
+    last_budget_refresh = 0  # Force immediate refresh on start
 
     try:
+        # Refresh budget data immediately on launch
+        _refresh_budget_data()
+        last_budget_refresh = time.time()
+
         with Live(generate_layout(), refresh_per_second=0.2, screen=True) as live:
             while True:
                 time.sleep(5)
                 try:
+                    # Auto-refresh budget data every 2 minutes
+                    now = time.time()
+                    if now - last_budget_refresh >= BUDGET_REFRESH_INTERVAL:
+                        _refresh_budget_data()
+                        last_budget_refresh = now
+
                     live.update(generate_layout())
                     consecutive_errors = 0
                 except KeyboardInterrupt:
