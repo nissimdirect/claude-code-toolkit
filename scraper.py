@@ -16,6 +16,13 @@ import requests
 from bs4 import BeautifulSoup
 from markdownify import markdownify as md
 
+# Content sanitizer for injection prevention
+try:
+    from content_sanitizer import sanitize_content as _sanitize
+    HAS_SANITIZER = True
+except ImportError:
+    HAS_SANITIZER = False
+
 class AdvisorScraper:
     def __init__(self, base_url, output_dir, rate_limit=1.0):
         self.base_url = base_url
@@ -124,6 +131,21 @@ class AdvisorScraper:
         slug = self.slugify(article_data['title'])
         filename = f"articles/{article_data['id']:03d}-{slug}.md"
         filepath = self.output_dir / filename
+
+        # Sanitize content before processing (strip injection patterns)
+        raw_content = article_data['content']
+        if HAS_SANITIZER:
+            sanitized, report = _sanitize(raw_content)
+            if report.blocked:
+                self.errors.append({
+                    'url': article_data['url'],
+                    'error': f'Content blocked by sanitizer: {report.patterns_matched}',
+                })
+                return None
+            if report.items_removed > 0:
+                article_data['content'] = sanitized
+                article_data['sanitized'] = True
+                article_data['sanitize_report'] = report.patterns_matched
 
         # Auto-tag content with [[wiki-links]] for Obsidian
         tagged_content = self.auto_tag_concepts(article_data['content'])

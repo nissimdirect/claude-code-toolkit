@@ -47,22 +47,18 @@ ADVISORS = {
         "article_count": 4006,  # Verified 2026-02-09
         "excerpt_lines": 80,  # Transcripts are huge, take more context
     },
-    "cherie": {
-        "name": "Cherie Hu",
-        "source": "Water & Music",
-        "article_dirs": [Path("~/Development/cherie-hu/articles").expanduser()],
+    "music-biz": {
+        "name": "Music Business (Cherie Hu + Jesse Cannon + Ari Herstand)",
+        "source": "Water & Music + Music Marketing Trends + Ari's Take + DMN Guest Articles",
+        "article_dirs": [
+            Path("~/Development/cherie-hu/articles").expanduser(),
+            Path("~/Development/jesse-cannon/articles").expanduser(),
+            Path("~/Development/music-marketing/ari-herstand/articles").expanduser(),
+            Path("~/Development/music-marketing/ari-herstand-dmn/articles").expanduser(),
+        ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 1710,
-        "excerpt_lines": 40,
-    },
-    "jesse": {
-        "name": "Jesse Cannon",
-        "source": "Music Marketing Trends",
-        "article_dirs": [Path("~/Development/jesse-cannon/articles").expanduser()],
-        "index_dir": None,
-        "pattern": "*.md",
-        "article_count": 148,
+        "article_count": 2589,  # 1710 (cherie) + 148 (jesse) + 466 (ari) + 265 (dmn)
         "excerpt_lines": 40,
     },
     "chatprd": {
@@ -228,14 +224,17 @@ ADVISORS = {
     },
     # ── Art Direction Sources ──
     "art-director": {
-        "name": "Art Director (Brand Identity + Visual Design)",
-        "source": "Brand New + Design Observer + Creative Review + Hyperallergic + e-flux + It's Nice That + Creative Boom + Fonts In Use + The Brand Identity",
+        "name": "Art Director (Brand Identity + Visual Design + Creative Philosophy)",
+        "source": "Brand New + Design Observer + Creative Review + Hyperallergic + e-flux + Brian Eno Interviews + It's Nice That + Creative Boom + Fonts In Use + The Brand Identity",
         "article_dirs": [
             Path("~/Development/art-direction/brandnew/articles").expanduser(),
             Path("~/Development/art-direction/designobserver/articles").expanduser(),
             Path("~/Development/art-direction/creativereview/articles").expanduser(),
             Path("~/Development/art-criticism/hyperallergic/articles").expanduser(),
             Path("~/Development/art-criticism/e-flux-journal/articles").expanduser(),
+            # Brian Eno creative philosophy (generative systems, oblique strategies, ambient thinking)
+            Path("~/Development/creative-interviews/brian-eno/articles").expanduser(),
+            Path("~/Development/creative-interviews/brian-eno-enoweb/articles").expanduser(),
             # New art direction sources (scrapers in progress)
             Path("~/Development/art-direction/its-nice-that/articles").expanduser(),
             Path("~/Development/creative-boom/articles").expanduser(),
@@ -245,7 +244,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 6212,  # Verified 2026-02-09 (brandnew 4062 + observer 12 + review 12 + hyperallergic 538 + eflux 1559 + creative-boom 18 + accessibility 11)
+        "article_count": 6379,  # 6212 + 12 (eno more-dark-than-shark) + 155 (eno enoweb)
         "excerpt_lines": 40,
     },
     "brandnew": {
@@ -487,31 +486,39 @@ ADVISORS = {
     # ── Music Composition + Production ──
     "music-composer": {
         "name": "Music Composer (DnB Production + Sound Design + Music Tech)",
-        "source": "Airwindows + Valhalla DSP + FabFilter + Cherie Hu + Jesse Cannon",
+        "source": "Airwindows + Valhalla DSP + FabFilter + Music Biz (Cherie/Jesse/Ari) + Splice Blog + Attack Magazine",
         "article_dirs": [
-            # Core audio/sound design (most relevant)
+            # Core audio/sound design
             Path("~/Development/plugin-devs/airwindows/articles").expanduser(),
             Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser(),
             Path("~/Development/plugin-devs/fabfilter/articles").expanduser(),
-            # Music industry + tech + marketing
+            # Music business context (shared with music-biz)
             Path("~/Development/cherie-hu/articles").expanduser(),
             Path("~/Development/jesse-cannon/articles").expanduser(),
+            # Wave 4: Music production (electronic, DnB, tutorials)
+            Path("~/Development/music-production/splice/articles").expanduser(),
+            Path("~/Development/music-production/attack-magazine/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 2495,  # 400 + 214 + 23 + 1710 + 148
+        "article_count": 7904,  # 400 + 214 + 23 + 1710 + 148 + 1571 (splice) + 3838 (attack)
         "excerpt_lines": 50,
     },
     "label": {
-        "name": "Record Label (Music Industry + Marketing)",
-        "source": "Cherie Hu + Jesse Cannon",
+        "name": "Record Label (Music Business + Hypebot News)",
+        "source": "Music Biz (Cherie + Jesse + Ari) + Hypebot",
         "article_dirs": [
+            # All music-biz sources
             Path("~/Development/cherie-hu/articles").expanduser(),
             Path("~/Development/jesse-cannon/articles").expanduser(),
+            Path("~/Development/music-marketing/ari-herstand/articles").expanduser(),
+            Path("~/Development/music-marketing/ari-herstand-dmn/articles").expanduser(),
+            # Hypebot (label-specific: indie news, streaming, deals)
+            Path("~/Development/music-business/hypebot/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 1858,  # 1710 + 148
+        "article_count": 3979,  # 2589 (music-biz) + 1390 (hypebot)
         "excerpt_lines": 40,
     },
     "audio-production": {
@@ -532,19 +539,6 @@ ADVISORS = {
         "pattern": "*.md",
         "article_count": 2380,  # Verified 2026-02-09
         "excerpt_lines": 50,
-    },
-    # ── Creative Interviews ──
-    "creative-interviews": {
-        "name": "Creative Interviews (Artists, Musicians, Directors, Thinkers)",
-        "source": "Brian Eno (More Dark Than Shark) + The Creative Independent + David Lynch (LynchNet) + BOMB Magazine",
-        "article_dirs": [
-            Path("~/Development/creative-interviews/brian-eno/articles").expanduser(),
-            # creative-independent, david-lynch, bomb-magazine — not yet scraped, add when available
-        ],
-        "index_dir": None,
-        "pattern": "*.md",
-        "article_count": 12,  # Brian Eno interviews (verified 2026-02-09)
-        "excerpt_lines": 60,
     },
     # ── Lyric Analyst + Ghostwriter ──
     "lyric-analyst": {
@@ -577,13 +571,14 @@ ALIASES = {
     "lenny": "lenny",
     "ask-lenny": "lenny",
     "lennys": "lenny",
-    "cherie": "cherie",
-    "ask-cherie": "cherie",
-    "cherie-hu": "cherie",
-    "water-and-music": "cherie",
-    "jesse": "jesse",
-    "ask-jesse": "jesse",
-    "jesse-cannon": "jesse",
+    "music-biz": "music-biz",
+    "cherie": "music-biz",
+    "ask-cherie": "music-biz",
+    "cherie-hu": "music-biz",
+    "water-and-music": "music-biz",
+    "jesse": "music-biz",
+    "ask-jesse": "music-biz",
+    "jesse-cannon": "music-biz",
     "chatprd": "chatprd",
     "ask-chatprd": "chatprd",
     "claire-vo": "chatprd",
@@ -754,12 +749,25 @@ ALIASES = {
     "dnb": "music-composer",
     "drum-and-bass": "music-composer",
     "music-production": "music-composer",
+    "splice": "music-composer",
+    "splice-blog": "music-composer",
+    "attack-magazine": "music-composer",
+    "attack": "music-composer",
     # Record Label
     "label": "label",
     "record-label": "label",
     "music-business": "label",
     "music-industry": "label",
     "distribution": "label",
+    "hypebot": "label",
+    # Ari Herstand
+    "ari-herstand": "music-biz",
+    "ari": "music-biz",
+    "aristake": "music-biz",
+    # Brian Eno / EnoWeb → Art Director (creative philosophy)
+    "enoweb": "art-director",
+    "eno": "art-director",
+    "brian-eno": "art-director",
     # Audio Production
     "audio-production": "audio-production",
     "audio": "audio-production",
@@ -767,13 +775,11 @@ ALIASES = {
     "sound-design": "audio-production",
     "mixing": "audio-production",
     "mastering": "audio-production",
-    # Creative Interviews
-    "creative-interviews": "creative-interviews",
-    "interviews": "creative-interviews",
-    "eno-interviews": "creative-interviews",
-    "lynch-interviews": "creative-interviews",
-    "creative-independent": "creative-interviews",
-    "tci": "creative-interviews",
+    # Creative Interviews → Art Director
+    "creative-interviews": "art-director",
+    "interviews": "art-director",
+    "eno-interviews": "art-director",
+    "creative-independent": "art-director",
     # Lyric Analyst
     "lyric-analyst": "lyric-analyst",
     "lyrics": "lyric-analyst",
