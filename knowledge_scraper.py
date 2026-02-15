@@ -17,6 +17,12 @@ import requests
 from bs4 import BeautifulSoup
 import yaml
 
+try:
+    from content_sanitizer import sanitize_content
+    SANITIZER_AVAILABLE = True
+except ImportError:
+    SANITIZER_AVAILABLE = False
+
 # Rate limiting
 DEFAULT_DELAY = 5  # seconds between requests
 USER_AGENT = "PopChaosLabs/1.0 (Educational Research; nissim.direct@gmail.com)"
@@ -228,6 +234,15 @@ class KnowledgeScraper:
         filename = f"{safe_title.replace(' ', '-').lower()}-{url_hash}.md"
 
         filepath = self.raw_dir / filename
+
+        # Sanitize content before writing (strip injection patterns, filler)
+        if SANITIZER_AVAILABLE:
+            content, report = sanitize_content(content)
+            if report.blocked:
+                self.log(f"BLOCKED by sanitizer: {metadata['source_url']} ({report.patterns_matched})")
+                return None
+            if report.items_removed > 0:
+                self.log(f"Sanitized: removed {report.items_removed} items ({report.patterns_matched})")
 
         # Build markdown with frontmatter
         frontmatter = yaml.dump(metadata, default_flow_style=False, allow_unicode=True)

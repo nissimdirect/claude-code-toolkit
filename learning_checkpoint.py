@@ -29,19 +29,22 @@ LEARNINGS_PATH = Path.home() / '.claude' / 'projects' / '-Users-nissimagent' / '
 HEALTH_CHECKS = [
     {
         'name': 'OpenClaw gateway',
-        'check': 'pgrep -f "openclaw.*gateway"',
+        'check_cmd': ['pgrep', '-f', 'openclaw.*gateway'],
         'severity': 'HIGH',
         'what': 'Entropy Bot, cron jobs, Telegram delivery',
     },
     {
         'name': 'OpenClaw cron last run',
-        'check': 'openclaw cron list 2>/dev/null | grep -c "ago"',
+        'check_pipeline': [
+            ['openclaw', 'cron', 'list'],
+            ['grep', '-c', 'ago'],
+        ],
         'severity': 'HIGH',
         'what': 'Daily routines, retrospectives, task check-ins',
     },
     {
         'name': 'Dashboard process',
-        'check': 'pgrep -f "dashboard_v2.py"',
+        'check_cmd': ['pgrep', '-f', 'dashboard_v2.py'],
         'severity': 'MEDIUM',
         'what': 'Budget visibility, task tracking',
     },
@@ -206,14 +209,29 @@ def health_check():
             # Python-based check
             func = globals()[check['check_python']]
             ok, detail = func()
-        else:
-            # Shell command check
-            # SECURITY: shell=True is justified here — commands are hardcoded
-            # static strings in HEALTH_CHECKS (not user-derived). They use
-            # shell features (pipes, redirects) that require shell=True.
+        elif 'check_pipeline' in check:
+            # Pipeline check (safe: no shell=True, uses subprocess pipes)
+            try:
+                cmds = check['check_pipeline']
+                proc1 = subprocess.Popen(
+                    cmds[0], stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL, text=True
+                )
+                result = subprocess.run(
+                    cmds[1], stdin=proc1.stdout,
+                    capture_output=True, text=True, timeout=10
+                )
+                proc1.wait(timeout=5)
+                ok = result.returncode == 0 and result.stdout.strip() not in ('', '0')
+                detail = result.stdout.strip()[:80] if ok else "Not running or not found"
+            except (subprocess.TimeoutExpired, OSError):
+                ok = False
+                detail = "Check timed out"
+        elif 'check_cmd' in check:
+            # Simple command check (safe: list-form, no shell)
             try:
                 result = subprocess.run(
-                    check['check'], shell=True,
+                    check['check_cmd'],
                     capture_output=True, text=True, timeout=10
                 )
                 ok = result.returncode == 0 and result.stdout.strip() not in ('', '0')

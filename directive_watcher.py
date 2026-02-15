@@ -104,14 +104,30 @@ def extract_task(filepath: Path) -> str:
     return content
 
 
+ALLOWED_PROJECT_DIRS = [
+    Path.home() / 'Development' / d for d in [
+        'entropic', 'cymatics', 'tools', 'art-portfolio',
+        'music-composer', 'lyric-analyst', 'design-system',
+        'terminal-sample-pack', 'AI-Knowledge-Exchange',
+    ]
+]
+
+
 def extract_project_dir(filepath: Path) -> str | None:
-    """Extract project directory from directive if specified."""
+    """Extract project directory from directive if specified.
+
+    Only allows whitelisted project directories to prevent path traversal.
+    """
     content = filepath.read_text()
     match = re.search(r'\*\*Project directory:\*\*\s*`([^`]+)`', content)
     if match:
-        path = match.group(1).replace('~', str(Path.home()))
-        if os.path.isdir(path):
-            return path
+        path = Path(match.group(1).replace('~', str(Path.home())))
+        if path.is_dir() and any(
+            path.resolve() == allowed.resolve() for allowed in ALLOWED_PROJECT_DIRS
+        ):
+            return str(path)
+        elif path.is_dir():
+            log(f"BLOCKED: Project dir {path} not in whitelist")
     return None
 
 
@@ -148,11 +164,12 @@ def execute_directive(filepath: Path, dry_run: bool = False) -> bool:
         "\n\nAfter completing the task, write a brief status update."
     )
 
-    # Execute via Claude CLI
+    # Execute via Claude CLI (stdin to prevent argument injection)
     try:
-        cmd = ['claude', '-p', prompt, '--output-format', 'text']
+        cmd = ['claude', '--output-format', 'text']
         result = subprocess.run(
             cmd,
+            input=prompt,
             capture_output=True, text=True,
             timeout=CLAUDE_TIMEOUT,
             cwd=project_dir or str(Path.home() / 'Development'),
