@@ -384,6 +384,70 @@ def build_context_package():
         return {'status': 'error', 'error': str(e)}
 
 
+def check_gemini_routing():
+    """Step 1l: Gemini template routing health — checks eval log and daily counter."""
+    eval_log = LOCKS / 'gemini-route-eval.jsonl'
+    counter_file = LOCKS / 'gemini-daily-counter.json'
+    results = {}
+
+    # 1. Parse eval log
+    if eval_log.exists():
+        try:
+            lines = [l.strip() for l in eval_log.read_text().strip().split('\n') if l.strip()]
+            entries = [json.loads(l) for l in lines]
+            total = len(entries)
+            ok = sum(1 for e in entries if e.get('success'))
+            total_saved = sum(e.get('est_tokens_saved', 0) for e in entries)
+
+            # Per-category stats
+            by_cat = {}
+            for e in entries:
+                cat = e.get('category', 'unknown')
+                if cat not in by_cat:
+                    by_cat[cat] = {'calls': 0, 'ok': 0}
+                by_cat[cat]['calls'] += 1
+                if e.get('success'):
+                    by_cat[cat]['ok'] += 1
+
+            results['eval_log'] = {
+                'total_calls': total,
+                'success': ok,
+                'success_rate': round(ok / total * 100) if total else 0,
+                'est_tokens_saved': total_saved,
+                'categories_used': len(by_cat),
+                'top_categories': sorted(by_cat.items(), key=lambda x: x[1]['calls'], reverse=True)[:5],
+            }
+        except Exception as e:
+            results['eval_log'] = {'error': str(e)}
+    else:
+        results['eval_log'] = {'total_calls': 0, 'message': 'No routing data yet'}
+
+    # 2. Parse daily counter
+    if counter_file.exists():
+        try:
+            counter = json.loads(counter_file.read_text())
+            results['daily_counter'] = {
+                'date': counter.get('date', '?'),
+                'count': counter.get('count', 0),
+                'cap': 200,
+                'pct_used': round(counter.get('count', 0) / 200 * 100),
+            }
+        except Exception as e:
+            results['daily_counter'] = {'error': str(e)}
+    else:
+        results['daily_counter'] = {'count': 0, 'message': 'No counter yet'}
+
+    # 3. Check template files exist
+    template_dir = TOOLS / 'gemini-templates'
+    if template_dir.exists():
+        templates = list(template_dir.glob('*.txt'))
+        results['templates_on_disk'] = len(templates)
+    else:
+        results['templates_on_disk'] = 0
+
+    return {'status': 'ok', 'data': results}
+
+
 def check_openclaw_exchange():
     """Step 1c: New files from Entropy Bot"""
     exchange = HOME / 'Development' / 'AI-Knowledge-Exchange' / 'entropy-insights'
@@ -485,6 +549,7 @@ def run_all_checks(run_workflows=False):
         'repos': check_repos,
         'openclaw_exchange': check_openclaw_exchange,
         'delegation_health': check_delegation_health,
+        'gemini_routing': check_gemini_routing,
         'context_package': build_context_package,
     }
 
@@ -615,6 +680,22 @@ def format_human_readable(data):
         if dh.get('problems'):
             for p in dh['problems']:
                 lines.append(f"  PROBLEM: {p}")
+
+    # Gemini routing
+    gr = checks.get('gemini_routing', {}).get('data', {})
+    eval_data = gr.get('eval_log', {})
+    daily = gr.get('daily_counter', {})
+    if eval_data.get('total_calls', 0) > 0:
+        lines.append(f"Gemini routing: {eval_data['total_calls']} calls, {eval_data.get('success_rate', 0)}% success, ~{eval_data.get('est_tokens_saved', 0):,} tokens saved")
+        top = eval_data.get('top_categories', [])
+        if top:
+            top_str = ', '.join(f"{cat}({s['calls']})" for cat, s in top[:3])
+            lines.append(f"  Top templates: {top_str}")
+    else:
+        lines.append("Gemini routing: No routing data yet")
+    if daily.get('count', 0) > 0:
+        lines.append(f"  Gemini API today: {daily['count']}/{daily.get('cap', 200)} ({daily.get('pct_used', 0)}%)")
+    lines.append(f"  Templates on disk: {gr.get('templates_on_disk', '?')}")
 
     # Experiments
     exp = checks.get('experiments', {})

@@ -1,0 +1,264 @@
+# Adaptive Rule Engine v3 — Rule Definitions
+# Each rule maps to a behavioral principle in behavioral-principles.md
+# Scoring: domain (0.4 explicit / 0.3 universal) + consequence + tool_trigger (0.2) + spike (0-0.15)
+# Threshold: 0.5 | Budget: 5 rules per prompt
+
+rules:
+  - id: R1
+    principle_id: P2
+    name: "Interrogation > Assumptions"
+    tier: value
+    pinned: true
+    domains: [all]
+    consequence: 0.3
+    tool_triggers: []
+    antigens: ["Mistake #1"]
+    connections: {R12: 0.5, R6: 0.4}
+    reminder: "Ask questions before assuming. Don't fill gaps with guesses."
+
+  - id: R4
+    principle_id: P4
+    name: "Read Before Editing"
+    tier: value
+    pinned: true
+    domains: [code, writing]
+    consequence: 0.3
+    tool_triggers: [edit, write]
+    antigens: ["Mistake #4", "Mistake #29"]
+    connections: {R9: 0.6, R86: 0.5}
+    reminder: "Read the file before editing. Never modify what you haven't read."
+
+  - id: R5
+    principle_id: P3
+    name: "Code > Tokens"
+    tier: value
+    pinned: true
+    domains: [all]
+    consequence: 0.3
+    tool_triggers: []
+    antigens: ["Mistake #40"]
+    connections: {R8: 0.5}
+    reminder: "Build scripts for batch work. Don't burn tokens processing text."
+
+  - id: R9
+    principle_id: P9
+    name: "Verify Everything"
+    tier: value
+    pinned: true
+    domains: [all]
+    consequence: 0.3
+    tool_triggers: [bash]
+    antigens: ["Mistake #41"]
+    connections: {R4: 0.6, R30: 0.4}
+    reminder: "Verify with tool output or evidence. Claims without proof don't count."
+
+  - id: R14
+    principle_id: P14
+    name: "Markdown Is The Superpower"
+    tier: value
+    pinned: true
+    domains: [all]
+    consequence: 0.2
+    tool_triggers: []
+    antigens: []
+    connections: {R27: 0.5}
+    reminder: "Files are databases. Wiki-links are graphs. Markdown is the superpower."
+
+  - id: R6
+    principle_id: P5
+    name: "Don't Add Ideas"
+    tier: principle
+    pinned: false
+    domains: [writing, advisory]
+    consequence: 0.2
+    tool_triggers: [write, skill]
+    antigens: ["Mistake #10"]
+    connections: {R1: 0.4, R12: 0.6}
+    reminder: "Stick to EXACT stakeholder input. Don't add features or scope."
+
+  - id: R8
+    principle_id: P8
+    name: "Build Systems Not Fixes"
+    tier: principle
+    pinned: false
+    domains: [code, scraping]
+    consequence: 0.2
+    tool_triggers: []
+    antigens: ["Mistake #30"]
+    connections: {R5: 0.5}
+    reminder: "Build recurring systems, not one-off fixes."
+
+  - id: R12
+    principle_id: P7
+    name: "Do What Was Asked"
+    tier: principle
+    pinned: false
+    domains: [all]
+    consequence: 0.2
+    tool_triggers: []
+    antigens: ["Mistake #6", "Mistake #12"]
+    connections: {R6: 0.6, R1: 0.5}
+    reminder: "Do what was asked, nothing more. End with actionable steps."
+
+  - id: R27
+    principle_id: P27
+    name: "Cross-Reference & Propagate"
+    tier: principle
+    pinned: false
+    domains: [writing, code]
+    consequence: 0.2
+    tool_triggers: [edit, write]
+    antigens: []
+    connections: {R14: 0.5, R4: 0.3}
+    reminder: "Document changes. Cross-reference related files. Propagate updates."
+
+  - id: R30
+    principle_id: P30
+    name: "Git Discipline"
+    tier: principle
+    pinned: false
+    domains: [git, code]
+    consequence: 0.2
+    tool_triggers: [bash]
+    antigens: ["Mistake #59"]
+    connections: {R9: 0.4}
+    reminder: "Commit specific files. Never --force or --no-verify. New commits, not amends."
+
+  - id: R36
+    principle_id: P36
+    name: "Pre-Execution Gate"
+    tier: principle
+    pinned: false
+    domains: [all]
+    consequence: 0.2
+    tool_triggers: [skill, bash, edit]
+    antigens: ["Mistake #36"]
+    connections: {R9: 0.3, R4: 0.3}
+    reminder: "Before every action: Skill? Read? Doing? Code? Verify?"
+
+  - id: R42
+    principle_id: P10
+    name: "Correct Audio Terms"
+    tier: practice
+    pinned: false
+    domains: [audio]
+    consequence: 0.1
+    tool_triggers: []
+    antigens: []
+    connections: {}
+    reminder: "Use correct terms: LUFS for loudness, dBTP for true peak, -14 LUFS target."
+
+  - id: R67
+    principle_id: P67
+    name: "Table After 2 Iterations"
+    tier: principle
+    pinned: false
+    domains: [all]
+    consequence: 0.1
+    tool_triggers: []
+    antigens: ["Mistake #67"]
+    connections: {R87: 0.4}
+    reminder: "After 2 failed iterations, switch to a table/structured comparison."
+
+  - id: R70
+    principle_id: P70
+    name: "Confirm Priority Before PRDs"
+    tier: principle
+    pinned: false
+    domains: [writing]
+    consequence: 0.2
+    tool_triggers: [write, skill]
+    antigens: ["Mistake #70"]
+    connections: {R1: 0.3}
+    reminder: "Don't write PRDs until roadmap is ranked. Prioritize before building."
+
+  - id: R75
+    principle_id: P75
+    name: "Budget Awareness"
+    tier: principle
+    pinned: false
+    domains: [budget]
+    consequence: 0.2
+    tool_triggers: []
+    antigens: ["Mistake #75"]
+    connections: {R5: 0.3}
+    reminder: "Track token usage. Follow budget recommendations from the hook."
+
+  - id: R84
+    principle_id: P17
+    name: "Permanent Locations Only"
+    tier: practice
+    pinned: false
+    domains: [code]
+    consequence: 0.2
+    tool_triggers: [write, bash]
+    antigens: ["Mistake #84"]
+    connections: {}
+    reminder: "Never write to /tmp or /private. Always use permanent locations."
+
+  - id: R86
+    principle_id: P86
+    name: "Filesystem Is Ground Truth"
+    tier: principle
+    pinned: false
+    domains: [code, scraping]
+    consequence: 0.2
+    tool_triggers: [bash, glob]
+    antigens: ["Mistake #86"]
+    connections: {R4: 0.5, R9: 0.3}
+    reminder: "Check the filesystem, not memory. ls/glob before claiming counts."
+
+  - id: R87
+    principle_id: P87
+    name: "Diverge Before Converging"
+    tier: principle
+    pinned: false
+    domains: [all]
+    consequence: 0.2
+    tool_triggers: []
+    antigens: ["Mistake #103"]
+    connections: {R67: 0.4, R1: 0.3}
+    reminder: "Explore multiple options before picking one. Diverge, then converge."
+
+  - id: R50
+    principle_id: P15
+    name: "Security Non-Negotiable"
+    tier: principle
+    pinned: false
+    domains: [code, git]
+    consequence: 0.3
+    tool_triggers: [bash, write]
+    antigens: ["Mistake #50"]
+    connections: {R9: 0.4}
+    reminder: "No secrets in code. Red team everything. Never bypass safety checks."
+
+  - id: R99
+    principle_id: P7
+    name: "End With Actionable Steps"
+    tier: practice
+    pinned: false
+    domains: [all]
+    consequence: 0.1
+    tool_triggers: []
+    antigens: []
+    connections: {}
+    reminder: "Last output = what the user needs to do next."
+
+# Domain classification keywords
+domain_keywords:
+  code: [code, function, class, bug, test, python, compile, import, variable, refactor, implement, debug, error, exception, build, module, type, script]
+  audio: [audio, dsp, lufs, plugin, filter, mix, master, sound, frequency, envelope, oscillator, reverb, delay, juce, vst, sample, waveform, spectrum]
+  writing: [prd, write, document, doc, readme, spec, proposal, article, essay, report, draft, review, template, outline]
+  git: [git, commit, push, pull, branch, merge, rebase, stash, checkout, diff, log, status, remote, origin, pr, pull request]
+  advisory: [advisor, consult, strategy, opinion, recommend, suggest, review, evaluate, assess, advise]
+  budget: [budget, token, cost, resource, spending, usage, track, monitor, consumption, limit]
+  scraping: [scrape, crawl, download, spider, fetch, articles, kb, knowledge, source, pipeline, enrich]
+
+# Tool inference keywords
+tool_keywords:
+  edit: [edit, change, modify, update, fix, patch, refactor, rename, replace]
+  bash: [run, execute, build, compile, test, commit, push, install, deploy, start, stop, kill]
+  write: [write, create, generate, new file, output, save, draft]
+  skill: ["/", skill, advisor, ask, consult, invoke]
+  glob: [find, search, locate, where, pattern, files]
+  read: [read, look, check, show, view, examine, inspect, cat]
