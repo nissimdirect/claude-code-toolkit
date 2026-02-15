@@ -18,9 +18,12 @@ Usage:
     context = loader.get_context("lenny", "product market fit", max_tokens=4000)
 """
 
+import json
+import statistics
 import subprocess
 import re
 import sys
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -949,66 +952,382 @@ ALIASES = {
 # ── Source Quality Weights ────────────────────────────────────────
 # Multiplied with term frequency in search scoring.
 # 1.0 = default, >1.0 = boost high-signal sources, <1.0 = penalize catalog/thin content
-SOURCE_WEIGHTS = {
-    # High-signal strategic content (deep analysis, actionable knowledge)
-    "cherie-hu": 3.0,
-    "valhalla-dsp": 2.5,
-    "attack-magazine": 2.5,
-    "fabfilter": 2.5,
-    "airwindows": 2.0,
-    "brandnew": 2.5,
-    "daniel-miessler": 2.0,
-    "kent-beck": 2.5,
-    "julia-evans": 2.5,
-    "jesse-cannon": 2.0,
-    "ari-herstand": 2.0,
-    "splice": 2.0,
-    "e-flux-journal": 2.0,
-    "bomb-magazine": 2.0,
-    "simon-willison": 2.0,
-    "ubuweb-papers": 2.0,
-    "backlinko": 2.0,
-    "swyx": 2.0,
-    "don-norman": 2.5,
-    "nngroup": 2.5,
-    "baymard": 2.0,
-    "lawsofux": 2.5,
-    "stanford-aesthetics": 2.0,
-    "brian-eno": 2.0,
-    "tape-op": 2.0,
-    # Medium-signal content (solid but variable quality)
-    "hyperallergic": 1.5,
-    "the-brand-identity": 1.5,
-    "its-nice-that": 1.5,
-    "creative-boom": 1.5,
-    "hypebot": 1.5,
-    "music-biz-worldwide": 1.5,
-    "bandzoogle-blog": 1.5,
-    "sparktoro": 1.5,
-    "kevin-indig": 1.5,
-    "arvid-kahl": 1.5,
-    "lukew": 1.5,
-    "the-quietus": 1.5,
-    "ditto-music": 1.2,
-    "bedroom-producers-blog": 1.2,
-    "cdm": 1.5,
-    # Catalog/reference content (metadata-heavy, low insight per article)
-    "fonts-in-use": 0.3,
-    # Grant recipient listings (structured data, not analysis)
-    "creative-capital-awardees": 0.5,
-    "artadia-awardees": 0.5,
-    "usa-fellows": 0.5,
-    # Grant strategy (high-signal — actual winner transcripts, application guides)
-    "creative-capital": 3.0,  # Awardee retreat transcripts = ground truth
-    "nyfa-source": 2.5,  # NYFA application tips + winning app indices
-    "fractured-atlas": 2.0,  # Fiscal sponsorship + grant guides
-    "creative-independent": 2.5,  # CC insider guide + artist statement guides
-    # Theory journals (valuable but dense, less actionable)
-    "texte-zur-kunst": 0.8,
-    "momus": 0.8,
+# ── Static Quality Weights (judgment-based) ─────────────────────
+# Original hand-tuned assessments of source quality/signal density.
+# These capture intuitions that article length can't measure
+# (e.g., Valhalla DSP posts are short but extremely high-signal).
+_STATIC_WEIGHTS = {
+    "cherie-hu": 3.0, "creative-capital": 3.0,
+    "valhalla-dsp": 2.5, "attack-magazine": 2.5, "fabfilter": 2.5,
+    "brandnew": 2.5, "kent-beck": 2.5, "julia-evans": 2.5,
+    "don-norman": 2.5, "nngroup": 2.5, "lawsofux": 2.5,
+    "nyfa-source": 2.5, "creative-independent": 2.5,
+    "airwindows": 2.0, "daniel-miessler": 2.0, "jesse-cannon": 2.0,
+    "ari-herstand": 2.0, "splice": 2.0, "e-flux-journal": 2.0,
+    "bomb-magazine": 2.0, "simon-willison": 2.0, "ubuweb-papers": 2.0,
+    "backlinko": 2.0, "swyx": 2.0, "baymard": 2.0,
+    "stanford-aesthetics": 2.0, "brian-eno": 2.0, "tape-op": 2.0,
+    "fractured-atlas": 2.0,
+    "hyperallergic": 1.5, "the-brand-identity": 1.5, "its-nice-that": 1.5,
+    "creative-boom": 1.5, "hypebot": 1.5, "music-biz-worldwide": 1.5,
+    "bandzoogle-blog": 1.5, "sparktoro": 1.5, "kevin-indig": 1.5,
+    "arvid-kahl": 1.5, "lukew": 1.5, "the-quietus": 1.5, "cdm": 1.5,
+    "ditto-music": 1.2, "bedroom-producers-blog": 1.2,
+    "texte-zur-kunst": 0.8, "momus": 0.8, "situationist-international": 0.8,
     "marxists-aesthetics": 0.7,
-    "situationist-international": 0.8,
+    "creative-capital-awardees": 0.5, "artadia-awardees": 0.5, "usa-fellows": 0.5,
+    "fonts-in-use": 0.3,
 }
+
+# Weight computation config
+WEIGHT_COMPRESSION = 0.45  # Deviation compression (0=all flat, 1=raw ratio)
+WEIGHT_BLEND = 0.5  # 0=all static, 1=all data-driven, 0.5=50/50
+WEIGHT_FLOOR = 0.70
+WEIGHT_CEILING = 1.80
+WEIGHT_INDEX_PATH = Path("~/.claude/.locks/kb-source-weights.json").expanduser()
+WEIGHT_INDEX_MAX_AGE = 86400  # 24 hours
+
+SOURCE_WEIGHTS: dict[str, float] = {}  # Populated at init by _build_blended_weights()
+
+
+def _build_blended_weights() -> dict[str, float]:
+    """Blend static judgment weights with data-driven article-length weights.
+
+    Static: captures quality intuitions (Valhalla is high-signal despite short posts).
+    Data: captures measurable depth (e-flux articles are 53KB median = genuinely deep).
+    Blend: 50/50 average after compressing both to 45% of deviation from 1.0.
+    Cached to JSON index — rebuilds if >24h stale or missing.
+    """
+    # Check index cache
+    if WEIGHT_INDEX_PATH.exists():
+        try:
+            age = time.time() - WEIGHT_INDEX_PATH.stat().st_mtime
+            if age < WEIGHT_INDEX_MAX_AGE:
+                cached = json.loads(WEIGHT_INDEX_PATH.read_text())
+                if cached.get("version") == 3:
+                    return cached["weights"]
+        except (json.JSONDecodeError, KeyError, OSError):
+            pass
+
+    # Step 1: Compress static weights to 45%
+    static_compressed = {}
+    for key, w in _STATIC_WEIGHTS.items():
+        static_compressed[key] = 1.0 + (w - 1.0) * WEIGHT_COMPRESSION
+
+    # Step 2: Compute data-driven weights from article length
+    all_dirs: dict[str, list[Path]] = {}
+    for config in ADVISORS.values():
+        for article_dir in config["article_dirs"]:
+            if not article_dir.exists():
+                continue
+            dir_str = str(article_dir)
+            matched_key = None
+            for dk in SOURCE_DOMAINS:
+                if dk in dir_str:
+                    matched_key = dk
+                    break
+            if not matched_key:
+                matched_key = article_dir.parent.name
+            if matched_key not in all_dirs:
+                all_dirs[matched_key] = []
+            all_dirs[matched_key].append(article_dir)
+
+    source_medians: dict[str, float] = {}
+    for source_key, dirs in all_dirs.items():
+        sizes = []
+        for d in dirs:
+            for f in d.glob("*.md"):
+                try:
+                    sizes.append(f.stat().st_size / 1024)
+                except OSError:
+                    pass
+        if sizes:
+            source_medians[source_key] = statistics.median(sizes)
+
+    data_compressed = {}
+    if source_medians:
+        global_median = statistics.median(list(source_medians.values()))
+        if global_median > 0:
+            for key, med in source_medians.items():
+                ratio = med / global_median
+                data_compressed[key] = 1.0 + (ratio - 1.0) * WEIGHT_COMPRESSION
+
+    # Step 3: Blend 50/50
+    all_keys = set(static_compressed) | set(data_compressed)
+    blended = {}
+    for key in all_keys:
+        sw = static_compressed.get(key, 1.0)
+        dw = data_compressed.get(key, 1.0)
+        raw = sw * (1 - WEIGHT_BLEND) + dw * WEIGHT_BLEND
+        blended[key] = round(max(WEIGHT_FLOOR, min(raw, WEIGHT_CEILING)), 2)
+
+    # Cache
+    try:
+        WEIGHT_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
+        WEIGHT_INDEX_PATH.write_text(json.dumps({
+            "version": 3,
+            "computed_at": time.time(),
+            "compression": WEIGHT_COMPRESSION,
+            "blend": WEIGHT_BLEND,
+            "source_count": len(blended),
+            "weights": blended,
+        }, indent=2))
+    except OSError:
+        pass
+
+    return blended
+
+
+# ── Dynamic Domain Relevance ────────────────────────────────────
+# Maps source directory fragments to domain keywords.
+# When query terms overlap with a source's domain, that source gets boosted.
+# This makes SOURCE_WEIGHTS context-aware instead of static.
+SOURCE_DOMAINS = {
+    # ── Typography & Fonts ──
+    "fonts-in-use": [
+        "font", "typeface", "typography", "lettering", "serif", "sans-serif",
+        "type design", "foundry", "specimen", "variable font", "grotesque",
+        "slab", "display type", "monospace", "italic", "glyph", "opentype",
+        "woff", "kerning", "ligature", "blackletter", "humanist", "geometric",
+        "grotesk", "didone", "transitional", "type specimen",
+    ],
+    # ── Grant Strategy ──
+    "creative-capital": [
+        "grant", "application", "proposal", "funding", "awardee", "retreat",
+        "work sample", "budget", "panel review", "award", "creative capital",
+        "artist statement", "project description", "catalytic", "innovation",
+    ],
+    "nyfa-source": [
+        "grant", "application", "funding", "proposal", "award", "nyfa",
+        "grant writing", "artist fellowship",
+    ],
+    "fractured-atlas": [
+        "grant", "fiscal sponsor", "fundraising", "nonprofit", "fiscal sponsorship",
+        "crowdfunding", "donation",
+    ],
+    "creative-independent": [
+        "grant", "artist statement", "application", "storytelling", "narrative",
+    ],
+    "creative-capital-awardees": [
+        "grant", "awardee", "funded", "recipient", "winner", "portfolio",
+    ],
+    "artadia-awardees": [
+        "grant", "awardee", "funded", "visual arts", "painting", "sculpture",
+    ],
+    "usa-fellows": [
+        "grant", "fellowship", "awardee", "national", "usa",
+    ],
+    # ── Brand / Identity Design ──
+    "brandnew": [
+        "brand", "logo", "identity", "rebrand", "wordmark", "monogram",
+        "visual identity", "brand refresh", "brand system",
+    ],
+    "the-brand-identity": [
+        "brand", "identity", "packaging", "label design", "studio",
+        "visual identity", "brand direction",
+    ],
+    "virgil-abloh": [
+        "streetwear", "fashion", "off-white", "virgil", "abloh", "quotation marks",
+        "3%", "freegame", "democratize",
+    ],
+    "designobserver": [
+        "design criticism", "graphic design", "design culture", "design writing",
+    ],
+    "creativereview": [
+        "advertising", "branding", "campaign", "commercial", "creative industry",
+    ],
+    # ── UX / Interaction Design ──
+    "baymard": [
+        "ecommerce", "checkout", "cart", "product page", "mobile ux",
+        "usability", "conversion",
+    ],
+    "lawsofux": [
+        "cognitive", "psychology", "heuristic", "principle", "fitts",
+        "hick", "jakob", "miller", "gestalt",
+    ],
+    "deceptive-design": [
+        "dark pattern", "deceptive", "manipulation", "trick", "confirmshaming",
+    ],
+    "don-norman": [
+        "affordance", "signifier", "conceptual model", "feedback", "mapping",
+        "constraint", "discoverability", "human error",
+    ],
+    "nngroup": [
+        "usability", "user research", "heuristic evaluation", "information architecture",
+        "navigation", "accessibility",
+    ],
+    "lukew": [
+        "mobile first", "form design", "input", "touch", "responsive",
+    ],
+    "alistapart": [
+        "web standards", "responsive", "progressive enhancement", "accessibility",
+        "content strategy",
+    ],
+    "smashingmag": [
+        "css", "web design", "front-end", "performance", "accessibility",
+    ],
+    # ── Audio / DSP / Plugins ──
+    "valhalla-dsp": [
+        "reverb", "delay", "dsp", "algorithm", "allpass", "diffusion",
+        "room", "plate", "shimmer",
+    ],
+    "airwindows": [
+        "plugin", "saturation", "eq", "compressor", "console", "tape",
+        "analog modeling", "gain staging",
+    ],
+    "fabfilter": [
+        "eq", "compressor", "limiter", "pro-q", "pro-l", "multiband",
+        "dynamics", "spectrum",
+    ],
+    "attack-magazine": [
+        "synth", "synthesis", "tutorial", "production", "sound design",
+        "modular", "wavetable", "fm",
+    ],
+    "splice": [
+        "sample", "preset", "production", "tutorial", "sound design",
+        "workflow", "collaboration",
+    ],
+    "tape-op": [
+        "recording", "studio", "mixing", "analog", "console", "microphone",
+        "preamp", "tape",
+    ],
+    "bedroom-producers-blog": [
+        "free plugin", "budget", "tutorial", "beginner", "daw", "production tips",
+    ],
+    # ── Circuit Modeling ──
+    "circuit-modeling": [
+        "circuit", "schematic", "transistor", "diode", "filter", "wdf",
+        "spice", "virtual analog", "waveshaper", "clipper", "tube",
+        "op-amp", "bjt", "mosfet", "nonlinear", "newton-raphson",
+    ],
+    # ── Critical Theory / Art Criticism ──
+    "e-flux-journal": [
+        "theory", "contemporary art", "biennial", "critique", "institutional",
+        "post-internet", "accelerationism",
+    ],
+    "hyperallergic": [
+        "exhibition", "review", "gallery", "museum", "public art",
+        "censorship", "politics",
+    ],
+    "ubuweb-papers": [
+        "avant-garde", "fluxus", "concrete poetry", "experimental", "sound poetry",
+        "dada", "futurism",
+    ],
+    "stanford-aesthetics": [
+        "philosophy", "aesthetics", "beauty", "sublime", "judgment", "taste",
+        "ontology", "phenomenology",
+    ],
+    "situationist-international": [
+        "spectacle", "détournement", "psychogeography", "debord", "derive",
+    ],
+    "marxists-aesthetics": [
+        "dialectic", "materialism", "ideology", "class", "production",
+        "benjamin", "adorno", "lukacs",
+    ],
+    "texte-zur-kunst": [
+        "institutional critique", "contemporary", "discourse", "curatorial",
+    ],
+    "momus": [
+        "art criticism", "review", "contemporary art", "culture",
+    ],
+    "bomb-magazine": [
+        "interview", "artist talk", "conversation", "studio visit",
+    ],
+    # ── Music Business ──
+    "cherie-hu": [
+        "streaming", "ai music", "web3", "music tech", "royalties",
+        "distribution", "analytics",
+    ],
+    "jesse-cannon": [
+        "marketing", "social media", "promotion", "strategy", "tiktok",
+        "instagram", "youtube", "content",
+    ],
+    "ari-herstand": [
+        "touring", "booking", "revenue", "indie artist", "publishing",
+        "sync", "licensing", "live",
+    ],
+    "hypebot": [
+        "industry", "streaming", "deals", "news", "spotify", "label",
+    ],
+    "music-biz-worldwide": [
+        "major label", "deal", "acquisition", "streaming economics",
+        "market share", "revenue",
+    ],
+    "bandzoogle-blog": [
+        "artist website", "direct-to-fan", "email list", "fan engagement",
+        "merch", "crowdfunding",
+    ],
+    "ditto-music": [
+        "distribution", "release", "indie", "upload", "stores",
+    ],
+    "the-quietus": [
+        "review", "interview", "album", "underground", "experimental music",
+    ],
+    "theneedledrop": [
+        "album review", "rating", "hip-hop", "indie", "experimental",
+    ],
+    # ── SEO / Marketing ──
+    "backlinko": [
+        "backlinks", "seo", "link building", "rankings", "on-page",
+        "google", "serp",
+    ],
+    "sparktoro": [
+        "audience", "research", "zero-click", "rand fishkin", "social",
+    ],
+    "kevin-indig": [
+        "seo", "ai search", "programmatic", "growth", "technical seo",
+    ],
+    "arvid-kahl": [
+        "indie", "bootstrap", "audience", "building in public", "saas",
+    ],
+    "zyppy": [
+        "technical seo", "ctr", "title tags", "schema",
+    ],
+    # ── Tech Leaders ──
+    "julia-evans": [
+        "debugging", "networking", "linux", "systems", "zine", "learning",
+    ],
+    "kent-beck": [
+        "tdd", "testing", "refactoring", "design", "xp", "agile",
+    ],
+    "simon-willison": [
+        "sqlite", "llm", "ai tools", "datasette", "prompt engineering",
+    ],
+    "swyx": [
+        "ai engineering", "agents", "llm", "latent space", "ai infra",
+    ],
+    "daniel-miessler": [
+        "security", "ai", "red team", "fabric", "threat modeling",
+    ],
+    "patrick-mckenzie": [
+        "pricing", "saas", "stripe", "business", "salary negotiation",
+    ],
+    # ── Brian Eno / Creative Philosophy ──
+    "brian-eno": [
+        "generative", "ambient", "oblique strategies", "scenius",
+        "systems", "process", "chance", "emergence",
+    ],
+    "brian-eno-enoweb": [
+        "generative", "ambient", "oblique strategies", "scenius",
+        "interview", "studio", "process",
+    ],
+    # ── Creative Boom / It's Nice That ──
+    "creative-boom": [
+        "illustration", "design studio", "creative career", "portfolio",
+    ],
+    "its-nice-that": [
+        "design", "illustration", "animation", "creative", "graduate",
+    ],
+    # ── CDM (Create Digital Music) ──
+    "cdm": [
+        "diy", "hardware", "controller", "eurorack", "music tech",
+        "open source", "arduino", "raspberry pi",
+    ],
+}
+
+# Domain boost multiplier: how much to amplify when query matches domain
+DOMAIN_BOOST_PER_HIT = 2.0
+DOMAIN_BOOST_CAP = 6.0  # Max total multiplier from domain relevance
 
 
 class KBLoader:
@@ -1017,6 +1336,9 @@ class KBLoader:
     def __init__(self):
         self.advisors = ADVISORS
         self.aliases = ALIASES
+        # Build blended weights on first use (cached to disk for 24h)
+        if not SOURCE_WEIGHTS:
+            SOURCE_WEIGHTS.update(_build_blended_weights())
 
     def resolve_advisor(self, name: str) -> Optional[str]:
         """Resolve advisor name/alias to canonical key."""
@@ -1070,10 +1392,10 @@ class KBLoader:
                     except subprocess.TimeoutExpired:
                         pass
 
-        # Score by frequency * source weight (quality-weighted ranking)
+        # Score by frequency * dynamic weight (quality × domain relevance)
         from collections import Counter
         freq = Counter(matches)
-        scored = sorted(freq.items(), key=lambda x: -(x[1] * self._get_source_weight(x[0])))
+        scored = sorted(freq.items(), key=lambda x: -(x[1] * self._compute_dynamic_weight(x[0], terms)))
 
         # Extract metadata and excerpts for top results
         results = []
@@ -1087,11 +1409,53 @@ class KBLoader:
 
     @staticmethod
     def _get_source_weight(path: str) -> float:
-        """Get quality weight for a source based on its directory path."""
+        """Get static quality weight for a source based on its directory path."""
         for source_key, weight in SOURCE_WEIGHTS.items():
             if source_key in path:
                 return weight
         return 1.0  # default weight for unlisted sources
+
+    @staticmethod
+    def _compute_dynamic_weight(path: str, query_terms: list[str]) -> float:
+        """Compute context-aware weight: static quality + domain relevance.
+
+        Uses ADDITIVE combination so domain relevance can rescue low-base-weight
+        sources when the query is clearly in their domain. Multiplicative would
+        anchor fonts-in-use (base=0.3) at max 1.8 even with perfect domain match.
+
+        With additive: fonts-in-use + 4 font hits = 0.3 + 6.0 = 6.3 (competitive)
+        With multiply: fonts-in-use + 4 font hits = 0.3 * 6.0 = 1.8 (buried)
+
+        Note: query_terms are lowercased internally for case-insensitive matching.
+        """
+        # Start with the static quality weight
+        base_weight = 1.0
+        for source_key, weight in SOURCE_WEIGHTS.items():
+            if source_key in path:
+                base_weight = weight
+                break
+
+        # Normalize query terms to lowercase for case-insensitive matching
+        query_lower = [qt.lower() for qt in query_terms]
+
+        # Check domain relevance — additive boost independent of base weight
+        best_boost = 0.0
+        for source_key, domain_keywords in SOURCE_DOMAINS.items():
+            if source_key not in path:
+                continue
+            # Count query terms that match this source's domain
+            hits = 0
+            for qt in query_lower:
+                for dk in domain_keywords:
+                    # Exact match, or substring match for terms > 3 chars
+                    if qt == dk or (len(qt) > 3 and qt in dk) or (len(dk) > 3 and dk in qt):
+                        hits += 1
+                        break  # One match per query term is enough
+            if hits > 0:
+                boost = min(hits * DOMAIN_BOOST_PER_HIT, DOMAIN_BOOST_CAP)
+                best_boost = max(best_boost, boost)
+
+        return base_weight + best_boost
 
     def _read_article(self, path: str, excerpt_lines: int) -> Optional[dict]:
         """Read article metadata and excerpt."""
