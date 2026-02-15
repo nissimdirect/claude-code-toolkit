@@ -14,7 +14,7 @@ import sys
 import time
 import webbrowser
 from pathlib import Path
-from threading import Timer
+from threading import Timer, Thread
 
 from flask import Flask, jsonify, render_template
 
@@ -94,6 +94,30 @@ def api_refresh():
     return jsonify({"refreshed": success})
 
 
+@app.route("/api/session")
+def api_session():
+    """Return stats for the most recently active session."""
+    from data_loader import get_current_session_stats
+    data = get_current_session_stats()
+    return jsonify(data)
+
+
+# === AUTO-REFRESH ===
+
+_auto_refresh_interval = 60  # seconds
+
+
+def _auto_refresh_loop():
+    """Background thread: re-run track_resources.py every 60s."""
+    while True:
+        time.sleep(_auto_refresh_interval)
+        try:
+            refresh_budget_data()
+            _response_cache.pop("all_data", None)
+        except Exception:
+            pass
+
+
 # === LIFECYCLE ===
 
 def _acquire_lock():
@@ -156,6 +180,10 @@ if __name__ == "__main__":
     try:
         # Refresh budget data on launch
         refresh_budget_data()
+
+        # Start auto-refresh background thread (keeps data live)
+        t = Thread(target=_auto_refresh_loop, daemon=True)
+        t.start()
 
         # Open browser after 1.5s delay (let Flask start)
         Timer(1.5, open_browser).start()

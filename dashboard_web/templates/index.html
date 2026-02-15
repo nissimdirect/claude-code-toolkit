@@ -585,11 +585,16 @@ function render(d) {
     warnEl.style.display = 'none';
   }
 
-  // KPIs
-  const pct = d.usage ? d.usage.percentage : 0;
+  // KPIs — use gap window percentage (more accurate than 5h estimate)
+  const pct5h = d.usage ? d.usage.percentage : 0;
+  const gapTok = d.usage && d.usage.since_last_gap ? d.usage.since_last_gap.tokens_used : 0;
+  const budgetTok = d.usage ? d.usage.budget : 500000;
+  const gapPct = budgetTok > 0 ? (gapTok / budgetTok * 100) : 0;
+  const pct = gapPct; // gap is primary
   const kpiBudget = document.getElementById('kpi-budget');
   kpiBudget.textContent = Math.round(pct) + '%';
   kpiBudget.style.color = pct < 50 ? 'var(--green)' : pct < 80 ? 'var(--yellow)' : 'var(--red)';
+  document.querySelector('#kpi-budget + .label').textContent = 'Budget (This Burst)';
 
   document.getElementById('kpi-kb').textContent = fmt(d.kb ? d.kb.total : 0);
 
@@ -649,30 +654,50 @@ function render(d) {
 
   let usageHtml = '<div class="dual-window">';
 
-  // Left: 5-hour rolling window
-  usageHtml += '<div class="window-card">';
-  usageHtml += '<div class="window-title" style="color:var(--cyan)">5-Hour Rolling Window</div>';
-  usageHtml += '<div class="progress-bar"><div class="progress-fill ' + (pct < 50 ? 'green' : pct < 80 ? 'yellow' : 'red') + '" style="width:' + barPct + '%">' + Math.round(pct) + '%</div></div>';
-  usageHtml += '<div class="stat-row"><span class="label">Tokens</span><span class="value">' + fmt(usage.tokens_used) + ' / ' + fmt(usage.budget) + '</span></div>';
-  usageHtml += '<div class="stat-row"><span class="label">Messages</span><span class="value">' + fmt(usage.messages) + '</span></div>';
-  usageHtml += '<div class="stat-row"><span class="label">Carbon</span><span class="value">' + (usage.window_carbon_g || 0).toFixed(1) + 'g CO2</span></div>';
-  usageHtml += '<div class="stat-row"><span class="label"></span><span class="value" style="color:var(--text-dim);font-size:11px">' + co2Equiv(usage.window_carbon_g || 0) + '</span></div>';
-  usageHtml += '<div class="stat-row"><span class="label">Energy</span><span class="value">' + (usage.window_wh || 0).toFixed(1) + ' Wh</span></div>';
-  usageHtml += rateText;
-  usageHtml += '</div>';
-
-  // Right: Since-last-gap window
-  usageHtml += '<div class="window-card">';
-  usageHtml += '<div class="window-title" style="color:var(--magenta)">Since Last Gap (30m+)</div>';
-  usageHtml += '<div class="stat-row"><span class="label">Resumed</span><span class="value">' + esc(gapTimeText) + '</span></div>';
-  usageHtml += '<div class="stat-row"><span class="label">Tokens</span><span class="value">' + fmt(gap.tokens_used) + '</span></div>';
+  // LEFT (PRIMARY): Since-last-gap window — tracks actual burst usage
+  const gapBarPct = Math.min(gapPct, 100);
+  usageHtml += '<div class="window-card" style="border-color:var(--cyan)">';
+  usageHtml += '<div class="window-title" style="color:var(--cyan)">Current Burst (since ' + esc(gapTimeText) + ')</div>';
+  usageHtml += '<div class="progress-bar"><div class="progress-fill ' + (gapPct < 50 ? 'green' : gapPct < 80 ? 'yellow' : 'red') + '" style="width:' + gapBarPct + '%">' + Math.round(gapPct) + '%</div></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Tokens</span><span class="value">' + fmt(gap.tokens_used) + ' / ' + fmt(usage.budget) + '</span></div>';
   usageHtml += '<div class="stat-row"><span class="label">Messages</span><span class="value">' + fmt(gap.messages) + '</span></div>';
   usageHtml += '<div class="stat-row"><span class="label">Carbon</span><span class="value">' + (gap.carbon_g || 0).toFixed(1) + 'g CO2</span></div>';
   usageHtml += '<div class="stat-row"><span class="label"></span><span class="value" style="color:var(--text-dim);font-size:11px">' + co2Equiv(gap.carbon_g || 0) + '</span></div>';
   usageHtml += '<div class="stat-row"><span class="label">Energy</span><span class="value">' + (gap.wh || 0).toFixed(1) + ' Wh</span></div>';
+  // Rate estimate based on gap window
+  if (gapPct > 0 && gapPct < 100) {
+    const gapHoursLeft = ((100 - gapPct) / gapPct) * 5;
+    usageHtml += '<div class="stat-row"><span class="label">At this rate</span><span class="value">' + gapHoursLeft.toFixed(1) + 'h left</span></div>';
+  }
+  usageHtml += '</div>';
+
+  // RIGHT (SECONDARY): 5-hour rolling window estimate
+  const barPct5h = Math.min(pct5h, 100);
+  usageHtml += '<div class="window-card" style="opacity:0.7">';
+  usageHtml += '<div class="window-title" style="color:var(--text-dim)">Est. 5-Hour Window <span style="font-size:9px;font-weight:400">(client-side)</span></div>';
+  usageHtml += '<div class="progress-bar"><div class="progress-fill ' + (pct5h < 50 ? 'green' : pct5h < 80 ? 'yellow' : 'red') + '" style="width:' + barPct5h + '%">' + Math.round(pct5h) + '%</div></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Tokens</span><span class="value">' + fmt(usage.tokens_used) + ' / ' + fmt(usage.budget) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Messages</span><span class="value">' + fmt(usage.messages) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Carbon</span><span class="value">' + (usage.window_carbon_g || 0).toFixed(1) + 'g CO2</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label"></span><span class="value" style="color:var(--text-dim);font-size:11px">' + co2Equiv(usage.window_carbon_g || 0) + '</span></div>';
+  usageHtml += '<div style="margin-top:6px;font-size:10px;color:var(--text-dim)">This is a local estimate. Anthropic\'s actual window timing is unknown. May overcount after inactivity gaps.</div>';
   usageHtml += '</div>';
 
   usageHtml += '</div>'; // end dual-window
+
+  // This Session stats
+  const sess = d.current_session;
+  if (sess) {
+    usageHtml += '<div style="margin-top:10px;padding:8px 10px;background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px">';
+    usageHtml += '<div style="display:flex;justify-content:space-between;align-items:center">';
+    usageHtml += '<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--blue)">This Session</span>';
+    usageHtml += '<span style="font-size:11px;color:var(--text-dim)">ID: ' + esc(sess.session_id) + '</span>';
+    usageHtml += '</div>';
+    usageHtml += '<div style="display:flex;gap:20px;margin-top:4px">';
+    usageHtml += '<div class="stat-row" style="flex:1"><span class="label">Tokens</span><span class="value">' + fmt(sess.tokens) + '</span></div>';
+    usageHtml += '<div class="stat-row" style="flex:1"><span class="label">Messages</span><span class="value">' + fmt(sess.messages) + '</span></div>';
+    usageHtml += '</div></div>';
+  }
 
   // Lifetime bar
   usageHtml += '<div class="lifetime-bar">';

@@ -139,124 +139,193 @@ def get_error_summary():
     return cached("error_summary", _get_error_summary, ttl=30)
 
 
-# === DYNAMIC KB SOURCE LOADING (THE FIX) ===
+# === KB SOURCE LOADING — FILESYSTEM SCAN (GROUND TRUTH) ===
 
-def load_kb_sources_from_json():
-    """Load ALL KB sources dynamically from data-sources.json.
+# Directory name → advisor skill mapping.
+# data-sources.json is for the SCRAPER config, not the dashboard.
+# The dashboard scans the filesystem directly and maps to skills.
+DIR_TO_SKILL = {
+    # Art Director
+    "fonts-in-use": "art-director",
+    "art-direction": "art-director",
+    "brand-new": "art-director",
+    "lukew": "art-director",
+    "smashing-mag": "art-director",
+    "art-director": "art-director",
+    "art-portfolio": "art-director",
+    "the-brand-identity": "art-director",
+    "its-nice-that": "art-director",
+    # Atrium (art criticism)
+    "art-criticism": "atrium",
+    "atrium": "atrium",
+    "creative-independent": "atrium",
+    "creative-interviews": "atrium",
+    "hyperallergic": "atrium",
+    "e-flux": "atrium",
+    "bomb-magazine": "atrium",
+    "bomb-magazine-interviews": "atrium",
+    "texte-zur-kunst": "atrium",
+    "momus": "atrium",
+    "usa-fellows": "atrium",
+    "cc-awardees": "atrium",
+    "artadia": "atrium",
+    "ubuweb": "atrium",
+    "situationist": "atrium",
+    "creative-capital": "atrium",
+    "stanford-aesthetics": "atrium",
+    "creative-review": "atrium",
+    "design-observer": "atrium",
+    "creative-boom": "atrium",
+    "david-lynch": "atrium",
+    # Don Norman (UX)
+    "ux-design": "don-norman",
+    "don-norman": "don-norman",
+    "nngroup": "don-norman",
+    "a-list-apart": "don-norman",
+    "baymard": "don-norman",
+    "laws-of-ux": "don-norman",
+    "ux-myths": "don-norman",
+    "deceptive-design": "don-norman",
+    # Music Biz (combined cherie + jesse + ari)
+    "music-business": "music-biz",
+    "music-marketing": "music-biz",
+    "cherie-hu": "music-biz",
+    "jesse-cannon": "music-biz",
+    "jesse-cannon-test": "music-biz",
+    # Audio Production (DSP, mixing, mastering, engineering)
+    "audio-production": "audio-production",
+    # Music Composer (composition, production techniques, electronic music)
+    "music-production": "music-composer",
+    # CTO
+    "cto": "cto",
+    "cto-leaders": "cto",
+    "security-leaders": "cto",
+    "plugin-devs": "cto",
+    "airwindows": "cto",
+    "valhalla-dsp": "cto",
+    "fabfilter": "cto",
+    "circuit-modeling": "cto",
+    # Ask Lenny
+    "lenny": "ask-lenny",
+    "lennys-podcast-transcripts": "ask-lenny",
+    "lennys-newsletter": "ask-lenny",
+    # ChatPRD
+    "chatprd-blog": "ask-chatprd",
+    # Indie Trinity
+    "indie-hackers": "ask-indie-trinity",
+    # Marketing
+    "marketing-hacker": "marketing-hacker",
+    # Creative
+    "chaos-strategies": "creative",
+    "brian-eno": "creative",
+    # Music Composer
+    "music-composer": "music-composer",
+    # System/reference
+    "obsidian-docs": "system",
+    "YouTubeTranscripts": "system",
+    "tools": "system",
+}
 
-    This is the critical fix: dashboard_v2.py hardcoded 6 sources,
-    missing 83% of the actual knowledge base. This reads them all.
-    """
-    if not DATA_SOURCES.exists():
-        return {}
+# Directories to skip (not KB content)
+SKIP_DIRS = {
+    "AI-Knowledge-Exchange", "claude-code-toolkit", "entropic",
+    "JUCE", "test-scrape-fixed", "fan-capture-mvp", "lyric-analyst",
+    "ghostwriter", "references", "shared-brain", "qwen", "gemini",
+    "cymatics", "dashboard_web",
+}
 
+
+def _fast_count_md(path):
+    """Count .md files using subprocess (handles 30K+ files without timeout)."""
     try:
-        raw = json.loads(DATA_SOURCES.read_text())
-    except (json.JSONDecodeError, OSError):
+        result = subprocess.run(
+            ["find", str(path), "-name", "*.md", "-type", "f"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0:
+            lines = result.stdout.strip().split("\n")
+            return len([l for l in lines if l])
+        return 0
+    except (subprocess.TimeoutExpired, OSError):
+        return 0
+
+
+def _scan_kb_directories():
+    """Scan ~/Development/ for ALL KB directories and map to skills.
+
+    This is the ground truth — counts actual .md files on disk,
+    not what data-sources.json claims. data-sources.json is scraper
+    config; the dashboard shows reality.
+    """
+    dev_dir = HOME / "Development"
+    if not dev_dir.exists():
         return {}
 
     sources = {}
-    for entry in raw.get("sources", []):
-        # Skip comment entries and non-active/scraping sources
-        if "_comment" in entry:
+    seen_paths = set()
+
+    for child in sorted(dev_dir.iterdir()):
+        if not child.is_dir():
+            continue
+        dirname = child.name
+        if dirname.startswith(".") or dirname in SKIP_DIRS:
             continue
 
-        source_id = entry.get("id", "")
-        status = entry.get("status", "")
-        local_path = entry.get("local_path", "")
-        skill = entry.get("skill", "unknown")
-        article_count = entry.get("article_count", 0)
-
-        # Only include sources that have been scraped (active or scraping)
-        if status not in ("active", "scraping"):
+        # Check if this is a parent dir with sub-sources (cto-leaders/, etc.)
+        skill = DIR_TO_SKILL.get(dirname)
+        if skill and dirname in ("cto-leaders", "security-leaders", "indie-hackers"):
+            # Scan subdirectories as individual sources
+            for sub in sorted(child.iterdir()):
+                if not sub.is_dir() or sub.name.startswith("."):
+                    continue
+                count = _fast_count_md(sub)
+                if count > 0:
+                    friendly = sub.name.replace("-", " ").replace("_", " ").title()
+                    sources[friendly] = {"path": sub, "skill": skill, "count": count}
+                    seen_paths.add(str(sub))
             continue
 
-        if not local_path:
-            continue
+        # Regular directory
+        count = _fast_count_md(child)
+        if count < 3:
+            continue  # Skip dirs with <3 .md files (not real KB)
 
-        # Expand ~ to home directory
-        expanded_path = Path(local_path.replace("~", str(HOME)))
+        if skill is None:
+            skill = "unclassified"
 
-        # Build a friendly name from the id
-        friendly_name = source_id.replace("-", " ").replace("_", " ").title()
-
-        sources[friendly_name] = {
-            "path": expanded_path,
-            "skill": skill,
-            "declared_count": article_count,
-            "id": source_id,
-        }
+        friendly = dirname.replace("-", " ").replace("_", " ").title()
+        sources[friendly] = {"path": child, "skill": skill, "count": count}
+        seen_paths.add(str(child))
 
     return sources
 
 
-def _count_articles_in_dir(path):
-    """Count markdown files in a directory (the actual article count)."""
-    if not path.exists():
-        return 0
-
-    # Try common patterns: articles subdir, then root .md files
-    patterns = [
-        "articles/*.md",
-        "episodes/**/*.md",
-        "**/*.md",
-    ]
-
-    # First check if there's an articles/ subdir
-    articles_dir = path / "articles"
-    if articles_dir.exists():
-        return len(safe_glob(articles_dir, "*.md", timeout_sec=3))
-
-    # Check for episodes/ subdir (podcasts)
-    episodes_dir = path / "episodes"
-    if episodes_dir.exists():
-        return len(safe_glob(episodes_dir, "**/*.md", timeout_sec=3))
-
-    # Fallback: count all .md at root (not recursive, avoids counting READMEs in subdirs)
-    count = len(safe_glob(path, "*.md", timeout_sec=3))
-    if count > 0:
-        return count
-
-    # Last resort: recursive .md
-    return len(safe_glob(path, "**/*.md", timeout_sec=5))
-
-
 def _load_knowledge_base_stats():
-    """Count articles across ALL knowledge bases using dynamic sources.
+    """Count articles across ALL knowledge bases by scanning the filesystem.
 
     Groups by advisor skill for the web dashboard display.
+    Ground truth = what's on disk, not what config files claim.
     """
-    sources = load_kb_sources_from_json()
+    sources = _scan_kb_directories()
     stats = {}
     by_skill = {}
     total = 0
 
-    for name, config in sources.items():
-        path = config["path"]
-        skill = config["skill"]
-        declared = config["declared_count"]
+    for name, info in sources.items():
+        count = info["count"]
+        skill = info["skill"]
 
-        # Use declared count from data-sources.json if directory doesn't exist
-        # (some sources may have article_count but no local files yet)
-        if path.exists():
-            count = _count_articles_in_dir(path)
-        elif declared > 0:
-            count = declared
-        else:
-            count = 0
-
-        if count > 0:
-            stats[name] = count
-            total += count
-            if skill not in by_skill:
-                by_skill[skill] = {"sources": [], "total": 0}
-            by_skill[skill]["sources"].append({"name": name, "count": count})
-            by_skill[skill]["total"] += count
+        stats[name] = count
+        total += count
+        if skill not in by_skill:
+            by_skill[skill] = {"sources": [], "total": 0}
+        by_skill[skill]["sources"].append({"name": name, "count": count})
+        by_skill[skill]["total"] += count
 
     # Add Obsidian vault as a special source
     obsidian_path = HOME / "Documents/Obsidian"
     if obsidian_path.exists():
-        obsidian_count = len(safe_glob(obsidian_path, "**/*.md", timeout_sec=5))
+        obsidian_count = _fast_count_md(obsidian_path)
         if obsidian_count > 0:
             stats["Obsidian Vault"] = obsidian_count
             total += obsidian_count
@@ -633,6 +702,72 @@ def validate_data(usage, kb_stats):
     return warnings
 
 
+# === CURRENT SESSION ===
+
+def _find_current_session():
+    """Find the most recently active JSONL session file.
+
+    Returns stats for the session actively being written to (mtime within
+    last 5 minutes). This represents 'this session' for the dashboard.
+    """
+    projects_dir = HOME / ".claude" / "projects"
+    if not projects_dir.exists():
+        return None
+
+    best = None
+    best_mtime = 0
+    cutoff = time.time() - 300  # 5 min
+
+    for d in projects_dir.iterdir():
+        if not d.is_dir():
+            continue
+        for f in d.glob("*.jsonl"):
+            if "subagents" in str(f):
+                continue
+            try:
+                mt = f.stat().st_mtime
+                if mt > cutoff and mt > best_mtime:
+                    best = f
+                    best_mtime = mt
+            except OSError:
+                continue
+
+    if not best:
+        return None
+
+    # Parse token usage from this session
+    tokens = 0
+    messages = 0
+    try:
+        with open(best, 'r') as fh:
+            for line in fh:
+                if not line.strip():
+                    continue
+                try:
+                    record = json.loads(line)
+                    usage = record.get('message', {}).get('usage', {})
+                    inp = usage.get('input_tokens', 0)
+                    out = usage.get('output_tokens', 0)
+                    if inp > 0 or out > 0:
+                        tokens += inp + out
+                        messages += 1
+                except (json.JSONDecodeError, ValueError):
+                    continue
+    except OSError:
+        return None
+
+    return {
+        "session_id": best.stem[:8],
+        "tokens": tokens,
+        "messages": messages,
+        "file": str(best),
+    }
+
+
+def get_current_session_stats():
+    return cached("current_session", _find_current_session, ttl=5)
+
+
 # === REFRESH ===
 
 def refresh_budget_data():
@@ -652,6 +787,41 @@ def refresh_budget_data():
 
 # === AGGREGATE (for /api/data) ===
 
+def _smart_model_recommendation(usage):
+    """Pick model recommendation using the gap window as primary signal.
+
+    The 5-hour rolling window is a client-side ESTIMATE that doesn't
+    sync with Anthropic's actual rate-limit resets. The gap window
+    (usage since last 30+ min break) is more reliable because it
+    tracks the actual burst of activity the user cares about.
+
+    If the user is actively using Claude (gap window has messages),
+    use the gap window percentage. Only fall back to 5h if no gap data.
+    """
+    gap = usage.get("since_last_gap", {})
+    gap_msgs = gap.get("messages", 0)
+    gap_tokens = gap.get("tokens_used", 0)
+
+    five_pct = usage.get("percentage", 0)
+
+    # Estimate gap percentage against the same budget
+    budget = usage.get("budget", 500_000)
+    gap_pct = (gap_tokens / budget * 100) if budget > 0 else 0
+
+    # Gap window is primary when user has active messages
+    effective_pct = gap_pct if gap_msgs > 0 else five_pct
+
+    if effective_pct >= 95:
+        return "wind_down", "limit"
+    elif effective_pct >= 85:
+        return "sonnet", "critical"
+    elif effective_pct >= 70:
+        return "sonnet", "warning"
+    elif effective_pct >= 50:
+        return "opus", "info"
+    return "opus", "ok"
+
+
 def get_all_dashboard_data():
     """Load all dashboard data into a single JSON-serializable dict."""
     data = load_tracker_data()
@@ -666,6 +836,12 @@ def get_all_dashboard_data():
     error_summary = get_error_summary()
     warnings = validate_data(usage, kb_stats)
     budget_age = get_budget_age_minutes()
+    session = get_current_session_stats()
+
+    # Override model recommendation with smart logic
+    smart_rec, smart_alert = _smart_model_recommendation(usage)
+    usage["model_recommendation"] = smart_rec
+    usage["alert_level"] = smart_alert
 
     return {
         "timestamp": datetime.now().isoformat(),
@@ -687,6 +863,7 @@ def get_all_dashboard_data():
         "budget_age_minutes": round(budget_age, 1) if budget_age else None,
         "budget_state": {
             "generated": data.get("generated", "") if data else "",
-            "alert_level": data.get("alert_level", "ok") if data else "ok",
+            "alert_level": smart_alert,
         },
+        "current_session": session,
     }
