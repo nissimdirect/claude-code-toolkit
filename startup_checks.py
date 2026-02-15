@@ -366,6 +366,24 @@ def check_delegation_health():
     return {'status': status, 'problems': problems, 'data': results}
 
 
+def build_context_package():
+    """Build delegation context package for Gemini/Qwen handoff."""
+    try:
+        result = subprocess.run(
+            [sys.executable, str(HOME / 'Development' / 'tools' / 'build_context_pkg.py'), '--validate'],
+            capture_output=True, text=True, timeout=10,
+        )
+        output = result.stdout.strip()
+        if result.returncode == 0:
+            return {'status': 'ok', 'data': output}
+        else:
+            return {'status': 'failed', 'data': output or result.stderr.strip()}
+    except subprocess.TimeoutExpired:
+        return {'status': 'timeout'}
+    except Exception as e:
+        return {'status': 'error', 'error': str(e)}
+
+
 def check_openclaw_exchange():
     """Step 1c: New files from Entropy Bot"""
     exchange = HOME / 'Development' / 'AI-Knowledge-Exchange' / 'entropy-insights'
@@ -467,6 +485,7 @@ def run_all_checks(run_workflows=False):
         'repos': check_repos,
         'openclaw_exchange': check_openclaw_exchange,
         'delegation_health': check_delegation_health,
+        'context_package': build_context_package,
     }
 
     if run_workflows:
