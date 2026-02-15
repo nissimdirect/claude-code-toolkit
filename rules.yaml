@@ -18,15 +18,15 @@ rules:
 
   - id: R4
     principle_id: P4
-    name: "Read Before Editing"
+    name: "Edit Lifecycle: Read → Edit → Propagate"
     tier: value
     pinned: true
     domains: [code, writing]
     consequence: 0.3
     tool_triggers: [edit, write]
-    antigens: ["Mistake #4", "Mistake #29"]
-    connections: {R9: 0.6, R86: 0.5}
-    reminder: "Read the file before editing. Never modify what you haven't read."
+    antigens: ["Mistake #4", "Mistake #29", "Mistake #31"]
+    connections: {R9: 0.6, R86: 0.5, R14: 0.5}
+    reminder: "Read before editing. After editing, cross-reference and propagate to related files."
 
   - id: R5
     principle_id: P3
@@ -61,7 +61,7 @@ rules:
     consequence: 0.2
     tool_triggers: []
     antigens: []
-    connections: {R27: 0.5}
+    connections: {R4: 0.5}
     reminder: "Files are databases. Wiki-links are graphs. Markdown is the superpower."
 
   - id: R6
@@ -100,17 +100,7 @@ rules:
     connections: {R6: 0.6, R1: 0.5}
     reminder: "Do what was asked, nothing more. End with actionable steps."
 
-  - id: R27
-    principle_id: P27
-    name: "Cross-Reference & Propagate"
-    tier: principle
-    pinned: false
-    domains: [writing, code]
-    consequence: 0.2
-    tool_triggers: [edit, write]
-    antigens: []
-    connections: {R14: 0.5, R4: 0.3}
-    reminder: "Document changes. Cross-reference related files. Propagate updates."
+  # R27 merged into R4 (Edit Lifecycle) on 2026-02-15. Co-activation 100%.
 
   - id: R30
     principle_id: P30
