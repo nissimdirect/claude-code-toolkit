@@ -2908,11 +2908,16 @@ class ItsNiceThatScraper(AdvisorScraper):
         super().__init__(base_url, output_dir, rate_limit)
 
     def extract_article_urls(self, archive_url):
-        """Extract article URLs from itsnicethat.com across multiple categories"""
+        """Extract article URLs from itsnicethat.com across multiple categories.
+
+        Site is a React SPA. Article URLs follow /articles/slug pattern.
+        Category pages at /{category} contain links to /articles/slug-with-category-keywords.
+        """
         urls = []
         categories = [
             'graphic-design', 'illustration', 'photography', 'art',
-            'animation', 'fashion', 'architecture', 'design', 'miscellaneous'
+            'animation', 'fashion', 'architecture', 'design', 'miscellaneous',
+            'advertising',
         ]
 
         for cat in categories:
@@ -2936,17 +2941,15 @@ class ItsNiceThatScraper(AdvisorScraper):
                 for link in soup.find_all('a', href=True):
                     href = link['href']
                     full_url = urljoin(self.base_url, href)
-                    # Article URLs match pattern: /category/slug
-                    if f'/{cat}/' in full_url and full_url != f'{self.base_url}/{cat}' \
-                       and full_url != f'{self.base_url}/{cat}/' \
+                    path = urlparse(full_url).path.strip('/')
+
+                    # Article URLs: /articles/slug (slug often contains category keyword)
+                    if path.startswith('articles/') and len(path) > 10 \
                        and '?page=' not in full_url \
                        and '#' not in full_url:
-                        path = urlparse(full_url).path.strip('/')
-                        parts = path.split('/')
-                        if len(parts) == 2 and parts[0] == cat:
-                            if full_url not in urls:
-                                urls.append(full_url)
-                                found += 1
+                        if full_url not in urls:
+                            urls.append(full_url)
+                            found += 1
 
                 if found == 0:
                     break
@@ -3347,7 +3350,8 @@ class FontsInUseScraper(AdvisorScraper):
 
 
 class TheBrandIdentityScraper(AdvisorScraper):
-    """Scraper for The Brand Identity (the-brand-identity.com) - brand/identity design"""
+    """Scraper for The Brand Identity (the-brand-identity.com) - brand/identity design
+    NOTE: Domain expired/shut down (2026-02). 3,152 articles archived. No new scrapes possible."""
 
     def __init__(self, base_url, output_dir, rate_limit=1.5):
         super().__init__(base_url, output_dir, rate_limit)
