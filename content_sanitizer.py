@@ -148,8 +148,19 @@ def _strip_code_fences(content: str) -> str:
 
     Code blocks legitimately contain subprocess calls, os.system(), etc.
     We preserve them but skip scanning their contents.
+
+    Handles both fenced (```) and indented (4+ spaces / 1+ tab) code blocks.
     """
-    return re.sub(r'```[\s\S]*?```', '```CODE_BLOCK```', content)
+    # 1. Fenced code blocks (triple backtick)
+    result = re.sub(r'```[\s\S]*?```', '```CODE_BLOCK```', content)
+    # 2. Indented code blocks (4+ spaces or tab at line start, 2+ consecutive lines)
+    result = re.sub(
+        r'(?:^(?:    |\t).+\n){2,}',
+        'INDENTED_CODE_BLOCK\n',
+        result,
+        flags=re.MULTILINE,
+    )
+    return result
 
 
 def sanitize_content(content: str) -> tuple[str, SanitizeReport]:
@@ -215,15 +226,34 @@ def sanitize_file(filepath: Path, dry_run: bool = False) -> SanitizeReport:
     return report
 
 
-def sanitize_directory(dirpath: Path, dry_run: bool = False) -> list[dict]:
+MAX_FILES_DEFAULT = 10000  # Safety guard: max files per directory scan
+
+
+def sanitize_directory(
+    dirpath: Path,
+    dry_run: bool = False,
+    max_files: int = MAX_FILES_DEFAULT,
+) -> list[dict]:
     """Sanitize all .md files in a directory.
 
     Returns list of reports for files that had changes.
+    Stops after max_files to prevent runaway processing on huge directories.
     """
     reports = []
+    files_processed = 0
 
     for filepath in sorted(dirpath.glob('**/*.md')):
+        if files_processed >= max_files:
+            reports.append({
+                'file': '__LIMIT_REACHED__',
+                'report': SanitizeReport(0, 0,
+                    [f'Stopped after {max_files} files (safety guard)'],
+                    0, False)._asdict(),
+            })
+            break
+
         report = sanitize_file(filepath, dry_run=dry_run)
+        files_processed += 1
         if report.items_removed > 0:
             reports.append({
                 'file': str(filepath),

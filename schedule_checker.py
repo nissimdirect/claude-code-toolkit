@@ -25,7 +25,7 @@ CATALOG_FILE = Path.home() / '.claude' / 'skills' / 'workflow' / 'CATALOG.md'
 CALENDAR_MD = Path.home() / 'Documents' / 'Obsidian' / 'process' / 'WORKFLOW-CALENDAR.md'
 BUDGET_STATE = Path.home() / '.claude' / '.locks' / '.budget-state.json'
 
-# All 27 workflows with their frequencies and budget tiers (from red team analysis)
+# All 34 workflows with their frequencies and budget tiers (from red team analysis)
 WORKFLOW_DEFINITIONS = {
     'plugin-validate':        {'freq': 'per-project',   'tier': 'medium', 'name': 'Plugin Concept Validation'},
     'roadmap-refresh':        {'freq': 'weekly-monday',  'tier': 'medium', 'name': 'Weekly Roadmap Refresh'},
@@ -54,6 +54,13 @@ WORKFLOW_DEFINITIONS = {
     'skill-onboard':          {'freq': 'on-demand',      'tier': 'medium', 'name': 'Skill Onboarding Workflow'},
     'feature-differentiation':{'freq': 'on-demand',      'tier': 'medium', 'name': 'Feature Differentiation'},
     'portfolio-pipeline':     {'freq': 'per-project',    'tier': 'extreme', 'name': 'Portfolio Pipeline'},
+    'testing-pipeline':       {'freq': 'weekly-friday',  'tier': 'light',   'name': 'Cross-Project Test Suite'},
+    'backup-audit':           {'freq': 'weekly',         'tier': 'light',   'name': 'Backup & Repo Health Check'},
+    'income-tracker':         {'freq': 'monthly',        'tier': 'light',   'name': 'Revenue & Income Review'},
+    'skill-deprecation':      {'freq': 'quarterly',      'tier': 'medium',  'name': 'Skill Cleanup & Deprecation'},
+    'release-postmortem':     {'freq': 'per-release',    'tier': 'medium',  'name': 'Post-Release Analysis'},
+    'emergency-budget-recovery': {'freq': 'on-demand',   'tier': 'light',   'name': 'Budget Crisis Protocol'},
+    'cross-project-sync':     {'freq': 'bi-weekly',      'tier': 'medium',  'name': 'Cross-Project Consistency Sync'},
 }
 
 # Roadmap associations (workflow → roadmap item IDs)

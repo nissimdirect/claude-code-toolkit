@@ -816,17 +816,23 @@ def check_git_repos():
 # ──────────────────────────────────────────────
 
 def check_cron():
-    """Check if expected cron jobs exist."""
+    """Check if expected scheduled jobs exist (cron or launchd)."""
     issues = []
     try:
-        result = os.popen("crontab -l 2>/dev/null").read()
+        cron_result = os.popen("crontab -l 2>/dev/null").read()
     except Exception:
-        result = ""
+        cron_result = ""
+    try:
+        launchd_result = os.popen("launchctl list 2>/dev/null").read()
+    except Exception:
+        launchd_result = ""
 
-    if "track_resources" not in result:
-        issues.append(Issue("LOW", "SYSTEM", "Daily resource tracker cron not set up"))
-    if "scrape-all" not in result:
-        issues.append(Issue("LOW", "SYSTEM", "Monthly scrape cron not set up"))
+    combined = cron_result + launchd_result
+
+    if "track_resources" not in cron_result and "resource-tracker" not in launchd_result:
+        issues.append(Issue("LOW", "SYSTEM", "Daily resource tracker cron/launchd not set up"))
+    if "scrape-all" not in combined:
+        issues.append(Issue("LOW", "SYSTEM", "Monthly scrape cron/launchd not set up"))
 
     return issues
 
