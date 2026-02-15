@@ -102,7 +102,7 @@ SECRET_PATTERNS = [
     re.compile(r'token\s*[=:]\s*["\']?\S{10,}', re.I),  # token assignments
     re.compile(r'export\s+\w*(?:KEY|TOKEN|SECRET|PASSWORD)\w*\s*=', re.I),  # env exports
     re.compile(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b'),   # phone numbers
-    re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'),  # emails (relaxed)
+    re.compile(r'[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,10}'),  # emails (bounded, HT-4)
     re.compile(r'\.env\b'),                          # .env references
     re.compile(r'credentials?\.(json|yaml|yml|toml)', re.I),
 ]
@@ -383,6 +383,15 @@ def classify_task(message: str) -> tuple[str, float]:
         for keyword in config["keywords"]:
             if re.search(keyword, lower):
                 return config["model"], 0.9
+
+    # Check for Claude-leaning signals before defaulting to Gemini (HT-6)
+    claude_signals = [
+        "this codebase", "this project", "my files", "our system",
+        "this repo", "my repo", "these files", "this file",
+        "the current", "our codebase", "my project",
+    ]
+    if any(sig in lower for sig in claude_signals):
+        return "claude", 0.6
 
     # No match — ambiguous
     return "gemini", 0.5  # default to Gemini with low confidence

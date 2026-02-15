@@ -208,6 +208,9 @@ def health_check():
             ok, detail = func()
         else:
             # Shell command check
+            # SECURITY: shell=True is justified here — commands are hardcoded
+            # static strings in HEALTH_CHECKS (not user-derived). They use
+            # shell features (pipes, redirects) that require shell=True.
             try:
                 result = subprocess.run(
                     check['check'], shell=True,
