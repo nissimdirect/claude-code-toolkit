@@ -27,6 +27,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+import requests
+
 # Import delegation validator for output verification
 try:
     from delegation_validator import validate_delegated_output
@@ -104,6 +106,49 @@ MODELS = {
         "strengths": ["math", "reasoning", "research"],
     },
 }
+
+# --- Gemini API (direct REST, bypasses CLI agent mode) ---
+
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+GEMINI_DEFAULT_MODEL = "gemini-2.0-flash"
+
+
+def _call_gemini_api(prompt: str, model: str = GEMINI_DEFAULT_MODEL, timeout: int = 120) -> str:
+    """Call Gemini via REST API. Returns response text or raises."""
+    if not GEMINI_API_KEY:
+        raise RuntimeError("GEMINI_API_KEY not set")
+
+    url = GEMINI_API_URL.format(model=model)
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}],
+        "generationConfig": {
+            "temperature": 0.7,
+            "maxOutputTokens": 4096,
+        },
+    }
+    resp = requests.post(
+        url,
+        params={"key": GEMINI_API_KEY},
+        json=payload,
+        timeout=timeout,
+    )
+    if resp.status_code != 200:
+        # Extract API error message but strip key from any URL references
+        try:
+            err_detail = resp.json().get("error", {}).get("message", resp.reason)
+        except Exception:
+            err_detail = resp.reason
+        raise RuntimeError(f"Gemini API {resp.status_code}: {err_detail}")
+    data = resp.json()
+
+    # Extract text from response
+    candidates = data.get("candidates", [])
+    if not candidates:
+        raise RuntimeError(f"Gemini API returned no candidates: {data}")
+    parts = candidates[0].get("content", {}).get("parts", [])
+    return "".join(p.get("text", "") for p in parts).strip()
+
 
 # --- Safety Patterns (Gate 0a: secrets/credentials) ---
 
@@ -298,6 +343,10 @@ def check_model_health(model_name: str) -> bool:
     model = MODELS.get(model_name)
     if not model or not model["wrapper"]:
         return True  # Claude is always "available"
+
+    # Gemini uses API directly — healthy if key exists
+    if model_name == "gemini":
+        return bool(GEMINI_API_KEY)
 
     wrapper = Path(model["wrapper"])
     if not wrapper.exists():
@@ -736,9 +785,6 @@ def execute(message: str, dry_run: bool = False, verbose: bool = False,
     if result.model == "claude":
         return f"[QUEUE FOR CLAUDE] {result.reason}\nTask: {message}"
 
-    if not result.wrapper:
-        return f"[ERROR] No wrapper for model {result.model}"
-
     # Add formatting instruction to match Claude's communication style
     formatted_message = message + (
         "\n\n[Style: Respond like a sharp technical co-founder. "
@@ -749,39 +795,62 @@ def execute(message: str, dry_run: bool = False, verbose: bool = False,
         "Just answer.]"
     )
 
-    # Execute via safe wrapper
+    # Execute — Gemini uses REST API, everything else uses safe wrapper
     try:
         record_call(result.model)
-        proc = subprocess.run(
-            [result.wrapper, "-p", formatted_message],
-            capture_output=True,
-            text=True,
-            timeout=120,
-        )
-        response = clean_response(proc.stdout.strip())
+        response = ""
 
-        if proc.returncode != 0:
-            error = proc.stderr.strip()
-            log_event("ERROR", f"{result.model} failed: {error}")
+        if result.model == "gemini":
+            # Direct API call — bypasses CLI agent mode
+            try:
+                response = _call_gemini_api(formatted_message)
+                response = clean_response(response)
+            except Exception as e:
+                log_event("ERROR", f"gemini API failed: {e}")
+                response = ""
+        else:
+            if not result.wrapper:
+                return f"[ERROR] No wrapper for model {result.model}"
+            proc = subprocess.run(
+                [result.wrapper, "-p", formatted_message],
+                capture_output=True,
+                text=True,
+                timeout=120,
+            )
+            response = clean_response(proc.stdout.strip())
+            if proc.returncode != 0:
+                log_event("ERROR", f"{result.model} failed: {proc.stderr.strip()}")
+                response = ""
 
-            # Try fallback
+        # Fallback chain (works for any model failure)
+        if not response:
             for fallback in result.fallback_chain:
-                fb_wrapper = MODELS[fallback]["wrapper"]
-                if fb_wrapper and check_model_health(fallback) and check_rate_limit(fallback):
-                    log_event("FALLBACK_EXEC", f"{result.model}→{fallback}")
-                    record_call(fallback)
-                    fb_proc = subprocess.run(
-                        [fb_wrapper, "-p", formatted_message],
-                        capture_output=True,
-                        text=True,
-                        timeout=120,
-                    )
-                    if fb_proc.returncode == 0:
-                        response = clean_response(fb_proc.stdout.strip())
+                if not check_model_health(fallback) or not check_rate_limit(fallback):
+                    continue
+                log_event("FALLBACK_EXEC", f"{result.model}→{fallback}")
+                record_call(fallback)
+                try:
+                    if fallback == "gemini":
+                        fb_response = _call_gemini_api(formatted_message)
+                    else:
+                        fb_wrapper = MODELS[fallback]["wrapper"]
+                        if not fb_wrapper:
+                            continue
+                        fb_proc = subprocess.run(
+                            [fb_wrapper, "-p", formatted_message],
+                            capture_output=True,
+                            text=True,
+                            timeout=120,
+                        )
+                        fb_response = fb_proc.stdout.strip() if fb_proc.returncode == 0 else ""
+                    if fb_response:
+                        response = clean_response(fb_response)
                         break
+                except Exception:
+                    continue
 
             if not response:
-                return f"[ALL MODELS FAILED] Original error: {error}"
+                return f"[ALL MODELS FAILED] {result.model} and fallbacks exhausted."
 
         # --- Validate output through delegation_validator ---
         if HAS_VALIDATOR and response:

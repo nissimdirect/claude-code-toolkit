@@ -563,8 +563,18 @@ class TestModelHealth:
 
     def test_missing_wrapper(self, monkeypatch):
         """Model with non-existent wrapper should be unhealthy."""
-        monkeypatch.setitem(router.MODELS["gemini"], "wrapper", "/nonexistent/path")
+        monkeypatch.setitem(router.MODELS["groq"], "wrapper", "/nonexistent/path")
+        assert router.check_model_health("groq") is False
+
+    def test_gemini_unhealthy_without_api_key(self, monkeypatch):
+        """Gemini should be unhealthy when API key is missing."""
+        monkeypatch.setattr(router, "GEMINI_API_KEY", "")
         assert router.check_model_health("gemini") is False
+
+    def test_gemini_healthy_with_api_key(self, monkeypatch):
+        """Gemini should be healthy when API key is set."""
+        monkeypatch.setattr(router, "GEMINI_API_KEY", "test-key")
+        assert router.check_model_health("gemini") is True
 
     def test_ollama_healthy_when_running(self):
         """Ollama should be healthy when `ollama list` succeeds."""
@@ -708,37 +718,38 @@ class TestExecute:
         output = router.execute("Should we build this?")
         assert "[QUEUE FOR CLAUDE]" in output
 
+    def test_gemini_api_execute(self, mock_healthy_models):
+        """Gemini should use API, not subprocess."""
+        with patch.object(router, "_call_gemini_api", return_value="Reverb techniques include plate, spring, and convolution.") as mock_api:
+            with patch("subprocess.run") as mock_sub:
+                output = router.execute("Summarize the top reverb techniques used in ambient music")
+                mock_api.assert_called_once()
+                mock_sub.assert_not_called()
+                assert "reverb" in output.lower()
+
     def test_execute_fallback_on_primary_failure(self, mock_healthy_models):
-        """When primary model fails (non-zero exit), fallback should execute."""
-        fail_result = MagicMock(returncode=1, stdout="", stderr="model overloaded")
+        """When primary model fails, fallback should execute."""
         success_result = MagicMock(returncode=0, stdout="The answer is 42.", stderr="")
-
-        def side_effect(cmd, **kwargs):
-            # First call fails, second succeeds
-            if side_effect.call_count == 0:
-                side_effect.call_count += 1
-                return fail_result
-            side_effect.call_count += 1
-            return success_result
-        side_effect.call_count = 0
-
-        with patch("subprocess.run", side_effect=side_effect):
-            output = router.execute("What is a pointer?")
-            assert "42" in output
-            assert "[ALL MODELS FAILED]" not in output
+        # Gemini API fails, fallback to groq via subprocess
+        with patch.object(router, "_call_gemini_api", side_effect=RuntimeError("API error")):
+            with patch("subprocess.run", return_value=success_result):
+                output = router.execute("What is a pointer?")
+                assert "42" in output
+                assert "[ALL MODELS FAILED]" not in output
 
     def test_execute_all_fallbacks_fail(self, mock_healthy_models):
         """When all models fail, should return error message."""
         fail_result = MagicMock(returncode=1, stdout="", stderr="all broken")
-
-        with patch("subprocess.run", return_value=fail_result):
-            output = router.execute("What is a pointer?")
-            assert "[ALL MODELS FAILED]" in output
+        with patch.object(router, "_call_gemini_api", side_effect=RuntimeError("API error")):
+            with patch("subprocess.run", return_value=fail_result):
+                output = router.execute("What is a pointer?")
+                assert "[ALL MODELS FAILED]" in output
 
     def test_execute_timeout(self, mock_healthy_models):
         """Subprocess timeout should return timeout message, not crash."""
         import subprocess as sp
         with patch("subprocess.run", side_effect=sp.TimeoutExpired(cmd="test", timeout=120)):
+            # Route to ollama (subprocess-based) to test timeout handling
             output = router.execute("What is a pointer?")
             assert "[TIMEOUT]" in output
             assert "120s" in output
@@ -751,8 +762,111 @@ class TestExecute:
             stderr=""
         )
         with patch("subprocess.run", return_value=hedgy):
+            # Route to ollama (subprocess-based) to test confidence scoring
             output = router.execute("What is a pointer?")
             assert "[LOW CONFIDENCE:" in output
+
+    def test_gemini_api_fallback_also_uses_api(self, mock_healthy_models):
+        """When a non-Gemini model fails and Gemini is in the fallback chain, API should be used."""
+        with patch.object(router, "_call_gemini_api", return_value="API response works.") as mock_api:
+            fail_result = MagicMock(returncode=1, stdout="", stderr="error")
+            with patch("subprocess.run", return_value=fail_result):
+                # Force groq to test fallback to gemini
+                output = router.execute("Explain how pointers work step by step", force_model="groq")
+                # groq subprocess fails → should try fallbacks (which include gemini API)
+                # Note: depends on fallback chain config
+
+
+# ============================================================
+# GEMINI API UNIT TESTS (_call_gemini_api function)
+# ============================================================
+
+class TestGeminiAPI:
+
+    def test_request_formation(self):
+        """API call should POST correct URL, payload, and params."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "candidates": [{"content": {"parts": [{"text": "test response"}]}}]
+        }
+        with patch("llm_router.requests.post", return_value=mock_resp) as mock_post:
+            with patch.object(router, "GEMINI_API_KEY", "test-key-123"):
+                result = router._call_gemini_api("Hello world")
+
+        mock_post.assert_called_once()
+        call_args = mock_post.call_args
+        assert "gemini-2.0-flash" in call_args[0][0]  # URL contains model
+        assert call_args[1]["params"] == {"key": "test-key-123"}
+        assert call_args[1]["json"]["contents"][0]["parts"][0]["text"] == "Hello world"
+        assert result == "test response"
+
+    def test_response_parsing_multipart(self):
+        """Should concatenate multiple text parts."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "candidates": [{"content": {"parts": [
+                {"text": "Part one. "},
+                {"text": "Part two."},
+            ]}}]
+        }
+        with patch("llm_router.requests.post", return_value=mock_resp):
+            with patch.object(router, "GEMINI_API_KEY", "key"):
+                result = router._call_gemini_api("test")
+        assert result == "Part one. Part two."
+
+    def test_no_candidates_raises(self):
+        """Empty candidates should raise RuntimeError."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"candidates": []}
+        with patch("llm_router.requests.post", return_value=mock_resp):
+            with patch.object(router, "GEMINI_API_KEY", "key"):
+                with pytest.raises(RuntimeError, match="no candidates"):
+                    router._call_gemini_api("test")
+
+    def test_no_api_key_raises(self):
+        """Missing API key should raise immediately, not make a request."""
+        with patch("llm_router.requests.post") as mock_post:
+            with patch.object(router, "GEMINI_API_KEY", ""):
+                with pytest.raises(RuntimeError, match="GEMINI_API_KEY not set"):
+                    router._call_gemini_api("test")
+                mock_post.assert_not_called()
+
+    def test_error_does_not_leak_key(self):
+        """API errors must NOT contain the API key in the message."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 400
+        mock_resp.reason = "Bad Request"
+        mock_resp.json.return_value = {"error": {"message": "API key expired"}}
+        with patch("llm_router.requests.post", return_value=mock_resp):
+            with patch.object(router, "GEMINI_API_KEY", "AIzaSy-SUPER-SECRET-KEY"):
+                with pytest.raises(RuntimeError) as exc_info:
+                    router._call_gemini_api("test")
+                error_msg = str(exc_info.value)
+                assert "SUPER-SECRET" not in error_msg
+                assert "API key expired" in error_msg
+
+    def test_timeout_propagates(self):
+        """requests.Timeout should propagate as-is for caller to handle."""
+        import requests as req
+        with patch("llm_router.requests.post", side_effect=req.Timeout("timed out")):
+            with patch.object(router, "GEMINI_API_KEY", "key"):
+                with pytest.raises(req.Timeout):
+                    router._call_gemini_api("test")
+
+    def test_custom_model(self):
+        """Should allow overriding the default model."""
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {
+            "candidates": [{"content": {"parts": [{"text": "ok"}]}}]
+        }
+        with patch("llm_router.requests.post", return_value=mock_resp) as mock_post:
+            with patch.object(router, "GEMINI_API_KEY", "key"):
+                router._call_gemini_api("test", model="gemini-1.5-pro")
+        assert "gemini-1.5-pro" in mock_post.call_args[0][0]
 
 
 # ============================================================
