@@ -501,10 +501,12 @@ ADVISORS = {
             # Wave 4: Music production (electronic, DnB, tutorials)
             Path("~/Development/music-production/splice/articles").expanduser(),
             Path("~/Development/music-production/attack-magazine/articles").expanduser(),
+            # Wave 5: Budget production, free plugins, tutorials
+            Path("~/Development/music-production/bedroom-producers-blog/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 7904,  # 400 + 214 + 23 + 1710 + 148 + 1571 (splice) + 3838 (attack)
+        "article_count": 9904,  # 400 + 214 + 23 + 1710 + 148 + 1571 (splice) + 3838 (attack) + 2000 (BPB)
         "excerpt_lines": 50,
     },
     "label": {
@@ -581,10 +583,12 @@ ADVISORS = {
             Path("~/Development/marketing-hacker/zyppy/articles").expanduser(),
             Path("~/Development/marketing-hacker/arvid-kahl/articles").expanduser(),
             Path("~/Development/marketing-hacker/sparktoro/articles").expanduser(),
+            Path("~/Development/marketing-hacker/kevin-indig/articles").expanduser(),
+            Path("~/Development/marketing-hacker/backlinko/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 904,  # Zyppy: 26, Arvid Kahl: 436, SparkToro: 442
+        "article_count": 1776,  # Zyppy: 26, Arvid Kahl: 436, SparkToro: 442, Kevin Indig: 426, Backlinko: 446
         "excerpt_lines": 50,
     },
 }
