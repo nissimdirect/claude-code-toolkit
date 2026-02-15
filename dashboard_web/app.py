@@ -27,6 +27,8 @@ from data_loader import (
 )
 
 app = Flask(__name__)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.jinja_env.auto_reload = True
 
 PORT = 5050
 LOCKFILE = Path.home() / ".claude/.locks/dashboard_web.pid"
@@ -95,32 +97,36 @@ def api_refresh():
 # === LIFECYCLE ===
 
 def _acquire_lock():
-    """Acquire PID lockfile. Returns True if acquired."""
+    """Acquire PID lockfile. Returns True if acquired.
+
+    Uses lsof to check if port is already bound (reliable regardless of
+    how the process was started — fixes pgrep pattern mismatch bug).
+    """
     import subprocess
     LOCKFILE.parent.mkdir(parents=True, exist_ok=True)
 
+    # Check 1: Is port already in use?
     try:
         result = subprocess.run(
-            ["pgrep", "-f", "dashboard_web/app.py"],
+            ["lsof", "-ti", f":{PORT}"],
             capture_output=True, text=True, timeout=5,
         )
-        running_pids = [
-            int(p) for p in result.stdout.strip().split("\n")
-            if p.strip() and int(p) != os.getpid()
-        ]
-        if running_pids:
-            LOCKFILE.write_text(str(running_pids[0]))
+        pids = [int(p) for p in result.stdout.strip().split("\n") if p.strip()]
+        other_pids = [p for p in pids if p != os.getpid()]
+        if other_pids:
+            LOCKFILE.write_text(str(other_pids[0]))
             return False
     except (subprocess.TimeoutExpired, ValueError, OSError):
         pass
 
+    # Check 2: Lockfile PID still alive?
     if LOCKFILE.exists():
         try:
             old_pid = int(LOCKFILE.read_text().strip())
             os.kill(old_pid, 0)
             return False
         except (ValueError, ProcessLookupError, PermissionError, OSError):
-            pass
+            pass  # Stale lockfile
 
     LOCKFILE.write_text(str(os.getpid()))
     return True

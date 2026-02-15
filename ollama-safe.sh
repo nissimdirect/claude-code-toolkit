@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# gemini-safe.sh — Hardened wrapper for Gemini CLI
-# Blocks dangerous patterns before passing to real binary.
-# Used by OpenClaw instead of raw `gemini` to prevent prompt injection → exec attacks.
+# ollama-safe.sh — Hardened wrapper for Ollama (local LLM)
+# Same blocklist pattern as gemini-safe.sh / qwen-safe.sh.
+# Unlike cloud tools, Ollama runs locally — zero rate limits, zero cost.
 
 set -euo pipefail
 
-GEMINI_BIN="/opt/homebrew/bin/gemini"
-LOG_FILE="$HOME/.openclaw/logs/gemini-safe-audit.log"
+OLLAMA_BIN="/opt/homebrew/bin/ollama"
+LOG_FILE="$HOME/.openclaw/logs/ollama-safe-audit.log"
 
 # --- BLOCKLIST: reject prompts containing these patterns ---
 BLOCKED_PATTERNS=(
@@ -46,12 +46,6 @@ BLOCKED_PATTERNS=(
     'exec-approvals'
 )
 
-# --- ALLOWED DIRECTORIES: only these paths can be referenced ---
-ALLOWED_DIRS=(
-    "$HOME/Development/"
-    "$HOME/Documents/Obsidian/"
-)
-
 log_event() {
     local status="$1"
     local detail="$2"
@@ -63,40 +57,37 @@ check_prompt() {
     for pattern in "${BLOCKED_PATTERNS[@]}"; do
         if echo "$prompt" | grep -qEi "$pattern"; then
             log_event "BLOCKED" "Pattern '$pattern' matched in prompt"
-            echo "ERROR: Blocked by gemini-safe.sh — prompt contains restricted pattern." >&2
-            echo "If this is legitimate, run gemini directly: $GEMINI_BIN" >&2
+            echo "ERROR: Blocked by ollama-safe.sh — prompt contains restricted pattern." >&2
+            echo "If this is legitimate, run ollama directly: $OLLAMA_BIN" >&2
             exit 1
         fi
     done
 }
 
-# Parse args to find -p flag value
+# Usage: ollama-safe.sh -p "prompt" [-m model]
+# Translates to: ollama run <model> "<prompt>"
 prompt_text=""
+model="qwen3:8b"  # default model
 args=("$@")
+
 for i in "${!args[@]}"; do
     if [[ "${args[$i]}" == "-p" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
         prompt_text="${args[$((i+1))]}"
     fi
-done
-
-# If there's a prompt, validate it
-if [[ -n "$prompt_text" ]]; then
-    check_prompt "$prompt_text"
-    log_event "ALLOWED" "Prompt passed validation (${#prompt_text} chars)"
-fi
-
-# Default to Flash model for speed (15 RPM vs 2 RPM on free tier)
-# Override with -m flag if caller specifies a different model
-has_model_flag=false
-for arg in "$@"; do
-    if [[ "$arg" == "-m" || "$arg" == "--model" ]]; then
-        has_model_flag=true
-        break
+    if [[ "${args[$i]}" == "-m" || "${args[$i]}" == "--model" ]] && [[ $((i+1)) -lt ${#args[@]} ]]; then
+        model="${args[$((i+1))]}"
     fi
 done
 
-if [[ "$has_model_flag" == false ]]; then
-    exec "$GEMINI_BIN" -m gemini-2.0-flash "$@"
-else
-    exec "$GEMINI_BIN" "$@"
+if [[ -z "$prompt_text" ]]; then
+    echo "Usage: ollama-safe.sh -p \"your prompt\" [-m model]" >&2
+    echo "Default model: qwen3:8b" >&2
+    echo "Available: qwen3:8b (general), qwen2.5-coder:7b (code)" >&2
+    exit 1
 fi
+
+check_prompt "$prompt_text"
+log_event "ALLOWED" "Prompt passed validation (${#prompt_text} chars) model=$model"
+
+# Ollama uses 'run' subcommand with model name
+exec "$OLLAMA_BIN" run "$model" "$prompt_text"

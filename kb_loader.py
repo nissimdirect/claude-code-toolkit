@@ -250,10 +250,12 @@ ADVISORS = {
             Path("~/Development/fonts-in-use/articles").expanduser(),
             Path("~/Development/art-direction/the-brand-identity/articles").expanduser(),
             Path("~/Development/tools/kb/accessibility").expanduser(),
+            # Virgil Abloh portfolio (fashion, special projects, lectures)
+            Path("~/Development/art-director/virgil-abloh/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 43898,  # Verified 2026-02-14 (includes fonts-in-use, its-nice-that, creative-boom, the-brand-identity)
+        "article_count": 44004,  # 43898 + 106 (Virgil Abloh)
         "excerpt_lines": 40,
     },
     "brandnew": {
@@ -556,10 +558,12 @@ ADVISORS = {
             Path("~/Development/circuit-modeling/articles/distortion").expanduser(),
             Path("~/Development/circuit-modeling/articles/schematics").expanduser(),
             Path("~/Development/circuit-modeling/articles/space-echo").expanduser(),
+            # Tape Op magazine (recording interviews, studio techniques)
+            Path("~/Development/audio-production/tape-op/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 2380,  # Verified 2026-02-09
+        "article_count": 3316,  # 2380 + 936 (Tape Op)
         "excerpt_lines": 50,
     },
     # ── Lyric Analyst + Ghostwriter ──
@@ -819,6 +823,8 @@ ALIASES = {
     "sound-design": "audio-production",
     "mixing": "audio-production",
     "mastering": "audio-production",
+    "tape-op": "audio-production",
+    "tapeop": "audio-production",
     # Creative Interviews → Art Director
     "creative-interviews": "art-director",
     "interviews": "art-director",
@@ -869,6 +875,10 @@ ALIASES = {
     "needledrop": "atrium",
     "fantano": "atrium",
     "anthony-fantano": "atrium",
+    # Virgil Abloh portfolio
+    "virgil-abloh": "art-director",
+    "virgil": "art-director",
+    "off-white": "art-director",
 }
 
 

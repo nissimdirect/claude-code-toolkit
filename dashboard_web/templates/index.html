@@ -350,6 +350,34 @@
   }
   .refresh-btn:hover { background: rgba(88,166,255,0.25); }
 
+  /* Dual-window layout */
+  .dual-window {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 700px) {
+    .dual-window { grid-template-columns: 1fr; }
+  }
+  .window-card {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+  }
+  .window-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .lifetime-bar {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+  }
+
   /* Empty state */
   .empty { color: var(--text-dim); font-style: italic; font-size: 12px; padding: 8px 0; }
 </style>
@@ -399,8 +427,8 @@
 <!-- Panel Grid -->
 <div class="grid">
 
-  <!-- Usage & Limits -->
-  <div class="panel" id="panel-usage">
+  <!-- Usage & Limits (Dual Window) -->
+  <div class="panel" id="panel-usage" style="grid-column: span 2">
     <div class="panel-header" onclick="toggle('usage')">
       <span class="title" style="color:var(--cyan)">Usage &amp; Limits</span>
       <span class="right">
@@ -409,10 +437,7 @@
         <span class="chevron" id="chevron-usage">&#9660;</span>
       </span>
     </div>
-    <div class="panel-body" id="body-usage">
-      <div class="progress-bar"><div class="progress-fill green" id="usage-bar" style="width:0%">0%</div></div>
-      <div id="usage-details"></div>
-    </div>
+    <div class="panel-body" id="body-usage"></div>
   </div>
 
   <!-- Tasks -->
@@ -428,19 +453,6 @@
     <div class="panel-body" id="body-tasks"></div>
   </div>
 
-  <!-- Knowledge Base -->
-  <div class="panel" id="panel-kb" style="grid-column: span 2">
-    <div class="panel-header" onclick="toggle('kb')">
-      <span class="title" style="color:var(--green)">Knowledge Base</span>
-      <span class="right">
-        <span id="kb-count-header"></span>
-        <span class="status-dot" id="kb-dot"></span>
-        <span class="chevron" id="chevron-kb">&#9660;</span>
-      </span>
-    </div>
-    <div class="panel-body" id="body-kb"></div>
-  </div>
-
   <!-- Budget State -->
   <div class="panel" id="panel-budget">
     <div class="panel-header" onclick="toggle('budget')">
@@ -452,6 +464,19 @@
       </span>
     </div>
     <div class="panel-body" id="body-budget"></div>
+  </div>
+
+  <!-- Knowledge Base -->
+  <div class="panel" id="panel-kb" style="grid-column: span 2">
+    <div class="panel-header" onclick="toggle('kb')">
+      <span class="title" style="color:var(--green)">Knowledge Base</span>
+      <span class="right">
+        <span id="kb-count-header"></span>
+        <span class="status-dot" id="kb-dot"></span>
+        <span class="chevron" id="chevron-kb">&#9660;</span>
+      </span>
+    </div>
+    <div class="panel-body" id="body-kb"></div>
   </div>
 
   <!-- Environmental Impact -->
@@ -525,6 +550,15 @@ function fmt(n) {
   return n.toLocaleString();
 }
 
+function co2Equiv(g) {
+  if (g < 1) return '< 1 Google search';
+  if (g < 8) return '~' + Math.round(g / 0.3) + ' Google searches';
+  if (g < 36) { const c = g / 12.4; return c < 1.5 ? '~1 phone charge' : '~' + Math.round(c) + ' phone charges'; }
+  if (g < 200) { const h = g / 36; return h < 1.5 ? '~1 hr Netflix' : '~' + Math.round(h) + ' hrs Netflix'; }
+  if (g < 2000) { const cups = g / 21; return '~' + Math.round(cups) + ' cups of coffee'; }
+  const mi = g / 393; return mi < 1 ? '~' + mi.toFixed(1) + ' mi driving' : '~' + Math.round(mi) + ' mi driving';
+}
+
 function setDot(id, color) {
   const el = document.getElementById(id);
   if (el) {
@@ -578,42 +612,85 @@ function render(d) {
     na.className = 'next-action level-' + d.next_action.level;
   }
 
-  // === Usage Panel ===
+  // === Usage Panel (Dual Window) ===
   const usage = d.usage || {};
-  const barPct = Math.min(pct, 100);
-  const barEl = document.getElementById('usage-bar');
-  barEl.style.width = barPct + '%';
-  barEl.textContent = Math.round(pct) + '%';
-  barEl.className = 'progress-fill ' + (pct < 50 ? 'green' : pct < 80 ? 'yellow' : 'red');
-
   const ageMin = d.budget_age_minutes;
   const ageText = ageMin != null ? Math.round(ageMin) + 'm ago' : 'N/A';
   document.getElementById('usage-age').textContent = ageText;
   setDot('usage-dot', ageMin != null && ageMin < 5 ? 'green' : ageMin != null && ageMin < 30 ? 'yellow' : 'red');
 
-  // Estimate hours remaining at current rate
-  let rateText = '';
-  if (pct > 0 && pct < 100) {
-    const hoursLeft = ((100 - pct) / pct) * 5;
-    rateText = '<div class="stat-row"><span class="label">At this rate</span><span class="value">' + hoursLeft.toFixed(1) + ' hours left</span></div>';
-  } else if (pct >= 100) {
-    rateText = '<div class="stat-row"><span class="label">Status</span><span class="value" style="color:var(--red)">Budget exhausted</span></div>';
-  }
-
+  const barPct = Math.min(pct, 100);
+  const gap = usage.since_last_gap || {};
+  const lifetime = usage.lifetime || {};
   const modelRec = usage.model_recommendation || 'opus';
   const modelClass = modelRec === 'opus' ? 'opus' : modelRec === 'wind_down' ? 'wind_down' : 'sonnet';
   const modelLabel = modelRec === 'opus' ? 'Opus (full power)' : modelRec === 'wind_down' ? 'WIND DOWN' : 'Sonnet (save budget)';
 
-  document.getElementById('usage-details').innerHTML =
-    '<div class="stat-row"><span class="label">Tokens</span><span class="value">' + fmt(usage.tokens_used) + ' / ' + fmt(usage.budget) + '</span></div>' +
-    '<div class="stat-row"><span class="label">Remaining</span><span class="value">' + fmt(usage.remaining) + '</span></div>' +
-    '<div class="stat-row"><span class="label">Messages</span><span class="value">' + fmt(usage.messages) + '</span></div>' +
-    rateText +
-    '<div class="stat-row"><span class="label">Model</span><span class="value"><span class="model-badge ' + modelClass + '">' + esc(modelLabel) + '</span></span></div>' +
-    '<div class="stat-row" style="margin-top:8px"><span class="label">Weekly Opus</span><span class="value">' + fmt(usage.weekly_opus_tokens) + ' tok / ' + fmt(usage.weekly_opus_messages) + ' msg</span></div>' +
-    '<div class="stat-row"><span class="label">Weekly Sonnet</span><span class="value">' + fmt(usage.weekly_sonnet_tokens) + ' tok / ' + fmt(usage.weekly_sonnet_messages) + ' msg</span></div>' +
-    (d.environmental ? '<div class="stat-row" style="margin-top:8px"><span class="label">Energy</span><span class="value">' + d.environmental.wh + ' Wh | ' + d.environmental.co2_g + 'g CO2</span></div>' +
-    (d.environmental.equiv ? '<div class="stat-row"><span class="label">Equivalent</span><span class="value" style="color:var(--text-dim)">' + esc(d.environmental.equiv) + '</span></div>' : '') : '');
+  // Format gap start time
+  let gapTimeText = 'N/A';
+  if (gap.gap_started) {
+    try { gapTimeText = new Date(gap.gap_started).toLocaleTimeString(); } catch(e) {}
+  }
+
+  // Estimate hours remaining
+  let rateText = '';
+  if (pct > 0 && pct < 100) {
+    const hoursLeft = ((100 - pct) / pct) * 5;
+    rateText = '<div class="stat-row"><span class="label">At this rate</span><span class="value">' + hoursLeft.toFixed(1) + 'h left</span></div>';
+  } else if (pct >= 100) {
+    rateText = '<div class="stat-row"><span class="label">Status</span><span class="value" style="color:var(--red)">Budget exhausted</span></div>';
+  }
+
+  // First session date
+  let firstSessionText = 'Unknown';
+  if (lifetime.first_session) {
+    try { firstSessionText = new Date(lifetime.first_session).toLocaleDateString(); } catch(e) {}
+  }
+
+  let usageHtml = '<div class="dual-window">';
+
+  // Left: 5-hour rolling window
+  usageHtml += '<div class="window-card">';
+  usageHtml += '<div class="window-title" style="color:var(--cyan)">5-Hour Rolling Window</div>';
+  usageHtml += '<div class="progress-bar"><div class="progress-fill ' + (pct < 50 ? 'green' : pct < 80 ? 'yellow' : 'red') + '" style="width:' + barPct + '%">' + Math.round(pct) + '%</div></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Tokens</span><span class="value">' + fmt(usage.tokens_used) + ' / ' + fmt(usage.budget) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Messages</span><span class="value">' + fmt(usage.messages) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Carbon</span><span class="value">' + (usage.window_carbon_g || 0).toFixed(1) + 'g CO2</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label"></span><span class="value" style="color:var(--text-dim);font-size:11px">' + co2Equiv(usage.window_carbon_g || 0) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Energy</span><span class="value">' + (usage.window_wh || 0).toFixed(1) + ' Wh</span></div>';
+  usageHtml += rateText;
+  usageHtml += '</div>';
+
+  // Right: Since-last-gap window
+  usageHtml += '<div class="window-card">';
+  usageHtml += '<div class="window-title" style="color:var(--magenta)">Since Last Gap (30m+)</div>';
+  usageHtml += '<div class="stat-row"><span class="label">Resumed</span><span class="value">' + esc(gapTimeText) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Tokens</span><span class="value">' + fmt(gap.tokens_used) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Messages</span><span class="value">' + fmt(gap.messages) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Carbon</span><span class="value">' + (gap.carbon_g || 0).toFixed(1) + 'g CO2</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label"></span><span class="value" style="color:var(--text-dim);font-size:11px">' + co2Equiv(gap.carbon_g || 0) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Energy</span><span class="value">' + (gap.wh || 0).toFixed(1) + ' Wh</span></div>';
+  usageHtml += '</div>';
+
+  usageHtml += '</div>'; // end dual-window
+
+  // Lifetime bar
+  usageHtml += '<div class="lifetime-bar">';
+  usageHtml += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">';
+  usageHtml += '<span style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--orange)">Lifetime</span>';
+  usageHtml += '<span style="font-size:11px;color:var(--text-dim)">' + fmt(lifetime.total_sessions) + ' sessions since ' + esc(firstSessionText) + '</span>';
+  usageHtml += '</div>';
+  usageHtml += '<div class="stat-row"><span class="label">Total Tokens</span><span class="value">' + fmt(lifetime.total_tokens) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Total Messages</span><span class="value">' + fmt(lifetime.total_messages) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Total Carbon</span><span class="value" style="color:var(--orange)">' + (lifetime.total_carbon_g || 0).toFixed(1) + 'g CO2e (' + ((lifetime.total_carbon_g || 0)/1000).toFixed(2) + ' kg)</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label"></span><span class="value" style="color:var(--text-dim);font-size:11px">' + co2Equiv(lifetime.total_carbon_g || 0) + '</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Total Energy</span><span class="value">' + (lifetime.total_wh || 0).toFixed(1) + ' Wh (' + ((lifetime.total_wh || 0)/1000).toFixed(3) + ' kWh)</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Model</span><span class="value"><span class="model-badge ' + modelClass + '">' + esc(modelLabel) + '</span></span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Weekly Opus</span><span class="value">' + fmt(usage.weekly_opus_tokens) + ' tok / ' + fmt(usage.weekly_opus_messages) + ' msg</span></div>';
+  usageHtml += '<div class="stat-row"><span class="label">Weekly Sonnet</span><span class="value">' + fmt(usage.weekly_sonnet_tokens) + ' tok / ' + fmt(usage.weekly_sonnet_messages) + ' msg</span></div>';
+  usageHtml += '</div>';
+
+  document.getElementById('body-usage').innerHTML = usageHtml;
 
   // === Tasks Panel ===
   const tasks = d.tasks || [];
@@ -657,15 +734,23 @@ function render(d) {
   document.getElementById('env-level').textContent = envLevel;
   setDot('env-dot', env.color === 'green' ? 'green' : env.color === 'yellow' ? 'yellow' : env.color === 'red' ? 'red' : 'gray');
 
+  const envColor = env.color === 'red' ? 'var(--red)' : env.color === 'yellow' ? 'var(--yellow)' : 'var(--green)';
+  const uEnv = d.usage || {};
+  const uGap = uEnv.since_last_gap || {};
+  const uLife = uEnv.lifetime || {};
+
   let envHtml = '';
+  envHtml += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;color:var(--cyan)">Per Window</div>';
+  envHtml += '<div class="stat-row"><span class="label">5-Hour Window</span><span class="value">' + (uEnv.window_carbon_g || 0).toFixed(1) + 'g CO2 / ' + (uEnv.window_wh || 0).toFixed(1) + ' Wh</span></div>';
+  envHtml += '<div class="stat-row"><span class="label">Since Last Gap</span><span class="value">' + (uGap.carbon_g || 0).toFixed(1) + 'g CO2 / ' + (uGap.wh || 0).toFixed(1) + ' Wh</span></div>';
+  envHtml += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-top:10px;margin-bottom:6px;color:var(--orange)">Lifetime</div>';
+  envHtml += '<div class="stat-row"><span class="label">Total Carbon</span><span class="value" style="color:' + envColor + '">' + (env.co2_g || 0).toLocaleString(undefined, {maximumFractionDigits:1}) + 'g CO2e</span></div>';
   envHtml += '<div class="stat-row"><span class="label">Total Energy</span><span class="value">' + (env.wh || 0).toLocaleString(undefined, {maximumFractionDigits:1}) + ' Wh</span></div>';
-  envHtml += '<div class="stat-row"><span class="label">Total Carbon</span><span class="value" style="color:' + (env.color === 'red' ? 'var(--red)' : env.color === 'yellow' ? 'var(--yellow)' : 'var(--green)') + '">' + (env.co2_g || 0).toLocaleString(undefined, {maximumFractionDigits:1}) + 'g CO2e</span></div>';
-  envHtml += '<div class="stat-row"><span class="label">Impact Level</span><span class="value" style="color:' + (env.color === 'red' ? 'var(--red)' : env.color === 'yellow' ? 'var(--yellow)' : 'var(--green)') + '">' + esc(envLevel) + '</span></div>';
+  envHtml += '<div class="stat-row"><span class="label">Impact Level</span><span class="value" style="color:' + envColor + '">' + esc(envLevel) + '</span></div>';
   if (env.equiv) {
     envHtml += '<div class="stat-row"><span class="label">Equivalent</span><span class="value" style="color:var(--text-dim)">' + esc(env.equiv) + '</span></div>';
   }
-  // Constants source
-  envHtml += '<div style="margin-top:8px;font-size:10px;color:var(--text-dim)">Sources: EPA avg vehicle (404g/mi), IEA streaming (36g/hr), Google search (0.3g)</div>';
+  envHtml += '<div style="margin-top:8px;font-size:10px;color:var(--text-dim)">Opus: 2.0 Wh/query | Grid: 379g CO2/kWh | PUE: 1.135</div>';
   document.getElementById('body-env').innerHTML = envHtml;
 
   // === Jobs Panel ===

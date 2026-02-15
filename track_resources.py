@@ -132,6 +132,18 @@ EQUIVALENCES = {
 }
 
 
+def calculate_carbon_from_model_msgs(model_msgs):
+    """Calculate Wh and CO2g from per-model-class message counts."""
+    grid = CARBON['grid_intensity_g_per_kwh'][CARBON['assumed_grid']]
+    pue = CARBON['pue']
+    total_wh = 0
+    for cls, count in model_msgs.items():
+        wh_per_q = ENERGY['wh_per_query'].get(cls, 0.9)
+        total_wh += count * wh_per_q * pue
+    carbon_g = (total_wh / 1000) * grid
+    return round(total_wh, 2), round(carbon_g, 2)
+
+
 # ============================================================================
 # SESSION PARSING (unchanged logic, better structure)
 # ============================================================================
@@ -250,9 +262,12 @@ def _count_tokens_in_window(jsonl_path, window_start):
     can span across Anthropic's window reset boundary. By checking each
     message's timestamp, we only count tokens that actually fall within
     the current window.
+
+    Returns (tokens, messages, model_msgs_dict).
     """
     tokens = 0
     messages = 0
+    model_msgs = {}
     try:
         with open(jsonl_path, 'r') as f:
             for line in f:
@@ -266,17 +281,20 @@ def _count_tokens_in_window(jsonl_path, window_start):
                     ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
                     if ts < window_start:
                         continue
-                    usage = record.get('message', {}).get('usage', {})
+                    msg = record.get('message', {})
+                    usage = msg.get('usage', {})
                     inp = usage.get('input_tokens', 0)
                     out = usage.get('output_tokens', 0)
                     if inp > 0 or out > 0:
                         tokens += inp + out
                         messages += 1
+                        cls = get_model_class(msg.get('model'))
+                        model_msgs[cls] = model_msgs.get(cls, 0) + 1
                 except (json.JSONDecodeError, ValueError):
                     continue
     except OSError:
         pass
-    return tokens, messages
+    return tokens, messages, model_msgs
 
 
 def calculate_five_hour_window(sessions):
@@ -295,6 +313,8 @@ def calculate_five_hour_window(sessions):
 
     window_tokens = 0
     window_messages = 0
+    window_model_msgs = {}
+
     for s in sessions:
         if not s.get('end_time') or s['end_time'] < window_start:
             continue  # Session ended before window — skip entirely
@@ -303,16 +323,23 @@ def calculate_five_hour_window(sessions):
             # Session fully within window — use pre-computed totals (fast)
             window_tokens += s['input_tokens'] + s['output_tokens']
             window_messages += s['messages']
+            for model_id, model_usage in s['models_used'].items():
+                cls = get_model_class(model_id)
+                window_model_msgs[cls] = window_model_msgs.get(cls, 0) + model_usage['msgs']
         else:
             # Session spans the window boundary — must check per-message
             session_file = s.get('session_file')
             if session_file:
-                tok, msg = _count_tokens_in_window(session_file, window_start)
+                tok, msg, mmsg = _count_tokens_in_window(session_file, window_start)
                 window_tokens += tok
                 window_messages += msg
+                for cls, count in mmsg.items():
+                    window_model_msgs[cls] = window_model_msgs.get(cls, 0) + count
 
     budget = SUBSCRIPTION['five_hour_token_budget']
     pct = (window_tokens / budget * 100) if budget > 0 else 0
+
+    wh, carbon_g = calculate_carbon_from_model_msgs(window_model_msgs)
 
     return {
         'tokens_used': window_tokens,
@@ -320,6 +347,91 @@ def calculate_five_hour_window(sessions):
         'percentage': round(pct, 1),
         'messages': window_messages,
         'remaining': max(budget - window_tokens, 0),
+        'carbon_g': carbon_g,
+        'wh': wh,
+    }
+
+
+def calculate_since_last_gap(sessions, gap_threshold_minutes=30):
+    """Find the last 30+ min inactivity gap and count tokens since then.
+
+    This window matches observed Anthropic rate-limit reset behavior
+    better than the official 5-hour rolling window model. When you stop
+    for 30+ minutes, the rate limit gate appears to partially reset.
+    """
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(hours=12)
+
+    all_messages = []
+    for s in sessions:
+        if not s.get('end_time') or s['end_time'] < cutoff:
+            continue
+        session_file = s.get('session_file')
+        if not session_file:
+            continue
+        try:
+            with open(session_file, 'r') as f:
+                for line in f:
+                    if not line.strip():
+                        continue
+                    try:
+                        record = json.loads(line)
+                        ts_str = record.get('timestamp')
+                        if not ts_str:
+                            continue
+                        ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+                        if ts < cutoff:
+                            continue
+                        msg = record.get('message', {})
+                        usage = msg.get('usage', {})
+                        inp = usage.get('input_tokens', 0)
+                        out = usage.get('output_tokens', 0)
+                        if inp > 0 or out > 0:
+                            all_messages.append({
+                                'ts': ts,
+                                'tokens': inp + out,
+                                'model': msg.get('model'),
+                            })
+                    except (json.JSONDecodeError, ValueError):
+                        continue
+        except OSError:
+            continue
+
+    if not all_messages:
+        return {
+            'tokens_used': 0, 'messages': 0, 'gap_started': None,
+            'carbon_g': 0, 'wh': 0,
+        }
+
+    all_messages.sort(key=lambda m: m['ts'])
+
+    gap_threshold = timedelta(minutes=gap_threshold_minutes)
+    gap_boundary_idx = 0
+
+    for i in range(len(all_messages) - 1, 0, -1):
+        gap = all_messages[i]['ts'] - all_messages[i - 1]['ts']
+        if gap >= gap_threshold:
+            gap_boundary_idx = i
+            break
+
+    window_messages = all_messages[gap_boundary_idx:]
+    tokens = sum(m['tokens'] for m in window_messages)
+    msgs = len(window_messages)
+    gap_started = window_messages[0]['ts'].isoformat() if window_messages else None
+
+    model_msgs = {}
+    for m in window_messages:
+        cls = get_model_class(m.get('model'))
+        model_msgs[cls] = model_msgs.get(cls, 0) + 1
+
+    wh, carbon_g = calculate_carbon_from_model_msgs(model_msgs)
+
+    return {
+        'tokens_used': tokens,
+        'messages': msgs,
+        'gap_started': gap_started,
+        'carbon_g': carbon_g,
+        'wh': wh,
     }
 
 
@@ -500,7 +612,7 @@ def get_model_recommendation(pct):
         return 'opus', 'ok'
 
 
-def write_budget_state_json(five_hour, weekly, env):
+def write_budget_state_json(five_hour, weekly, env, since_gap=None, lifetime=None):
     """Write lightweight JSON sidecar for hooks and dashboard to read.
 
     Atomic write (temp + rename) to prevent corrupt reads.
@@ -515,6 +627,12 @@ def write_budget_state_json(five_hour, weekly, env):
             'budget': five_hour['budget'],
             'remaining': five_hour['remaining'],
             'messages': five_hour['messages'],
+            'carbon_g': five_hour.get('carbon_g', 0),
+            'wh': five_hour.get('wh', 0),
+        },
+        'since_last_gap': since_gap or {
+            'tokens_used': 0, 'messages': 0, 'gap_started': None,
+            'carbon_g': 0, 'wh': 0,
         },
         'weekly': {
             'opus_tokens': weekly['opus_tokens'],
@@ -525,6 +643,10 @@ def write_budget_state_json(five_hour, weekly, env):
         'environmental': {
             'total_wh': round(env['total_wh'], 1),
             'total_carbon_g': round(env['total_carbon_g'], 1),
+        },
+        'lifetime': lifetime or {
+            'total_tokens': 0, 'total_messages': 0, 'total_sessions': 0,
+            'first_session': None, 'total_carbon_g': 0, 'total_wh': 0,
         },
         'model_recommendation': model_rec,
         'alert_level': alert_level,
@@ -568,8 +690,26 @@ def generate_report(sessions, output_path=None):
     api_equiv_month, month_sessions = calculate_monthly_api_equivalent(sessions)
     env = estimate_energy_and_carbon(sessions)
 
+    # Compute since-last-gap window
+    since_gap = calculate_since_last_gap(sessions)
+
+    # Compute lifetime totals
+    total_conv_tokens = sum(s['input_tokens'] + s['output_tokens'] for s in sessions)
+    total_all_messages = sum(s['messages'] for s in sessions)
+    first_session_time = min(
+        (s['start_time'] for s in sessions if s['start_time']),
+        default=None)
+    lifetime = {
+        'total_tokens': total_conv_tokens,
+        'total_messages': total_all_messages,
+        'total_sessions': len(sessions),
+        'first_session': first_session_time.isoformat() if first_session_time else None,
+        'total_carbon_g': round(env['total_carbon_g'], 1),
+        'total_wh': round(env['total_wh'], 1),
+    }
+
     # Write JSON sidecar for hooks and dashboard
-    write_budget_state_json(five_hour, weekly, env)
+    write_budget_state_json(five_hour, weekly, env, since_gap, lifetime)
 
     total_tokens = sum(s['input_tokens'] + s['output_tokens']
                        + s['cache_creation_tokens'] + s['cache_read_tokens']

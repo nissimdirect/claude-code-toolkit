@@ -289,7 +289,16 @@ def load_tracker_data():
 
 
 def get_usage_stats(data):
-    """Extract 5-hour window usage from budget state JSON."""
+    """Extract 5-hour window, since-last-gap, and lifetime from budget state JSON."""
+    empty_gap = {
+        "tokens_used": 0, "messages": 0, "gap_started": None,
+        "carbon_g": 0, "wh": 0,
+    }
+    empty_lifetime = {
+        "total_tokens": 0, "total_messages": 0, "total_sessions": 0,
+        "first_session": None, "total_carbon_g": 0, "total_wh": 0,
+    }
+
     if data is None:
         return {
             "percentage": 0,
@@ -297,16 +306,22 @@ def get_usage_stats(data):
             "budget": FIVE_HOUR_TOKEN_BUDGET,
             "remaining": FIVE_HOUR_TOKEN_BUDGET,
             "messages": 0,
+            "window_carbon_g": 0,
+            "window_wh": 0,
             "model_recommendation": "opus",
             "alert_level": "ok",
             "weekly_opus_tokens": 0,
             "weekly_opus_messages": 0,
             "weekly_sonnet_tokens": 0,
             "weekly_sonnet_messages": 0,
+            "since_last_gap": empty_gap,
+            "lifetime": empty_lifetime,
         }
 
     window = data.get("five_hour_window", {})
     weekly = data.get("weekly", {})
+    since_gap = data.get("since_last_gap", empty_gap)
+    lifetime = data.get("lifetime", empty_lifetime)
 
     return {
         "percentage": window.get("percentage", 0),
@@ -314,12 +329,16 @@ def get_usage_stats(data):
         "budget": window.get("budget", FIVE_HOUR_TOKEN_BUDGET),
         "remaining": window.get("remaining", FIVE_HOUR_TOKEN_BUDGET),
         "messages": window.get("messages", 0),
+        "window_carbon_g": window.get("carbon_g", 0),
+        "window_wh": window.get("wh", 0),
         "model_recommendation": data.get("model_recommendation", "opus"),
         "alert_level": data.get("alert_level", "ok"),
         "weekly_opus_tokens": weekly.get("opus_tokens", 0),
         "weekly_opus_messages": weekly.get("opus_messages", 0),
         "weekly_sonnet_tokens": weekly.get("sonnet_tokens", 0),
         "weekly_sonnet_messages": weekly.get("sonnet_messages", 0),
+        "since_last_gap": since_gap,
+        "lifetime": lifetime,
     }
 
 
@@ -608,7 +627,7 @@ def validate_data(usage, kb_stats):
     if age is not None and age > 5:
         warnings.append(f"Budget data is {int(age)}m old")
 
-    if usage["percentage"] > 110:
+    if usage["percentage"] > 200:
         warnings.append(f"Window percentage suspiciously high: {usage['percentage']:.0f}%")
 
     return warnings
