@@ -255,7 +255,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 44004,  # 43898 + 106 (Virgil Abloh)
+        "article_count": 44082,  # 43898 + 184 (Virgil Abloh — RSS + page matching)
         "excerpt_lines": 40,
     },
     "brandnew": {
