@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Code Dashboard</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --card: #161b22;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-dim: #8b949e;
+    --green: #3fb950;
+    --yellow: #d29922;
+    --red: #f85149;
+    --blue: #58a6ff;
+    --cyan: #39d353;
+    --magenta: #bc8cff;
+    --orange: #d18616;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 12px;
+  }
+
+  .header {
+    text-align: center;
+    padding: 10px 0 14px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .header h1 {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--blue);
+  }
+  .header .meta {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  /* Top-level 3 numbers (Lenny) */
+  .kpi-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+  .kpi {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    text-align: center;
+  }
+  .kpi .value {
+    font-size: 28px;
+    font-weight: 700;
+  }
+  .kpi .label {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  /* Next Action banner */
+  .next-action {
+    background: var(--card);
+    border: 2px solid var(--green);
+    border-radius: 8px;
+    padding: 12px 20px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .next-action .arrow { font-size: 18px; }
+  .next-action .text { font-size: 15px; font-weight: 700; flex: 1; }
+  .next-action.level-error { border-color: var(--red); }
+  .next-action.level-warning { border-color: var(--yellow); }
+  .next-action.level-info { border-color: var(--cyan); }
+  .next-action.level-ok { border-color: var(--green); }
+
+  /* Grid */
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+
+  /* Panels */
+  .panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .panel-header:hover { background: rgba(255,255,255,0.03); }
+  .panel-header .title {
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .panel-header .right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+
+  /* Status light (Don Norman signifier) */
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .status-dot.green { background: var(--green); box-shadow: 0 0 4px var(--green); }
+  .status-dot.yellow { background: var(--yellow); box-shadow: 0 0 4px var(--yellow); }
+  .status-dot.red { background: var(--red); box-shadow: 0 0 4px var(--red); }
+  .status-dot.gray { background: var(--text-dim); }
+
+  .panel-body {
+    padding: 12px 14px;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  .panel-body.collapsed { display: none; }
+
+  /* Chevron toggle */
+  .chevron {
+    transition: transform 0.2s;
+    color: var(--text-dim);
+    font-size: 10px;
+  }
+  .chevron.collapsed { transform: rotate(-90deg); }
+
+  /* Usage panel */
+  .progress-bar {
+    height: 20px;
+    background: #21262d;
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 8px 0;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+  }
+  .progress-fill.green { background: var(--green); }
+  .progress-fill.yellow { background: var(--yellow); }
+  .progress-fill.red { background: var(--red); }
+  .progress-fill.blue { background: var(--blue); }
+
+  .stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 12px;
+  }
+  .stat-row .label { color: var(--text-dim); }
+  .stat-row .value { font-weight: 600; }
+
+  .model-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .model-badge.opus { background: rgba(63,185,80,0.2); color: var(--green); }
+  .model-badge.sonnet { background: rgba(210,153,34,0.2); color: var(--yellow); }
+  .model-badge.wind_down { background: rgba(248,81,73,0.2); color: var(--red); }
+
+  /* Task list */
+  .task-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(48,54,61,0.5);
+  }
+  .task-item:last-child { border-bottom: none; }
+  .task-badge {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 3px;
+    min-width: 52px;
+    text-align: center;
+  }
+  .task-badge.BLOCKED { background: rgba(248,81,73,0.2); color: var(--red); }
+  .task-badge.IN-PROG { background: rgba(210,153,34,0.2); color: var(--yellow); }
+  .task-badge.NEXT { background: rgba(139,148,158,0.15); color: var(--text-dim); }
+  .task-badge.DONE { background: rgba(63,185,80,0.2); color: var(--green); }
+
+  /* KB grid layout — columns with expandable folders */
+  .kb-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .kb-folder {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .kb-folder-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    cursor: pointer;
+    user-select: none;
+    border-bottom: 1px solid transparent;
+  }
+  .kb-folder-header:hover { background: rgba(255,255,255,0.03); }
+  .kb-folder-header.open { border-bottom-color: var(--border); }
+  .kb-folder-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--magenta);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .kb-folder-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+  }
+  .kb-folder-total {
+    font-weight: 700;
+    color: var(--cyan);
+  }
+  .kb-folder-chevron {
+    color: var(--text-dim);
+    font-size: 9px;
+    transition: transform 0.2s;
+  }
+  .kb-folder-chevron.closed { transform: rotate(-90deg); }
+  .kb-folder-body {
+    padding: 6px 10px;
+  }
+  .kb-folder-body.hidden { display: none; }
+  .kb-source {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 0;
+  }
+  .kb-bar {
+    height: 5px;
+    background: var(--blue);
+    border-radius: 3px;
+    opacity: 0.5;
+    min-width: 2px;
+  }
+  .kb-count {
+    font-weight: 700;
+    font-size: 11px;
+    min-width: 40px;
+    text-align: right;
+    color: var(--cyan);
+  }
+  .kb-name {
+    font-size: 11px;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-dim);
+  }
+
+  /* Services */
+  .svc-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 3px 0;
+    font-size: 12px;
+  }
+
+  /* Warning bar */
+  .warnings {
+    background: rgba(248,81,73,0.1);
+    border: 1px solid var(--red);
+    border-radius: 6px;
+    padding: 8px 14px;
+    margin-bottom: 12px;
+    font-size: 12px;
+    color: var(--red);
+  }
+  .warnings .warn-item { padding: 2px 0; }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 10px;
+    margin-top: 12px;
+    color: var(--text-dim);
+    font-size: 11px;
+    border-top: 1px solid var(--border);
+  }
+
+  /* Refresh button */
+  .refresh-btn {
+    background: rgba(88,166,255,0.15);
+    border: 1px solid var(--blue);
+    color: var(--blue);
+    padding: 3px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+  }
+  .refresh-btn:hover { background: rgba(88,166,255,0.25); }
+
+  /* Empty state */
+  .empty { color: var(--text-dim); font-style: italic; font-size: 12px; padding: 8px 0; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>CLAUDE CODE DASHBOARD</h1>
+  <div class="meta">
+    <span id="clock"></span>
+    &nbsp;&middot;&nbsp;
+    <span id="poll-status">Connecting...</span>
+    &nbsp;&middot;&nbsp;
+    <button class="refresh-btn" onclick="doRefresh()">Refresh Budget</button>
+  </div>
+</div>
+
+<!-- Warnings -->
+<div id="warnings" class="warnings" style="display:none"></div>
+
+<!-- KPI row -->
+<div class="kpi-row">
+  <div class="kpi">
+    <div class="value" id="kpi-budget" style="color:var(--green)">--</div>
+    <div class="label">Budget Used</div>
+  </div>
+  <div class="kpi">
+    <div class="value" id="kpi-kb" style="color:var(--cyan)">--</div>
+    <div class="label">KB Articles</div>
+  </div>
+  <div class="kpi">
+    <div class="value" id="kpi-blocked" style="color:var(--red)">--</div>
+    <div class="label">Blocked Tasks</div>
+  </div>
+  <div class="kpi">
+    <div class="value" id="kpi-co2" style="color:var(--green)">--</div>
+    <div class="label" id="kpi-co2-label">CO2 (g)</div>
+  </div>
+</div>
+
+<!-- Next Action -->
+<div id="next-action" class="next-action level-info">
+  <span class="arrow">&raquo;</span>
+  <span class="text" id="next-action-text">Loading...</span>
+</div>
+
+<!-- Panel Grid -->
+<div class="grid">
+
+  <!-- Usage & Limits -->
+  <div class="panel" id="panel-usage">
+    <div class="panel-header" onclick="toggle('usage')">
+      <span class="title" style="color:var(--cyan)">Usage &amp; Limits</span>
+      <span class="right">
+        <span id="usage-age"></span>
+        <span class="status-dot" id="usage-dot"></span>
+        <span class="chevron" id="chevron-usage">&#9660;</span>
+      </span>
+    </div>
+    <div class="panel-body" id="body-usage">
+      <div class="progress-bar"><div class="progress-fill green" id="usage-bar" style="width:0%">0%</div></div>
+      <div id="usage-details"></div>
+    </div>
+  </div>
+
+  <!-- Tasks -->
+  <div class="panel" id="panel-tasks">
+    <div class="panel-header" onclick="toggle('tasks')">
+      <span class="title" style="color:var(--magenta)">Task Priorities</span>
+      <span class="right">
+        <span id="task-count"></span>
+        <span class="status-dot" id="tasks-dot"></span>
+        <span class="chevron" id="chevron-tasks">&#9660;</span>
+      </span>
+    </div>
+    <div class="panel-body" id="body-tasks"></div>
+  </div>
+
+  <!-- Knowledge Base -->
+  <div class="panel" id="panel-kb" style="grid-column: span 2">
+    <div class="panel-header" onclick="toggle('kb')">
+      <span class="title" style="color:var(--green)">Knowledge Base</span>
+      <span class="right">
+        <span id="kb-count-header"></span>
+        <span class="status-dot" id="kb-dot"></span>
+        <span class="chevron" id="chevron-kb">&#9660;</span>
+      </span>
+    </div>
+    <div class="panel-body" id="body-kb"></div>
+  </div>
+
+  <!-- Budget State -->
+  <div class="panel" id="panel-budget">
+    <div class="panel-header" onclick="toggle('budget')">
+      <span class="title" style="color:var(--blue)">Budget State</span>
+      <span class="right">
+        <span id="budget-age"></span>
+        <span class="status-dot" id="budget-dot"></span>
+        <span class="chevron" id="chevron-budget">&#9660;</span>
+      </span>
+    </div>
+    <div class="panel-body" id="body-budget"></div>
+  </div>
+
+  <!-- Environmental Impact -->
+  <div class="panel" id="panel-env">
+    <div class="panel-header" onclick="toggle('env')">
+      <span class="title" style="color:var(--green)">Environmental Impact</span>
+      <span class="right">
+        <span id="env-level"></span>
+        <span class="status-dot" id="env-dot"></span>
+        <span class="chevron" id="chevron-env">&#9660;</span>
+      </span>
+    </div>
+    <div class="panel-body" id="body-env"></div>
+  </div>
+
+  <!-- Background Jobs -->
+  <div class="panel" id="panel-jobs">
+    <div class="panel-header" onclick="toggle('jobs')">
+      <span class="title" style="color:var(--yellow)">Background Jobs</span>
+      <span class="right">
+        <span id="jobs-count"></span>
+        <span class="status-dot" id="jobs-dot"></span>
+        <span class="chevron" id="chevron-jobs">&#9660;</span>
+      </span>
+    </div>
+    <div class="panel-body" id="body-jobs"></div>
+  </div>
+
+  <!-- System -->
+  <div class="panel" id="panel-system" style="grid-column: span 2">
+    <div class="panel-header" onclick="toggle('system')">
+      <span class="title" style="color:var(--red)">System</span>
+      <span class="right">
+        <span class="status-dot" id="system-dot"></span>
+        <span class="chevron" id="chevron-system">&#9660;</span>
+      </span>
+    </div>
+    <div class="panel-body" id="body-system"></div>
+  </div>
+
+</div>
+
+<div class="footer">
+  <span id="footer-time"></span>
+  &nbsp;&middot;&nbsp; Polling every 1s &nbsp;&middot;&nbsp; Ctrl+C server to stop
+</div>
+
+<script>
+// === STATE ===
+let collapsed = {};
+let lastData = null;
+let pollErrors = 0;
+
+// === TOGGLE ===
+function toggle(id) {
+  collapsed[id] = !collapsed[id];
+  const body = document.getElementById('body-' + id);
+  const chev = document.getElementById('chevron-' + id);
+  if (collapsed[id]) {
+    body.classList.add('collapsed');
+    chev.classList.add('collapsed');
+  } else {
+    body.classList.remove('collapsed');
+    chev.classList.remove('collapsed');
+  }
+}
+
+// === FORMAT ===
+function fmt(n) {
+  if (n == null) return '--';
+  return n.toLocaleString();
+}
+
+function setDot(id, color) {
+  const el = document.getElementById(id);
+  if (el) {
+    el.className = 'status-dot ' + color;
+  }
+}
+
+// === RENDER ===
+function render(d) {
+  lastData = d;
+  const now = new Date().toLocaleTimeString();
+
+  // Clock
+  document.getElementById('clock').textContent = new Date().toLocaleString();
+  document.getElementById('footer-time').textContent = 'Last update: ' + now;
+  document.getElementById('poll-status').textContent = 'Live';
+
+  // Warnings
+  const warnEl = document.getElementById('warnings');
+  if (d.warnings && d.warnings.length > 0) {
+    warnEl.style.display = 'block';
+    warnEl.innerHTML = d.warnings.map(w => '<div class="warn-item">! ' + esc(w) + '</div>').join('');
+  } else {
+    warnEl.style.display = 'none';
+  }
+
+  // KPIs
+  const pct = d.usage ? d.usage.percentage : 0;
+  const kpiBudget = document.getElementById('kpi-budget');
+  kpiBudget.textContent = Math.round(pct) + '%';
+  kpiBudget.style.color = pct < 50 ? 'var(--green)' : pct < 80 ? 'var(--yellow)' : 'var(--red)';
+
+  document.getElementById('kpi-kb').textContent = fmt(d.kb ? d.kb.total : 0);
+
+  const blockedCount = d.tasks ? d.tasks.filter(t => t.status === 'BLOCKED').length : 0;
+  const kpiBlocked = document.getElementById('kpi-blocked');
+  kpiBlocked.textContent = blockedCount;
+  kpiBlocked.style.color = blockedCount > 0 ? 'var(--red)' : 'var(--green)';
+
+  // CO2 KPI
+  const envData = d.environmental || {};
+  const co2 = envData.co2_g || 0;
+  const kpiCo2 = document.getElementById('kpi-co2');
+  kpiCo2.textContent = co2 < 1000 ? Math.round(co2) + 'g' : (co2/1000).toFixed(1) + 'kg';
+  kpiCo2.style.color = co2 < 500 ? 'var(--green)' : co2 < 2000 ? 'var(--yellow)' : 'var(--red)';
+
+  // Next Action
+  if (d.next_action) {
+    document.getElementById('next-action-text').textContent = d.next_action.text;
+    const na = document.getElementById('next-action');
+    na.className = 'next-action level-' + d.next_action.level;
+  }
+
+  // === Usage Panel ===
+  const usage = d.usage || {};
+  const barPct = Math.min(pct, 100);
+  const barEl = document.getElementById('usage-bar');
+  barEl.style.width = barPct + '%';
+  barEl.textContent = Math.round(pct) + '%';
+  barEl.className = 'progress-fill ' + (pct < 50 ? 'green' : pct < 80 ? 'yellow' : 'red');
+
+  const ageMin = d.budget_age_minutes;
+  const ageText = ageMin != null ? Math.round(ageMin) + 'm ago' : 'N/A';
+  document.getElementById('usage-age').textContent = ageText;
+  setDot('usage-dot', ageMin != null && ageMin < 5 ? 'green' : ageMin != null && ageMin < 30 ? 'yellow' : 'red');
+
+  // Estimate hours remaining at current rate
+  let rateText = '';
+  if (pct > 0 && pct < 100) {
+    const hoursLeft = ((100 - pct) / pct) * 5;
+    rateText = '<div class="stat-row"><span class="label">At this rate</span><span class="value">' + hoursLeft.toFixed(1) + ' hours left</span></div>';
+  } else if (pct >= 100) {
+    rateText = '<div class="stat-row"><span class="label">Status</span><span class="value" style="color:var(--red)">Budget exhausted</span></div>';
+  }
+
+  const modelRec = usage.model_recommendation || 'opus';
+  const modelClass = modelRec === 'opus' ? 'opus' : modelRec === 'wind_down' ? 'wind_down' : 'sonnet';
+  const modelLabel = modelRec === 'opus' ? 'Opus (full power)' : modelRec === 'wind_down' ? 'WIND DOWN' : 'Sonnet (save budget)';
+
+  document.getElementById('usage-details').innerHTML =
+    '<div class="stat-row"><span class="label">Tokens</span><span class="value">' + fmt(usage.tokens_used) + ' / ' + fmt(usage.budget) + '</span></div>' +
+    '<div class="stat-row"><span class="label">Remaining</span><span class="value">' + fmt(usage.remaining) + '</span></div>' +
+    '<div class="stat-row"><span class="label">Messages</span><span class="value">' + fmt(usage.messages) + '</span></div>' +
+    rateText +
+    '<div class="stat-row"><span class="label">Model</span><span class="value"><span class="model-badge ' + modelClass + '">' + esc(modelLabel) + '</span></span></div>' +
+    '<div class="stat-row" style="margin-top:8px"><span class="label">Weekly Opus</span><span class="value">' + fmt(usage.weekly_opus_tokens) + ' tok / ' + fmt(usage.weekly_opus_messages) + ' msg</span></div>' +
+    '<div class="stat-row"><span class="label">Weekly Sonnet</span><span class="value">' + fmt(usage.weekly_sonnet_tokens) + ' tok / ' + fmt(usage.weekly_sonnet_messages) + ' msg</span></div>' +
+    (d.environmental ? '<div class="stat-row" style="margin-top:8px"><span class="label">Energy</span><span class="value">' + d.environmental.wh + ' Wh | ' + d.environmental.co2_g + 'g CO2</span></div>' +
+    (d.environmental.equiv ? '<div class="stat-row"><span class="label">Equivalent</span><span class="value" style="color:var(--text-dim)">' + esc(d.environmental.equiv) + '</span></div>' : '') : '');
+
+  // === Tasks Panel ===
+  const tasks = d.tasks || [];
+  document.getElementById('task-count').textContent = tasks.length + ' tasks';
+  setDot('tasks-dot', blockedCount > 0 ? 'red' : tasks.some(t => t.status === 'IN PROG') ? 'yellow' : 'green');
+
+  if (tasks.length === 0) {
+    document.getElementById('body-tasks').innerHTML = '<div class="empty">No tasks found in ACTIVE-TASKS.md</div>';
+  } else {
+    document.getElementById('body-tasks').innerHTML = tasks.map(t =>
+      '<div class="task-item">' +
+      '<span class="task-badge ' + t.status.replace(' ', '-') + '">' + esc(t.status) + '</span>' +
+      '<span>' + esc(t.name) + '</span>' +
+      '</div>'
+    ).join('');
+  }
+
+  // === KB Panel ===
+  renderKB(d.kb);
+
+  // === Budget State Panel ===
+  const bs = d.budget_state || {};
+  document.getElementById('budget-age').textContent = ageText;
+  setDot('budget-dot', ageMin != null && ageMin < 5 ? 'green' : ageMin != null && ageMin < 30 ? 'yellow' : 'red');
+
+  const alertLevel = bs.alert_level || 'ok';
+  const alertColors = { ok: 'var(--green)', info: 'var(--cyan)', warning: 'var(--yellow)', critical: 'var(--red)', limit: 'var(--red)' };
+  const alertLabels = { ok: 'Budget Healthy', info: 'Above 50%', warning: 'Switch to Sonnet', critical: 'Sonnet Only', limit: 'Wind Down Now' };
+
+  document.getElementById('body-budget').innerHTML =
+    '<div class="stat-row"><span class="label">Data Age</span><span class="value">' + ageText + '</span></div>' +
+    '<div class="stat-row"><span class="label">Alert</span><span class="value" style="color:' + (alertColors[alertLevel] || 'var(--text)') + '">' + (alertLabels[alertLevel] || alertLevel).toUpperCase() + '</span></div>' +
+    '<div class="stat-row"><span class="label">Generated</span><span class="value" style="color:var(--text-dim)">' + esc(bs.generated || 'Unknown') + '</span></div>' +
+    (d.environmental ? '<div class="stat-row"><span class="label">Lifetime Energy</span><span class="value">' + d.environmental.wh + ' Wh</span></div>' +
+    '<div class="stat-row"><span class="label">Lifetime Carbon</span><span class="value">' + d.environmental.co2_g + 'g CO2e</span></div>' : '') +
+    '<div style="margin-top:8px"><button class="refresh-btn" onclick="doRefresh()">Refresh Now</button></div>';
+
+  // === Environmental Panel ===
+  const env = d.environmental || {};
+  const envLevel = env.level || 'Unknown';
+  document.getElementById('env-level').textContent = envLevel;
+  setDot('env-dot', env.color === 'green' ? 'green' : env.color === 'yellow' ? 'yellow' : env.color === 'red' ? 'red' : 'gray');
+
+  let envHtml = '';
+  envHtml += '<div class="stat-row"><span class="label">Total Energy</span><span class="value">' + (env.wh || 0).toLocaleString(undefined, {maximumFractionDigits:1}) + ' Wh</span></div>';
+  envHtml += '<div class="stat-row"><span class="label">Total Carbon</span><span class="value" style="color:' + (env.color === 'red' ? 'var(--red)' : env.color === 'yellow' ? 'var(--yellow)' : 'var(--green)') + '">' + (env.co2_g || 0).toLocaleString(undefined, {maximumFractionDigits:1}) + 'g CO2e</span></div>';
+  envHtml += '<div class="stat-row"><span class="label">Impact Level</span><span class="value" style="color:' + (env.color === 'red' ? 'var(--red)' : env.color === 'yellow' ? 'var(--yellow)' : 'var(--green)') + '">' + esc(envLevel) + '</span></div>';
+  if (env.equiv) {
+    envHtml += '<div class="stat-row"><span class="label">Equivalent</span><span class="value" style="color:var(--text-dim)">' + esc(env.equiv) + '</span></div>';
+  }
+  // Constants source
+  envHtml += '<div style="margin-top:8px;font-size:10px;color:var(--text-dim)">Sources: EPA avg vehicle (404g/mi), IEA streaming (36g/hr), Google search (0.3g)</div>';
+  document.getElementById('body-env').innerHTML = envHtml;
+
+  // === Jobs Panel ===
+  const jobs = d.jobs || { active: [], completed: [] };
+  const activeJobs = jobs.active || [];
+  document.getElementById('jobs-count').textContent = activeJobs.length + ' active';
+  setDot('jobs-dot', activeJobs.length > 0 ? 'green' : 'gray');
+
+  let jobsHtml = '<div style="margin-bottom:8px;font-weight:700;color:var(--yellow)">Active</div>';
+  if (activeJobs.length > 0) {
+    jobsHtml += activeJobs.map(j =>
+      '<div class="svc-item"><span class="status-dot green"></span>' + esc(j.name) + ' <span style="color:var(--text-dim)">(PID ' + esc(j.pid) + ')</span></div>'
+    ).join('');
+  } else {
+    jobsHtml += '<div class="empty">None running</div>';
+  }
+
+  const completed = jobs.completed || [];
+  jobsHtml += '<div style="margin-top:10px;margin-bottom:4px;font-weight:700;color:var(--green)">Completed</div>';
+  if (completed.length > 0) {
+    const shown = completed.slice(0, 5);
+    jobsHtml += shown.map(n => '<div style="font-size:12px;color:var(--text-dim);padding:2px 0">' + esc(n) + '</div>').join('');
+    if (completed.length > 5) jobsHtml += '<div class="empty">+' + (completed.length - 5) + ' more</div>';
+  } else {
+    jobsHtml += '<div class="empty">None recorded</div>';
+  }
+  document.getElementById('body-jobs').innerHTML = jobsHtml;
+
+  // === System Panel ===
+  const sys = d.system || {};
+  const errs = d.errors || { count: 0, recent: [] };
+  const svcs = d.services || [];
+
+  let diskPct = parseInt((sys.disk_pct || '0%').replace('%', ''));
+  let diskColor = diskPct < 75 ? 'var(--green)' : diskPct < 90 ? 'var(--yellow)' : 'var(--red)';
+  setDot('system-dot', errs.count > 0 ? 'red' : diskPct > 85 ? 'yellow' : 'green');
+
+  let sysHtml = '<div style="font-weight:700;margin-bottom:6px">Disk</div>' +
+    '<div class="stat-row"><span class="label">Claude temp</span><span class="value">' + esc(sys.claude_temp || 'N/A') + '</span></div>' +
+    '<div class="stat-row"><span class="label">Disk free</span><span class="value">' + esc(sys.disk_free || 'N/A') + ' <span style="color:' + diskColor + '">(' + esc(sys.disk_pct || '?') + ')</span></span></div>';
+
+  sysHtml += '<div style="font-weight:700;margin-top:10px;margin-bottom:6px">Services</div>';
+  if (svcs.length > 0) {
+    sysHtml += svcs.map(s => {
+      const sc = s.status === 'Running' ? 'green' : s.status === 'Crashed' ? 'red' : 'yellow';
+      return '<div class="svc-item"><span class="status-dot ' + sc + '"></span>' + esc(s.name) + '</div>';
+    }).join('');
+  } else {
+    sysHtml += '<div class="empty">No services detected</div>';
+  }
+
+  sysHtml += '<div style="font-weight:700;margin-top:10px;margin-bottom:6px">Data Health</div>';
+  if (errs.count === 0) {
+    sysHtml += '<div style="color:var(--green)">All checks passing</div>';
+  } else {
+    sysHtml += '<div style="color:var(--red)">' + errs.count + ' issue(s) in 24h</div>';
+    (errs.recent || []).forEach(e => {
+      sysHtml += '<div style="color:var(--red);font-size:11px;opacity:0.7;padding:2px 0">! ' + esc((e.reason || '?').substring(0, 40)) + '</div>';
+    });
+  }
+  document.getElementById('body-system').innerHTML = sysHtml;
+}
+
+// Track which KB folders are open
+let kbFolderState = {};
+
+function toggleKBFolder(skill) {
+  kbFolderState[skill] = !kbFolderState[skill];
+  const body = document.getElementById('kb-body-' + skill);
+  const chev = document.getElementById('kb-chev-' + skill);
+  const hdr = document.getElementById('kb-hdr-' + skill);
+  if (body) {
+    if (kbFolderState[skill]) {
+      body.classList.remove('hidden');
+      chev.classList.remove('closed');
+      hdr.classList.add('open');
+    } else {
+      body.classList.add('hidden');
+      chev.classList.add('closed');
+      hdr.classList.remove('open');
+    }
+  }
+}
+
+function renderKB(kb) {
+  if (!kb) {
+    document.getElementById('body-kb').innerHTML = '<div class="empty">No KB data</div>';
+    return;
+  }
+
+  document.getElementById('kb-count-header').textContent = fmt(kb.total) + ' articles, ' + kb.source_count + ' sources';
+  setDot('kb-dot', kb.source_count > 30 ? 'green' : kb.source_count > 10 ? 'yellow' : 'red');
+
+  const bySkill = kb.by_skill || {};
+  const maxCount = Math.max(...Object.values(kb.stats || {}).map(Number), 1);
+
+  // Sort skills by total article count descending
+  const sortedSkills = Object.entries(bySkill).sort((a, b) => b[1].total - a[1].total);
+
+  let html = '<div class="kb-grid">';
+
+  for (const [skill, data] of sortedSkills) {
+    const isOpen = kbFolderState[skill] || false;
+    const safeName = skill.replace(/[^a-z0-9-]/g, '_');
+    const sources = (data.sources || []).sort((a, b) => b.count - a.count);
+    const srcCount = sources.length;
+
+    html += '<div class="kb-folder">';
+    html += '<div class="kb-folder-header' + (isOpen ? ' open' : '') + '" id="kb-hdr-' + safeName + '" onclick="toggleKBFolder(\'' + safeName + '\')">';
+    html += '<span class="kb-folder-name">' + esc(skill) + '</span>';
+    html += '<span class="kb-folder-meta">';
+    html += '<span class="kb-folder-total">' + fmt(data.total) + '</span>';
+    html += '<span style="color:var(--text-dim);font-size:10px">' + srcCount + ' src</span>';
+    html += '<span class="kb-folder-chevron' + (isOpen ? '' : ' closed') + '" id="kb-chev-' + safeName + '">&#9660;</span>';
+    html += '</span></div>';
+
+    html += '<div class="kb-folder-body' + (isOpen ? '' : ' hidden') + '" id="kb-body-' + safeName + '">';
+    for (const src of sources) {
+      const barW = Math.max(2, Math.round((src.count / maxCount) * 80));
+      html += '<div class="kb-source">' +
+        '<span class="kb-count">' + fmt(src.count) + '</span>' +
+        '<span class="kb-bar" style="width:' + barW + 'px"></span>' +
+        '<span class="kb-name">' + esc(src.name) + '</span>' +
+        '</div>';
+    }
+    html += '</div></div>';
+  }
+
+  html += '</div>';
+  document.getElementById('body-kb').innerHTML = html;
+
+  // Re-apply folder state after re-render (preserve which are open)
+  for (const [skill, isOpen] of Object.entries(kbFolderState)) {
+    if (isOpen) {
+      const body = document.getElementById('kb-body-' + skill);
+      const chev = document.getElementById('kb-chev-' + skill);
+      const hdr = document.getElementById('kb-hdr-' + skill);
+      if (body) { body.classList.remove('hidden'); }
+      if (chev) { chev.classList.remove('closed'); }
+      if (hdr) { hdr.classList.add('open'); }
+    }
+  }
+}
+
+// === ESCAPE HTML ===
+function esc(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+// === POLLING ===
+async function poll() {
+  try {
+    const r = await fetch('/api/data');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const d = await r.json();
+    render(d);
+    pollErrors = 0;
+  } catch (e) {
+    pollErrors++;
+    document.getElementById('poll-status').textContent = 'Error (' + pollErrors + ')';
+    if (pollErrors > 10) {
+      document.getElementById('poll-status').textContent = 'Connection lost';
+    }
+  }
+}
+
+async function doRefresh() {
+  try {
+    await fetch('/api/refresh');
+    // Give track_resources.py a moment to write
+    setTimeout(poll, 2000);
+  } catch (e) {
+    // ignore
+  }
+}
+
+// Start polling
+poll();
+setInterval(poll, 1000);
+</script>
+
+</body>
+</html>

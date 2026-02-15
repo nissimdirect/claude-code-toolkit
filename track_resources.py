@@ -25,8 +25,11 @@ SUBSCRIPTION = {
     'plan': 'Max 20x',
     'monthly_cost': 200.00,
     # 5-hour rolling window limits (community-measured, not official)
-    # Source: Portkey, TrueFoundry, GitHub issues #9424, #3873
-    'five_hour_token_budget': 220_000,
+    # Source: Portkey, TrueFoundry, GitHub issues #9424, #3873, GitHub Gist eonist
+    # Max 20x advertises ~900 messages/5h. At ~600 tokens/msg average = ~540K tokens.
+    # Previous 220K was Pro-tier estimate, far too low for Max 20x.
+    # Conservative estimate: 500K tokens (may be higher in practice).
+    'five_hour_token_budget': 500_000,
     # Weekly limits (approximate, Anthropic doesn't publish exact numbers)
     'weekly_opus_hours': 40,
     'weekly_sonnet_hours': 480,
@@ -240,6 +243,42 @@ def get_model_class(model_id):
     return 'sonnet'
 
 
+def _count_tokens_in_window(jsonl_path, window_start):
+    """Count tokens from individual messages after window_start.
+
+    This is more accurate than session-level counting because sessions
+    can span across Anthropic's window reset boundary. By checking each
+    message's timestamp, we only count tokens that actually fall within
+    the current window.
+    """
+    tokens = 0
+    messages = 0
+    try:
+        with open(jsonl_path, 'r') as f:
+            for line in f:
+                if not line.strip():
+                    continue
+                try:
+                    record = json.loads(line)
+                    ts_str = record.get('timestamp')
+                    if not ts_str:
+                        continue
+                    ts = datetime.fromisoformat(ts_str.replace('Z', '+00:00'))
+                    if ts < window_start:
+                        continue
+                    usage = record.get('message', {}).get('usage', {})
+                    inp = usage.get('input_tokens', 0)
+                    out = usage.get('output_tokens', 0)
+                    if inp > 0 or out > 0:
+                        tokens += inp + out
+                        messages += 1
+                except (json.JSONDecodeError, ValueError):
+                    continue
+    except OSError:
+        pass
+    return tokens, messages
+
+
 def calculate_five_hour_window(sessions):
     """Estimate usage within the current 5-hour rolling window.
 
@@ -247,6 +286,9 @@ def calculate_five_hour_window(sessions):
     Cache tokens (cache_creation, cache_read) are Anthropic's internal
     context caching mechanism. They don't represent conversational usage
     and don't count against subscription rate limits.
+
+    Uses per-message timestamp checking (not session-level) to handle
+    sessions that span across Anthropic's window reset boundary.
     """
     now = datetime.now(timezone.utc)
     window_start = now - timedelta(hours=5)
@@ -254,20 +296,20 @@ def calculate_five_hour_window(sessions):
     window_tokens = 0
     window_messages = 0
     for s in sessions:
-        if s['end_time'] and s['end_time'] >= window_start:
-            if s['start_time'] and s['start_time'] >= window_start:
-                # Only count actual conversational tokens
-                window_tokens += s['input_tokens'] + s['output_tokens']
-                window_messages += s['messages']
-            elif s['start_time']:
-                session_duration = (s['end_time'] - s['start_time']).total_seconds()
-                if session_duration > 0:
-                    overlap = (s['end_time'] - window_start).total_seconds()
-                    ratio = min(overlap / session_duration, 1.0)
-                    # Only count actual conversational tokens
-                    total = s['input_tokens'] + s['output_tokens']
-                    window_tokens += int(total * ratio)
-                    window_messages += int(s['messages'] * ratio)
+        if not s.get('end_time') or s['end_time'] < window_start:
+            continue  # Session ended before window — skip entirely
+
+        if s.get('start_time') and s['start_time'] >= window_start:
+            # Session fully within window — use pre-computed totals (fast)
+            window_tokens += s['input_tokens'] + s['output_tokens']
+            window_messages += s['messages']
+        else:
+            # Session spans the window boundary — must check per-message
+            session_file = s.get('session_file')
+            if session_file:
+                tok, msg = _count_tokens_in_window(session_file, window_start)
+                window_tokens += tok
+                window_messages += msg
 
     budget = SUBSCRIPTION['five_hour_token_budget']
     pct = (window_tokens / budget * 100) if budget > 0 else 0
@@ -275,7 +317,7 @@ def calculate_five_hour_window(sessions):
     return {
         'tokens_used': window_tokens,
         'budget': budget,
-        'percentage': min(pct, 100),
+        'percentage': round(pct, 1),
         'messages': window_messages,
         'remaining': max(budget - window_tokens, 0),
     }
