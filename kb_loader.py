@@ -41,10 +41,12 @@ ADVISORS = {
             Path("~/Development/ux-design/deceptive-design/articles").expanduser(),
             Path("~/Development/ux-design/alistapart/articles").expanduser(),
             Path("~/Development/ux-design/smashingmag/articles").expanduser(),
+            # Leading Product newsletter (product strategy, AI UX, GTM)
+            Path("~/Development/lenny/leading-product/articles").expanduser(),
         ],
         "index_dir": Path("~/Development/lennys-podcast-transcripts/index").expanduser(),
         "pattern": "*.md",
-        "article_count": 4006,  # Verified 2026-02-09
+        "article_count": 4052,  # 4006 + 46 (Leading Product)
         "excerpt_lines": 80,  # Transcripts are huge, take more context
     },
     "music-biz": {
@@ -58,10 +60,12 @@ ADVISORS = {
             Path("~/Development/music-marketing/ari-herstand-guest/articles").expanduser(),
             # Full Bandzoogle blog (direct-to-fan marketing, artist websites)
             Path("~/Development/music-marketing/bandzoogle-blog/articles").expanduser(),
+            # Ditto Music blog (indie marketing, distribution)
+            Path("~/Development/music-production/ditto-music/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 3068,  # 1710 (cherie) + 148 (jesse) + 466 (ari) + 265 (dmn) + 13 (guest) + 466 (bandzoogle blog)
+        "article_count": 3860,  # Verified 2026-02-14
         "excerpt_lines": 40,
     },
     "chatprd": {
@@ -83,7 +87,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 160,
+        "article_count": 157,  # Verified 2026-02-14
         "excerpt_lines": 40,
     },
     "cto": {
@@ -115,10 +119,12 @@ ADVISORS = {
             Path("~/Development/cto-leaders/swyx/articles").expanduser(),
             # Security leaders
             Path("~/Development/security-leaders/daniel-miessler/articles").expanduser(),
+            # Wave 6: Music technology
+            Path("~/Development/cto/cdm/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 6057,  # Verified 2026-02-09 (plugin-devs 637 + circuit 29 + Wave 1: 194 + Wave 2: julia-evans 589, miessler 2812, wolfsound 63, getdunne 30 + Wave 3: willison 500, kent-beck 407, swyx 796)
+        "article_count": 8057,  # 6057 (prev) + 2000 (CDM/Create Digital Music)
         "excerpt_lines": 40,
     },
     "obsidian-docs": {
@@ -247,7 +253,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 6379,  # 6212 + 12 (eno more-dark-than-shark) + 155 (eno enoweb)
+        "article_count": 43898,  # Verified 2026-02-14 (includes fonts-in-use, its-nice-that, creative-boom, the-brand-identity)
         "excerpt_lines": 40,
     },
     "brandnew": {
@@ -355,7 +361,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/art-criticism/marxists-aesthetics/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Hub page needs two-level scrape — TODO
+        "article_count": 201,  # Verified 2026-02-14
         "excerpt_lines": 60,
     },
     "situationist": {
@@ -441,10 +447,14 @@ ADVISORS = {
             Path("~/Development/art-criticism/bomb-magazine/articles").expanduser(),
             Path("~/Development/art-criticism/texte-zur-kunst/articles").expanduser(),
             Path("~/Development/art-criticism/momus/articles").expanduser(),
+            # Wave 6: Music/culture criticism
+            Path("~/Development/atrium/the-quietus/articles").expanduser(),
+            # Wave 7: TheNeedleDrop (music reviews, criticism)
+            Path("~/Development/atrium/theneedledrop/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 8099,  # Total across 12 sources (updated 2026-02-08: eflux 1559, hyperallergic 538)
+        "article_count": 12099,  # 10099 + 2000 (TheNeedleDrop)
         "excerpt_lines": 50,
     },
     "plugin-devs": {
@@ -525,10 +535,12 @@ ADVISORS = {
             Path("~/Development/music-business/hypebot/articles").expanduser(),
             # Music Business Worldwide (streaming economics, label deals)
             Path("~/Development/music-business/music-biz-worldwide/articles").expanduser(),
+            # Ditto Music blog (indie marketing, distribution)
+            Path("~/Development/music-production/ditto-music/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 7068,  # 3068 (music-biz) + 2000 (hypebot) + 2000 (mbw)
+        "article_count": 7860,  # Verified 2026-02-14
         "excerpt_lines": 40,
     },
     "audio-production": {
@@ -588,7 +600,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 1776,  # Zyppy: 26, Arvid Kahl: 436, SparkToro: 442, Kevin Indig: 426, Backlinko: 446
+        "article_count": 1775,  # Verified 2026-02-14
         "excerpt_lines": 50,
     },
 }
@@ -849,6 +861,14 @@ ALIASES = {
     "guerrilla-marketing": "marketing-hacker",
     # Bandzoogle Blog (full blog → music-biz, different from guest posts)
     "bandzoogle-blog": "music-biz",
+    # Leading Product newsletter
+    "leading-product": "lenny",
+    "leadingproduct": "lenny",
+    # TheNeedleDrop (Anthony Fantano music reviews)
+    "theneedledrop": "atrium",
+    "needledrop": "atrium",
+    "fantano": "atrium",
+    "anthony-fantano": "atrium",
 }
 
 

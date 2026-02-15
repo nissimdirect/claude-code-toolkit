@@ -57,8 +57,8 @@ ECOSYSTEM_FILES = {
     "DIRECTORY": OBSIDIAN / "DIRECTORY.md",
     "CRITICAL_CONTEXT": OBSIDIAN / "CRITICAL-CONTEXT.md",
     "ECOSYSTEM_STATUS": OBSIDIAN / "Claude-Ecosystem-Status.md",
-    "RECURRING_TASKS": OBSIDIAN / "RECURRING-TASKS.md",
-    "CONTEXT_MEMORY": OBSIDIAN / "CONTEXT-MEMORY-SYSTEM.md",
+    "RECURRING_TASKS": OBSIDIAN / "process" / "RECURRING-TASKS.md",
+    "CONTEXT_MEMORY": OBSIDIAN / "process" / "CONTEXT-MEMORY-SYSTEM.md",
     "TASK_LOG": OBSIDIAN / "TASK-LOG.md",
     "REGISTRY": SKILLS_DIR / "registry.json",
 }
@@ -140,8 +140,8 @@ EXPECTED_PATHS = [
     OBSIDIAN / "ROADMAP.md",
     OBSIDIAN / "CRITICAL-CONTEXT.md",
     OBSIDIAN / "DIRECTORY.md",
-    OBSIDIAN / "RECURRING-TASKS.md",
-    OBSIDIAN / "RESOURCE-TRACKER.md",
+    OBSIDIAN / "process" / "RECURRING-TASKS.md",
+    OBSIDIAN / "process" / "RESOURCE-TRACKER.md",
     MEMORY_DIR / "SESSION_INIT.md",
     MEMORY_DIR / "MEMORY.md",
     SKILLS_DIR / "registry.json",
@@ -359,14 +359,14 @@ def check_article_counts(actual_counts):
     issues = []
 
     source_keywords = {
-        "lenny": ["lenny", "podcast episode", "podcast transcripts"],
-        "cherie": ["cherie", "water & music", "water and music"],
-        "jesse": ["jesse cannon", "jesse"],
+        "lenny": ["lenny rachitsky", "lenny's podcast", "lennys-podcast"],
+        "cherie": ["cherie hu", "water & music", "water and music"],
+        "jesse": ["jesse cannon"],
         "chatprd": ["chatprd", "chat prd", "claire vo"],
-        "pieter": ["pieter levels", "pieter"],
-        "justin": ["justin welsh", "justin"],
-        "daniel": ["daniel vassallo", "daniel"],
-        "total": ["total article", "total:", "**total**"],
+        "pieter": ["pieter levels"],
+        "justin": ["justin welsh"],
+        "daniel": ["daniel vassallo"],
+        "total": ["total article", "total kb:", "**total**"],
     }
 
     # Build list of (file_label, file_path) to check
@@ -393,17 +393,34 @@ def check_article_counts(actual_counts):
                 if expected == 0:
                     continue
 
-                if not any(kw in line_lower for kw in keywords):
+                # Find keyword positions on this line
+                kw_positions = []
+                for kw in keywords:
+                    idx = line_lower.find(kw)
+                    if idx >= 0:
+                        kw_positions.append((idx, idx + len(kw)))
+                if not kw_positions:
                     continue
 
-                # Extract all numbers from this line
-                numbers = []
-                for n in re.findall(r'[\d,]+', line):
-                    clean = n.replace(',', '')
+                # Extract numbers WITH their positions
+                number_matches = []
+                for m in re.finditer(r'[\d,]+', line):
+                    clean = m.group().replace(',', '')
                     if clean.isdigit():
-                        numbers.append(int(clean))
+                        number_matches.append((int(clean), m.start(), m.end()))
 
-                for num in numbers:
+                # Skip data-dense lines (5+ numbers = data dump, attribution unreliable)
+                if len(number_matches) >= 5:
+                    continue
+
+                for num, num_start, num_end in number_matches:
+                    # Proximity check: number must be within 20 chars of a keyword
+                    near_keyword = any(
+                        abs(num_start - kw_end) <= 20 or abs(kw_start - num_end) <= 20
+                        for kw_start, kw_end in kw_positions
+                    )
+                    if not near_keyword:
+                        continue
                     if num < 8 and source != "daniel":
                         continue
                     if 2020 <= num <= 2030:
@@ -415,16 +432,8 @@ def check_article_counts(actual_counts):
 
                     # --- False positive filters ---
 
-                    # Find where this number appears on the line
-                    num_str = str(num)
-                    num_idx = line.find(num_str)
-                    if num_idx < 0:
-                        # Try comma-formatted
-                        num_str = f"{num:,}"
-                        num_idx = line.find(num_str)
-
                     # Context after the number (next 25 chars)
-                    context_after = line_lower[num_idx:num_idx+len(num_str)+25] if num_idx >= 0 else ""
+                    context_after = line_lower[num_start:num_end+25]
 
                     # Skip numbers followed by "topic", "index" (e.g. "89 topic indexes")
                     if any(w in context_after for w in ['topic', 'index']):
@@ -446,12 +455,12 @@ def check_article_counts(actual_counts):
                     if any(p in line_lower for p in ['$', 'tokens', 'token cost', 'roi', 'cost per']):
                         continue
 
-                    # Skip multi-source lines entirely: if 3+ different source keywords
+                    # Skip multi-source lines entirely: if 2+ different source keywords
                     # appear on one line, it's an aggregate/breakdown line where the checker
                     # can't reliably determine which number belongs to which source.
                     sources_on_line = [s for s, kws in source_keywords.items()
                                        if s != 'total' and any(kw in line_lower for kw in kws)]
-                    if len(sources_on_line) >= 3:
+                    if len(sources_on_line) >= 2:
                         continue
 
                     label = KNOWLEDGE_BASES.get(source, {}).get("label", source)

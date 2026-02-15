@@ -114,6 +114,20 @@ EXFILTRATION = [
     re.compile(r'(?:webhook|callback|endpoint)\s*[=:]\s*(?:https?://|ftp://)', re.IGNORECASE),
 ]
 
+# 7. Filler text (cookie notices, newsletter CTAs, social share, nav junk)
+FILLER_TEXT = [
+    # Cookie consent banners
+    re.compile(r'(?:We use cookies|This (?:site|website) uses cookies|By (?:continuing|using) (?:this|our) (?:site|website)|Accept (?:all )?cookies|Cookie (?:policy|preferences|settings|consent))[\s\S]{0,300}?(?:Accept|Decline|Settings|Preferences|Got it|OK|Close)\b', re.IGNORECASE),
+    # Newsletter signup CTAs
+    re.compile(r'(?:Subscribe to (?:our|the) (?:newsletter|mailing list|updates)|Sign up for (?:our|the|free) (?:newsletter|updates|weekly)|Enter your email|Get (?:our|the) (?:latest|weekly|daily)|Join \d[\d,]* (?:subscribers|readers|people))[\s\S]{0,200}?(?:Subscribe|Sign up|Join|Submit|Get)', re.IGNORECASE),
+    # Social share blocks
+    re.compile(r'(?:Share (?:this|on)|Follow us on|Connect with us)\s*(?:(?:Facebook|Twitter|LinkedIn|Instagram|Pinterest|YouTube|TikTok|X\.com)\s*[,|/\s]*){2,}', re.IGNORECASE),
+    # Navigation breadcrumbs (common scraper noise)
+    re.compile(r'^(?:Home\s*[>→/]\s*){1}(?:\w+\s*[>→/]\s*)+\w+\s*$', re.MULTILINE),
+    # "Related posts" sections at the end
+    re.compile(r'(?:^|\n)(?:Related (?:Posts?|Articles?|Stories|Reading)|You (?:May|Might) Also (?:Like|Enjoy)|More (?:from|on) (?:this|our))\s*\n(?:[-•*]\s+\[?[^\n]+\n){2,}', re.IGNORECASE),
+]
+
 # All pattern groups with labels
 ALL_PATTERNS: list[tuple[str, re.Pattern | list[re.Pattern]]] = [
     ("html_comment_injection", HTML_COMMENT_INJECTION),
@@ -122,6 +136,7 @@ ALL_PATTERNS: list[tuple[str, re.Pattern | list[re.Pattern]]] = [
     ("command_injection", COMMAND_INJECTION),
     ("structure_attack", STRUCTURE_ATTACKS),
     ("exfiltration", EXFILTRATION),
+    ("filler_text", FILLER_TEXT),
 ]
 
 # Threshold: if more than this many distinct pattern categories match, block the content

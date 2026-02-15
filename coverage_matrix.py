@@ -130,8 +130,19 @@ CAPS = {
 }
 
 
+SANITY_FLOOR = {
+    'core_principles': 10,
+    'domain_principles': 3,
+    'meta_directives': 3,
+}
+
+
 def count_sections(content: str) -> dict:
-    """Count principles by section in behavioral-principles.md."""
+    """Count principles by section in behavioral-principles.md.
+
+    Includes sanity floor: if any count < SANITY_FLOOR, emits WARNING
+    (parser may have broken, not actual principle loss).
+    """
     counts = {
         'core_principles': 0,
         'domain_principles': 0,
@@ -165,6 +176,17 @@ def count_sections(content: str) -> dict:
         elif line.startswith('- **P') and in_domain:
             counts['domain_principles'] += 1
 
+    # Sanity floor check — catch parser regressions
+    warnings = []
+    for key, floor in SANITY_FLOOR.items():
+        if counts[key] < floor:
+            warnings.append(
+                f"WARNING: {key} count ({counts[key]}) below sanity floor ({floor}). "
+                f"Parser may have broken — verify behavioral-principles.md structure."
+            )
+    if warnings:
+        counts['_warnings'] = warnings
+
     return counts
 
 
@@ -187,16 +209,43 @@ def count_claude_md_rules(claude_md_path: Path) -> int:
     return count
 
 
-def gate_check() -> dict:
-    """Run the rule inflation gate. Returns pass/fail with details."""
+ERROR_LOG = Path.home() / 'Documents' / 'Obsidian' / 'process' / 'ERROR-LOG.md'
+
+
+def log_override(category: str, justification: str, counts: dict):
+    """Log an emergency override to ERROR-LOG.md. Must merge within 48 hours."""
+    from datetime import datetime
+    entry = (
+        f"\n## Override: {category} ({datetime.now().strftime('%Y-%m-%d %H:%M')})\n"
+        f"- Count: {counts.get(category, '?')}/{CAPS.get(category, '?')} (+1 over cap)\n"
+        f"- Justification: {justification}\n"
+        f"- **MANDATORY:** Merge/replace within 48 hours or revert.\n"
+    )
+    ERROR_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with open(ERROR_LOG, 'a') as f:
+        f.write(entry)
+
+
+def gate_check(override_category: str = None, override_justification: str = None) -> dict:
+    """Run the rule inflation gate. Returns pass/fail with details.
+
+    Args:
+        override_category: Allow +1 over cap for this category (emergency only).
+        override_justification: Required reason for override, logged to ERROR-LOG.md.
+    """
     content = PRINCIPLES_FILE.read_text()
     counts = count_sections(content)
     counts['claude_md_rules'] = count_claude_md_rules(CLAUDE_MD)
 
     violations = []
+    overridden = False
     for key, cap in CAPS.items():
         actual = counts.get(key, 0)
-        if actual > cap:
+        effective_cap = cap
+        if override_category == key and override_justification:
+            effective_cap = cap + 1  # Allow +1 emergency
+            overridden = True
+        if actual > effective_cap:
             violations.append({
                 'category': key,
                 'actual': actual,
@@ -204,17 +253,24 @@ def gate_check() -> dict:
                 'over_by': actual - cap,
             })
 
+    # Log override if used
+    if overridden and override_justification:
+        log_override(override_category, override_justification, counts)
+
     return {
         'counts': counts,
         'caps': CAPS,
         'violations': violations,
         'passed': len(violations) == 0,
+        'overridden': overridden,
+        'warnings': counts.get('_warnings', []),
     }
 
 
 def main():
-    if len(sys.argv) < 2 or sys.argv[1] not in ('verify', 'report', 'gate'):
-        print('Usage: coverage_matrix.py verify|report|gate')
+    commands = ('verify', 'report', 'gate')
+    if len(sys.argv) < 2 or sys.argv[1] not in commands:
+        print('Usage: coverage_matrix.py verify|report|gate [--override CATEGORY "justification"]')
         sys.exit(1)
 
     if not PRINCIPLES_FILE.exists():
@@ -263,14 +319,40 @@ def main():
             sys.exit(0)
 
     elif sys.argv[1] == 'gate':
-        gate = gate_check()
+        # Parse --override flag
+        override_cat = None
+        override_just = None
+        if '--override' in sys.argv:
+            idx = sys.argv.index('--override')
+            if idx + 2 < len(sys.argv):
+                override_cat = sys.argv[idx + 1]
+                override_just = sys.argv[idx + 2]
+                if override_cat not in CAPS:
+                    print(f"ERROR: Unknown category '{override_cat}'. Valid: {', '.join(CAPS.keys())}")
+                    sys.exit(1)
+            else:
+                print('Usage: --override CATEGORY "justification"')
+                sys.exit(1)
+
+        gate = gate_check(override_cat, override_just)
+
+        # Surface sanity warnings
+        for w in gate.get('warnings', []):
+            print(f"  {w}")
+
         print("\n## Rule Inflation Gate")
         print(f"{'Category':<25} {'Count':>5} {'Cap':>5} {'Status':>8}")
         print("-" * 48)
         for key, cap in CAPS.items():
             actual = gate['counts'].get(key, 0)
             status = 'PASS' if actual <= cap else f'OVER +{actual - cap}'
+            if gate.get('overridden') and override_cat == key and actual == cap + 1:
+                status = 'OVERRIDE'
             print(f"{key:<25} {actual:>5} {cap:>5} {status:>8}")
+
+        if gate.get('overridden'):
+            print(f"\n  OVERRIDE ACTIVE: {override_cat} (+1, logged to ERROR-LOG.md)")
+            print(f"  MANDATORY: Merge/replace within 48 hours.")
 
         if gate['passed']:
             print(f"\nGATE PASSED: All categories within caps.")
@@ -280,6 +362,7 @@ def main():
             for v in gate['violations']:
                 print(f"  {v['category']}: {v['actual']}/{v['cap']} (over by {v['over_by']})")
             print("\nTo add a new rule, you must MERGE or REPLACE an existing one.")
+            print('Emergency: --override CATEGORY "justification" (allows +1, logged)')
             print("Run: coverage_matrix.py report — to see full coverage.")
             sys.exit(1)
 
