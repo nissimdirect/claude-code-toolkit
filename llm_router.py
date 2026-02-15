@@ -27,6 +27,23 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
+# Import delegation validator for output verification
+try:
+    from delegation_validator import validate_delegated_output
+    HAS_VALIDATOR = True
+except ImportError:
+    # Fallback: try absolute path
+    _validator_path = Path(__file__).parent / "delegation_validator.py"
+    if _validator_path.exists():
+        import importlib.util
+        _spec = importlib.util.spec_from_file_location("delegation_validator", _validator_path)
+        _mod = importlib.util.module_from_spec(_spec)
+        _spec.loader.exec_module(_mod)
+        validate_delegated_output = _mod.validate_delegated_output
+        HAS_VALIDATOR = True
+    else:
+        HAS_VALIDATOR = False
+
 # --- Constants ---
 
 RATE_LIMITS_FILE = Path.home() / ".openclaw" / "llm-rate-limits.json"
@@ -124,7 +141,7 @@ TASK_KEYWORDS = {
             "decide", "should we", "should i", "strategy", "plan", "approve",
             "security", "review security", "attack surface", "red team",
             "architecture", "design the", "deploy", "push", "commit",
-            "edit file", "modify", "refactor", "debug", "fix this bug",
+            "edit file", "modify", "debug", "fix this bug",
             "what do you think", "your opinion", "recommend",
         ],
         "model": "claude",
@@ -153,10 +170,11 @@ TASK_KEYWORDS = {
         "keywords": [
             "generate", "scaffold", "boilerplate", "template",
             "write code for", "write a function", "write a class",
-            "write tests for", "unit test", "test file",
+            "write tests for", "unit test", "test file", "integration test", "pytest",
             "translate.*to python", "translate.*to c\\+\\+", "translate.*to rust",
             "convert.*code", "rename all", "batch", "regex for",
-            "cmakelist", "github action", "ci config", "dockerfile",
+            "refactor", "refactor.*to use", "apply.*pattern",
+            "cmakelist.*", "github action", "ci config", "dockerfile",
         ],
         "model": "qwen",
     },
@@ -379,9 +397,17 @@ def classify_task(message: str) -> tuple[str, float]:
     lower = message.lower()
 
     # Check each category in priority order
+    # Use word boundaries for plain keywords to prevent substring matches
+    # (e.g., "plan" should NOT match "explanation")
     for category, config in TASK_KEYWORDS.items():
         for keyword in config["keywords"]:
-            if re.search(keyword, lower):
+            # If keyword already contains regex chars (.*+\), use as-is
+            # Otherwise, wrap with word boundaries
+            if any(c in keyword for c in r'.*+\()[]{}|^$?'):
+                pattern = keyword
+            else:
+                pattern = rf'\b{keyword}\b'
+            if re.search(pattern, lower):
                 return config["model"], 0.9
 
     # Check for Claude-leaning signals before defaulting to Gemini (HT-6)
@@ -662,18 +688,34 @@ def clean_response(text: str) -> str:
     return result.strip()
 
 
-def execute(message: str, dry_run: bool = False, verbose: bool = False) -> str:
+def execute(message: str, dry_run: bool = False, verbose: bool = False,
+            force_model: Optional[str] = None) -> str:
     """Route and optionally execute a task.
 
     Args:
         message: The task to route.
         dry_run: If True, only show routing decision (don't execute).
         verbose: If True, show detailed routing info.
+        force_model: If set, bypass routing and use this model directly.
 
     Returns:
         Model response string, or routing info if dry_run.
     """
-    result = route(message)
+    if force_model:
+        if force_model not in MODELS:
+            return f"[ERROR] Unknown model '{force_model}'. Available: {', '.join(MODELS.keys())}"
+        model_info = MODELS[force_model]
+        result = RouteResult(
+            model=force_model,
+            tier=model_info["tier"],
+            reason=f"Forced to {force_model} via --model flag",
+            wrapper=model_info["wrapper"],
+            fallback_chain=[],
+            confidence=1.0,
+        )
+        log_event("FORCED", f"User forced model={force_model}")
+    else:
+        result = route(message)
 
     if verbose or dry_run:
         info = (
@@ -741,6 +783,30 @@ def execute(message: str, dry_run: bool = False, verbose: bool = False) -> str:
             if not response:
                 return f"[ALL MODELS FAILED] Original error: {error}"
 
+        # --- Validate output through delegation_validator ---
+        if HAS_VALIDATOR and response:
+            # Infer validator task_type from routing context
+            validator_type = "general"
+            msg_lower = message.lower()
+            if any(kw in msg_lower for kw in ["code", "implement", "function", "class", "def ", "import"]):
+                validator_type = "code"
+            elif any(kw in msg_lower for kw in ["file", "path", "directory", "find", "locate"]):
+                validator_type = "file_analysis"
+            elif any(kw in msg_lower for kw in ["count", "how many", "number of", "total"]):
+                validator_type = "count"
+
+            validation = validate_delegated_output(response, task_type=validator_type)
+
+            if validation["blocked"]:
+                warnings_str = "; ".join(validation["warnings"])
+                log_event("VALIDATION_BLOCKED", f"{result.model} output blocked: {warnings_str}")
+                return f"[BLOCKED BY VALIDATOR] {result.model} output failed safety check: {warnings_str}. Task queued for Claude."
+
+            if validation["warnings"]:
+                warnings_str = "; ".join(validation["warnings"])
+                log_event("VALIDATION_WARNING", f"{result.model}: {warnings_str}")
+                response = f"[VALIDATION WARNINGS: {warnings_str}]\n{response}"
+
         # Score confidence
         conf = score_response_confidence(response)
         if conf < 60 and result.fallback_chain:
@@ -766,6 +832,7 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="Show routing decision only")
     parser.add_argument("--verbose", "-v", action="store_true", help="Show routing details")
     parser.add_argument("--score", help="Score a response's confidence (pass response text)")
+    parser.add_argument("--model", choices=list(MODELS.keys()), help="Force a specific model (bypass routing)")
     parser.add_argument("--health", action="store_true", help="Check all model health")
     parser.add_argument("--rates", action="store_true", help="Show current rate limit state")
     args = parser.parse_args()
@@ -821,7 +888,8 @@ def main():
             parser.print_help()
             return
 
-    output = execute(args.message, dry_run=args.dry_run, verbose=args.verbose)
+    output = execute(args.message, dry_run=args.dry_run, verbose=args.verbose,
+                     force_model=args.model)
     print(output)
 
 
