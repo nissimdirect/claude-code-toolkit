@@ -1068,7 +1068,17 @@ def _refresh_budget_data():
 
 
 def main():
-    """Run the dashboard with proper live updating (no infinite scroll)."""
+    """Run the dashboard with proper live updating (no infinite scroll).
+
+    DEPRECATED: Use the web dashboard instead:
+        python3 ~/Development/tools/dashboard_web/app.py
+        (opens http://localhost:5050)
+    """
+    console.print("[yellow]WARNING: Terminal dashboard is DEPRECATED.[/yellow]")
+    console.print("[yellow]Use the web dashboard instead:[/yellow]")
+    console.print("[cyan]  python3 ~/Development/tools/dashboard_web/app.py[/cyan]")
+    console.print("[dim]  (opens http://localhost:5050)[/dim]\n")
+
     if not _acquire_lock():
         console.print("[red]Another dashboard instance is already running.[/red]")
         console.print(f"[dim]Lock file: {LOCKFILE}[/dim]")

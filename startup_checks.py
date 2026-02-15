@@ -445,6 +445,26 @@ def check_gemini_routing():
     else:
         results['templates_on_disk'] = 0
 
+    # 4. Quality gate — check for degraded/disabled templates
+    try:
+        r = subprocess.run(
+            ['python3', str(TOOLS / 'gemini_route.py'), '--quality-json'],
+            capture_output=True, text=True, timeout=10
+        )
+        if r.stdout.strip():
+            gate_data = json.loads(r.stdout.strip())
+            disabled = [cat for cat, info in gate_data.items() if info.get('status') == 'disabled']
+            warned = [cat for cat, info in gate_data.items() if info.get('status') == 'warn']
+            results['quality_gate'] = {
+                'disabled': disabled,
+                'warned': warned,
+                'healthy': len(gate_data) - len(disabled) - len(warned),
+            }
+        else:
+            results['quality_gate'] = {'message': 'no data'}
+    except Exception as e:
+        results['quality_gate'] = {'error': str(e)}
+
     return {'status': 'ok', 'data': results}
 
 
@@ -589,6 +609,11 @@ def run_all_checks(run_workflows=False):
     if dirty_repos:
         issues.append(f'uncommitted_work:{",".join(dirty_repos)}')
 
+    # Gemini routing quality problems
+    gr_quality = results.get('gemini_routing', {}).get('data', {}).get('quality_gate', {})
+    if gr_quality.get('disabled'):
+        issues.append(f'gemini_templates_disabled:{",".join(gr_quality["disabled"])}')
+
     # Delegation health problems
     deleg_health = results.get('delegation_health', {})
     for prob in deleg_health.get('problems', []):
@@ -696,6 +721,11 @@ def format_human_readable(data):
     if daily.get('count', 0) > 0:
         lines.append(f"  Gemini API today: {daily['count']}/{daily.get('cap', 200)} ({daily.get('pct_used', 0)}%)")
     lines.append(f"  Templates on disk: {gr.get('templates_on_disk', '?')}")
+    qg = gr.get('quality_gate', {})
+    if qg.get('disabled'):
+        lines.append(f"  QUALITY ALERT: {len(qg['disabled'])} template(s) AUTO-DISABLED: {', '.join(qg['disabled'])}")
+    if qg.get('warned'):
+        lines.append(f"  QUALITY WARN: {len(qg['warned'])} template(s) degraded: {', '.join(qg['warned'])}")
 
     # Experiments
     exp = checks.get('experiments', {})

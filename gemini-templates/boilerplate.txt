@@ -1,0 +1,18 @@
+Generate boilerplate/scaffolding code based on the specification below.
+
+Requirements:
+- Production-quality structure (not tutorial code)
+- Include error handling
+- Include type hints (Python) or JSDoc (JavaScript)
+- Follow conventional project structure
+- Include a brief comment header explaining the file's purpose
+
+Specification:
+{task}
+
+Reference code (if any):
+```
+{context}
+```
+
+Output ONLY the code. No explanations.

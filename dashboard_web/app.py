@@ -23,6 +23,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from data_loader import (
     get_all_dashboard_data,
     get_knowledge_base_stats,
+    get_delegation_stats,
     refresh_budget_data,
 )
 
@@ -92,6 +93,13 @@ def api_refresh():
     # Clear cache so next poll gets fresh data
     _response_cache.pop("all_data", None)
     return jsonify({"refreshed": success})
+
+
+@app.route("/api/delegation")
+def api_delegation():
+    """Return delegation/Gemini routing stats (cached 10s)."""
+    data = _cached_response("delegation", get_delegation_stats, ttl=10)
+    return jsonify(data)
 
 
 @app.route("/api/session")

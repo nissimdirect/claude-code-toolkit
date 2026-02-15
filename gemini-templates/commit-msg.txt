@@ -1,0 +1,17 @@
+Write a git commit message for the following diff.
+
+Rules:
+- First line: imperative mood, under 72 chars (e.g., "Fix contrast ratios for WCAG AA compliance")
+- Focus on WHY, not WHAT (the diff shows what changed)
+- If multiple concerns, use bullet points in body
+- No period at end of subject line
+- Blank line between subject and body
+
+Diff:
+```
+{context}
+```
+
+{task}
+
+Output ONLY the commit message text. No markdown fences.

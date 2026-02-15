@@ -1,0 +1,28 @@
+Generate a structured changelog entry from these git commits.
+
+Format:
+## [version] - YYYY-MM-DD
+
+### Added
+- Feature descriptions
+
+### Changed
+- Modification descriptions
+
+### Fixed
+- Bug fix descriptions
+
+Rules:
+- Group by type (Added/Changed/Fixed/Removed)
+- User-facing language (not developer jargon)
+- One bullet per logical change (combine related commits)
+- Skip merge commits and CI-only changes
+
+Git log:
+```
+{context}
+```
+
+{task}
+
+Output ONLY the changelog markdown. No explanations.

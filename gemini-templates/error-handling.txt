@@ -1,0 +1,19 @@
+Add robust error handling to this code.
+
+Rules:
+- Catch specific exceptions (never bare except)
+- Log errors to stderr with context (what failed, why, what to do)
+- Add input validation at function entry points
+- Add timeout handling for I/O operations
+- Add graceful degradation where possible (fallback values)
+- Do NOT change the core logic — only add error handling around it
+- Use existing logging if present, add logging.getLogger(__name__) if not
+
+Source:
+```
+{context}
+```
+
+{task}
+
+Output the complete file with error handling added.

@@ -1,0 +1,19 @@
+You are a test engineer. Write comprehensive pytest tests for the following Python module.
+
+Requirements:
+- Test all public functions and methods
+- Include edge cases: empty input, None, boundary values, type errors
+- Include error path tests (expected exceptions)
+- Use descriptive test names: test_{function}_{scenario}_{expected}
+- Use pytest fixtures where appropriate
+- Do NOT mock unless absolutely necessary
+- Keep tests focused: one assertion concept per test
+
+Source code to test:
+```
+{context}
+```
+
+{task}
+
+Output ONLY the test code. No explanations.

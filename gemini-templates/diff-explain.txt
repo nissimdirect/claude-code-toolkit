@@ -1,0 +1,17 @@
+Explain this git diff in plain, non-technical English for a project stakeholder.
+
+Rules:
+- 3-5 bullet points maximum
+- Focus on WHAT changed and WHY it matters (not HOW)
+- No code snippets or technical terms
+- Mention any user-visible behavior changes
+- Flag anything that could break existing functionality
+
+Diff:
+```
+{context}
+```
+
+{task}
+
+Output ONLY the bullet-point explanation.

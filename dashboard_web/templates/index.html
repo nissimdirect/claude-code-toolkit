@@ -466,6 +466,19 @@
     <div class="panel-body" id="body-budget"></div>
   </div>
 
+  <!-- Delegation & Gemini Routing -->
+  <div class="panel" id="panel-delegation" style="grid-column: span 2">
+    <div class="panel-header" onclick="toggle('delegation')">
+      <span class="title" style="color:var(--orange)">Delegation &amp; Routing</span>
+      <span class="right">
+        <span id="delegation-summary"></span>
+        <span class="status-dot" id="delegation-dot"></span>
+        <span class="chevron" id="chevron-delegation">&#9660;</span>
+      </span>
+    </div>
+    <div class="panel-body" id="body-delegation"></div>
+  </div>
+
   <!-- Knowledge Base -->
   <div class="panel" id="panel-kb" style="grid-column: span 2">
     <div class="panel-header" onclick="toggle('kb')">
@@ -778,6 +791,9 @@ function render(d) {
   envHtml += '<div style="margin-top:8px;font-size:10px;color:var(--text-dim)">Opus: 2.0 Wh/query | Grid: 379g CO2/kWh | PUE: 1.135</div>';
   document.getElementById('body-env').innerHTML = envHtml;
 
+  // === Delegation Panel ===
+  renderDelegation(d.delegation);
+
   // === Jobs Panel ===
   const jobs = d.jobs || { active: [], completed: [] };
   const activeJobs = jobs.active || [];
@@ -837,6 +853,185 @@ function render(d) {
     });
   }
   document.getElementById('body-system').innerHTML = sysHtml;
+}
+
+// === DELEGATION RENDER ===
+function renderDelegation(del_data) {
+  if (!del_data) {
+    document.getElementById('body-delegation').innerHTML = '<div class="empty">No delegation data yet</div>';
+    setDot('delegation-dot', 'gray');
+    return;
+  }
+
+  const calls = del_data.route_calls || 0;
+  const success = del_data.route_success || 0;
+  const pct = del_data.route_success_pct || 0;
+  const saved = del_data.est_tokens_saved || 0;
+  const gemToday = del_data.gemini_today || 0;
+  const gemCap = del_data.gemini_cap || 250;
+  const disabled = del_data.disabled_templates || [];
+  const warned = del_data.warned_templates || [];
+
+  // Summary in header
+  document.getElementById('delegation-summary').textContent = calls + ' routes, ' + gemToday + '/' + gemCap + ' API';
+  setDot('delegation-dot', disabled.length > 0 ? 'red' : pct >= 70 ? 'green' : pct >= 50 ? 'yellow' : calls === 0 ? 'gray' : 'red');
+
+  let html = '';
+
+  // Gemini API usage bar
+  const gemPct = Math.min(gemToday / gemCap * 100, 100);
+  const gemColor = gemPct < 50 ? 'green' : gemPct < 80 ? 'yellow' : 'red';
+  html += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;color:var(--orange)">Gemini Flash API</div>';
+  html += '<div class="progress-bar"><div class="progress-fill ' + gemColor + '" style="width:' + gemPct + '%">' + gemToday + '/' + gemCap + '</div></div>';
+  if (del_data.gemini_date) {
+    html += '<div style="font-size:10px;color:var(--text-dim);margin-bottom:8px">Date: ' + esc(del_data.gemini_date) + '</div>';
+  }
+
+  // Token Savings Breakdown (session / today / all-time)
+  const sessSaved = del_data.session_tokens_saved || 0;
+  const todaySaved = del_data.today_tokens_saved || 0;
+  const sessEff = del_data.session_efficiency_pct || 0;
+  const todayEff = del_data.today_efficiency_pct || 0;
+  const alltimeEff = del_data.alltime_efficiency_pct || 0;
+  const sessClaude = del_data.session_claude_tokens || 0;
+
+  html += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-top:8px;margin-bottom:6px;color:var(--cyan)">Tokens Saved</div>';
+
+  // Three-column: Session | Today | All-Time
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">';
+
+  html += '<div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center">';
+  html += '<div style="font-size:18px;font-weight:700;color:var(--green)">' + fmt(sessSaved) + '</div>';
+  html += '<div style="font-size:10px;color:var(--text-dim);text-transform:uppercase">This Session</div>';
+  html += '</div>';
+
+  html += '<div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center">';
+  html += '<div style="font-size:18px;font-weight:700;color:var(--green)">' + fmt(todaySaved) + '</div>';
+  html += '<div style="font-size:10px;color:var(--text-dim);text-transform:uppercase">Today</div>';
+  html += '</div>';
+
+  html += '<div style="background:rgba(255,255,255,0.02);border:1px solid var(--border);border-radius:6px;padding:8px;text-align:center">';
+  html += '<div style="font-size:18px;font-weight:700;color:var(--green)">' + fmt(saved) + '</div>';
+  html += '<div style="font-size:10px;color:var(--text-dim);text-transform:uppercase">All-Time</div>';
+  html += '</div>';
+
+  html += '</div>';
+
+  // Delegation Efficiency — what % of total work is offloaded
+  html += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;color:var(--cyan)">Delegation Efficiency</div>';
+  html += '<div style="font-size:10px;color:var(--text-dim);margin-bottom:6px">tokens saved / (Claude tokens + saved)</div>';
+
+  const effColor = (p) => p >= 5 ? 'var(--green)' : p >= 2 ? 'var(--yellow)' : 'var(--text-dim)';
+  html += '<div class="stat-row"><span class="label">This Session</span><span class="value" style="color:' + effColor(sessEff) + '">' + sessEff + '% <span style="font-size:10px;color:var(--text-dim)">(' + fmt(sessSaved) + ' / ' + fmt(sessClaude + sessSaved) + ')</span></span></div>';
+  html += '<div class="stat-row"><span class="label">Today</span><span class="value" style="color:' + effColor(todayEff) + '">' + todayEff + '%</span></div>';
+  html += '<div class="stat-row"><span class="label">All-Time</span><span class="value" style="color:' + effColor(alltimeEff) + '">' + alltimeEff + '%</span></div>';
+
+  // Daily history sparkline
+  const byDate = del_data.by_date || [];
+  if (byDate.length > 0) {
+    html += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-top:8px;margin-bottom:4px;color:var(--text-dim)">Daily History</div>';
+    const maxDay = Math.max(...byDate.map(d => d.tokens_saved), 1);
+    byDate.forEach(d => {
+      const barW = Math.max(2, Math.round((d.tokens_saved / maxDay) * 80));
+      html += '<div style="display:flex;align-items:center;gap:6px;padding:1px 0">';
+      html += '<span style="min-width:65px;font-size:10px;color:var(--text-dim)">' + esc(d.date) + '</span>';
+      html += '<span style="min-width:45px;text-align:right;font-size:11px;font-weight:700;color:var(--green)">' + fmt(d.tokens_saved) + '</span>';
+      html += '<span style="height:5px;border-radius:3px;background:var(--green);opacity:0.5;width:' + barW + 'px"></span>';
+      html += '<span style="font-size:10px;color:var(--text-dim)">' + d.calls + ' calls (' + d.success + ' ok)</span>';
+      html += '</div>';
+    });
+  }
+
+  // Template routing summary
+  html += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-top:10px;margin-bottom:6px;color:var(--text-dim)">Template Routing</div>';
+  html += '<div class="stat-row"><span class="label">Total Calls</span><span class="value">' + fmt(calls) + '</span></div>';
+  html += '<div class="stat-row"><span class="label">Success Rate</span><span class="value" style="color:' + (pct >= 70 ? 'var(--green)' : pct >= 50 ? 'var(--yellow)' : 'var(--red)') + '">' + pct + '%</span></div>';
+
+  // Quality gate alerts
+  if (disabled.length > 0) {
+    html += '<div style="margin-top:8px;padding:6px 8px;background:rgba(248,81,73,0.1);border:1px solid var(--red);border-radius:4px">';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--red)">DISABLED (' + disabled.length + ')</div>';
+    disabled.forEach(t => { html += '<div style="font-size:11px;color:var(--red);padding:1px 0">' + esc(t) + '</div>'; });
+    html += '</div>';
+  }
+  if (warned.length > 0) {
+    html += '<div style="margin-top:4px;padding:6px 8px;background:rgba(210,153,34,0.1);border:1px solid var(--yellow);border-radius:4px">';
+    html += '<div style="font-size:11px;font-weight:700;color:var(--yellow)">WARNED (' + warned.length + ')</div>';
+    warned.forEach(t => { html += '<div style="font-size:11px;color:var(--yellow);padding:1px 0">' + esc(t) + '</div>'; });
+    html += '</div>';
+  }
+
+  // By category breakdown
+  const cats = del_data.by_category || {};
+  const catEntries = Object.entries(cats).sort((a, b) => b[1] - a[1]);
+  if (catEntries.length > 0) {
+    html += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-top:10px;margin-bottom:4px;color:var(--text-dim)">By Category</div>';
+    const maxCat = Math.max(...catEntries.map(e => e[1]), 1);
+    catEntries.forEach(([cat, count]) => {
+      const barW = Math.max(2, Math.round((count / maxCat) * 60));
+      html += '<div style="display:flex;align-items:center;gap:6px;padding:1px 0">';
+      html += '<span style="min-width:40px;text-align:right;font-size:11px;font-weight:700;color:var(--cyan)">' + count + '</span>';
+      html += '<span class="kb-bar" style="width:' + barW + 'px;background:var(--orange)"></span>';
+      html += '<span style="font-size:11px;color:var(--text-dim)">' + esc(cat) + '</span>';
+      html += '</div>';
+    });
+  }
+
+  // Model breakdown (Gemini, Ollama, Qwen, Groq)
+  const byModel = del_data.by_model || {};
+  const byExec = del_data.by_exec || {};
+  const modelColors = { gemini: 'var(--blue)', ollama: 'var(--green)', qwen: 'var(--magenta)', groq: 'var(--orange)', claude: 'var(--cyan)', deepseek: 'var(--yellow)' };
+
+  if (Object.keys(byModel).length > 0 || Object.keys(byExec).length > 0) {
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px">';
+
+    // Classifier picks
+    html += '<div>';
+    html += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;color:var(--text-dim)">Router Picks</div>';
+    const modelEntries = Object.entries(byModel).sort((a, b) => b[1] - a[1]);
+    const maxModel = Math.max(...modelEntries.map(e => e[1]), 1);
+    modelEntries.forEach(([m, count]) => {
+      const barW = Math.max(2, Math.round((count / maxModel) * 50));
+      const clr = modelColors[m] || 'var(--text-dim)';
+      html += '<div style="display:flex;align-items:center;gap:4px;padding:1px 0">';
+      html += '<span style="min-width:28px;text-align:right;font-size:11px;font-weight:700;color:' + clr + '">' + count + '</span>';
+      html += '<span style="height:5px;border-radius:3px;background:' + clr + ';opacity:0.5;width:' + barW + 'px"></span>';
+      html += '<span style="font-size:11px;color:var(--text-dim)">' + esc(m) + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+
+    // Actual execution
+    html += '<div>';
+    html += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;color:var(--text-dim)">Actual Execution</div>';
+    const execEntries = Object.entries(byExec).sort((a, b) => b[1] - a[1]);
+    const maxExec = Math.max(...execEntries.map(e => e[1]), 1);
+    execEntries.forEach(([m, count]) => {
+      const barW = Math.max(2, Math.round((count / maxExec) * 50));
+      const clr = modelColors[m] || 'var(--text-dim)';
+      html += '<div style="display:flex;align-items:center;gap:4px;padding:1px 0">';
+      html += '<span style="min-width:28px;text-align:right;font-size:11px;font-weight:700;color:' + clr + '">' + count + '</span>';
+      html += '<span style="height:5px;border-radius:3px;background:' + clr + ';opacity:0.5;width:' + barW + 'px"></span>';
+      html += '<span style="font-size:11px;color:var(--text-dim)">' + esc(m) + '</span>';
+      html += '</div>';
+    });
+    html += '</div>';
+
+    html += '</div>';
+  }
+
+  // Hook stats
+  if (del_data.hook_fires > 0) {
+    html += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-top:10px;margin-bottom:4px;color:var(--text-dim)">Hook Activity</div>';
+    html += '<div class="stat-row"><span class="label">Hook Fires</span><span class="value">' + fmt(del_data.hook_fires) + '</span></div>';
+    html += '<div class="stat-row"><span class="label">Pre-fetched</span><span class="value">' + fmt(del_data.prefetched) + '</span></div>';
+    html += '<div class="stat-row"><span class="label">Avg Latency</span><span class="value">' + del_data.avg_latency_ms + 'ms</span></div>';
+    if (del_data.delegation_rate && del_data.delegation_rate !== '0%') {
+      html += '<div class="stat-row"><span class="label">Delegation Rate</span><span class="value">' + esc(del_data.delegation_rate) + '</span></div>';
+    }
+  }
+
+  document.getElementById('body-delegation').innerHTML = html;
 }
 
 // Track which KB folders are open

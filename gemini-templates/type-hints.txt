@@ -1,0 +1,18 @@
+Add comprehensive type hints to all public functions and classes in this Python file.
+
+Rules:
+- Use modern Python typing (3.10+ syntax: X | None, list[str], etc.)
+- Type all function parameters and return values
+- Add TypeAlias for complex types used more than once
+- Use Protocol for duck-typing interfaces
+- Do NOT change any logic or behavior
+- Skip private functions (prefixed with _) unless they have complex signatures
+
+Source:
+```
+{context}
+```
+
+{task}
+
+Output the complete file with type hints added.

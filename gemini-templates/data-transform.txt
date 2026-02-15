@@ -1,0 +1,19 @@
+Write a Python script to transform data as specified below.
+
+Requirements:
+- Read from stdin or file path argument
+- Write to stdout (pipeable)
+- Handle errors gracefully (malformed rows, missing fields)
+- Include a brief --help message
+- Use standard library only (no pip installs)
+- Log warnings to stderr, not stdout
+
+Sample input data:
+```
+{context}
+```
+
+Transformation needed:
+{task}
+
+Output ONLY the Python script. No explanations.

@@ -1,0 +1,21 @@
+Write a bash/zsh script based on the specification below.
+
+Requirements:
+- Include shebang (#!/usr/bin/env bash)
+- Use set -euo pipefail
+- Include --help flag
+- Validate all inputs before acting
+- Use functions for reusable logic
+- Log to stderr, output to stdout
+- Handle errors gracefully (no silent failures)
+- macOS compatible (use BSD tools or check for GNU alternatives)
+
+Specification:
+{task}
+
+Reference (if any):
+```
+{context}
+```
+
+Output ONLY the bash script. No explanations.

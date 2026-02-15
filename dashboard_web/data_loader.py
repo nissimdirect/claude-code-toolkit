@@ -27,6 +27,11 @@ SCRAPING_QUEUE = HOME / "Documents/Obsidian/process/SCRAPING-QUEUE.md"
 ERROR_LOG = HOME / ".claude/.locks/dashboard_errors.json"
 DATA_SOURCES = HOME / ".claude/data-sources.json"
 TRACKER_SCRIPT = HOME / "Development/tools/track_resources.py"
+DELEGATION_AUDIT_LOG = HOME / ".claude/.locks/delegation-hook-audit.log"
+DELEGATION_EVAL_LOG = HOME / ".claude/.locks/gemini-route-eval.jsonl"
+DELEGATION_COUNTER = HOME / ".claude/.locks/gemini-daily-counter.json"
+DELEGATION_COMPLIANCE = HOME / ".claude/.locks/delegation-compliance.json"
+DELEGATION_DISABLED = HOME / ".claude/.locks/gemini-route-disabled.json"
 
 SUBSCRIPTION_COST = 200.00
 FIVE_HOUR_TOKEN_BUDGET = 500_000
@@ -43,6 +48,7 @@ CACHE_TTL_SECONDS = {
     "tracker_data": 10,
     "active_tasks": 15,
     "error_summary": 30,
+    "delegation_stats": 10,
     "all_data": 0.5,   # 500ms for the combined API endpoint
     "kb_data": 60,     # 60s for KB-only endpoint
 }
@@ -785,6 +791,236 @@ def refresh_budget_data():
         return False
 
 
+# === DELEGATION STATS ===
+
+def _load_delegation_stats():
+    """Load Gemini template routing and delegation hook stats."""
+    data = {
+        "hook_fires": 0,
+        "prefetched": 0,
+        "avg_latency_ms": 0,
+        "route_calls": 0,
+        "route_success": 0,
+        "route_success_pct": 0,
+        "est_tokens_saved": 0,
+        "gemini_today": 0,
+        "gemini_date": "",
+        "gemini_cap": 250,
+        "delegation_rate": "0%",
+        "total_prompts": 0,
+        "by_category": {},
+        "by_action": {},
+        "by_model": {},
+        "by_exec": {},
+        "disabled_templates": [],
+        "warned_templates": [],
+        "session_tokens_saved": 0,
+        "session_route_calls": 0,
+        "session_claude_tokens": 0,
+        "session_efficiency_pct": 0,
+        "today_tokens_saved": 0,
+        "today_route_calls": 0,
+        "est_tokens_saved": 0,
+        "alltime_efficiency_pct": 0,
+        "lifetime_claude_tokens": 0,
+        "today_efficiency_pct": 0,
+        "by_date": [],
+    }
+
+    # Hook audit log
+    if DELEGATION_AUDIT_LOG.exists():
+        try:
+            lines = [l.strip() for l in DELEGATION_AUDIT_LOG.read_text().strip().split('\n') if l.strip()]
+            actions = {}
+            model_picks = {}   # classifier suggestions (model= field)
+            exec_backends = {} # actual execution (exec= field)
+            latencies = []
+            prefetched = 0
+            for line in lines:
+                parts = {}
+                for token in line.split():
+                    if '=' in token and not token.startswith('['):
+                        k, v = token.split('=', 1)
+                        parts[k] = v
+                action = parts.get('action', 'unknown')
+                actions[action] = actions.get(action, 0) + 1
+                # Track model classifier picks
+                model = parts.get('model')
+                if model:
+                    model_picks[model] = model_picks.get(model, 0) + 1
+                # Track actual execution backend
+                exec_be = parts.get('exec')
+                if exec_be:
+                    exec_backends[exec_be] = exec_backends.get(exec_be, 0) + 1
+                if parts.get('prefetch') == 'OK':
+                    prefetched += 1
+                if 'latency' in parts:
+                    try:
+                        latencies.append(int(parts['latency'].rstrip('ms')))
+                    except ValueError:
+                        pass
+
+            data["hook_fires"] = len(lines)
+            data["prefetched"] = prefetched
+            data["avg_latency_ms"] = sum(latencies) // max(len(latencies), 1) if latencies else 0
+            data["by_action"] = actions
+            data["by_model"] = model_picks
+            data["by_exec"] = exec_backends
+        except (OSError, ValueError):
+            pass
+
+    # Gemini route eval log — with session/daily/all-time breakdowns
+    if DELEGATION_EVAL_LOG.exists():
+        try:
+            route_lines = [l.strip() for l in DELEGATION_EVAL_LOG.read_text().strip().split('\n') if l.strip()]
+            cats = {}
+            ok = 0
+            total_saved = 0
+            by_date = {}  # date_str -> {calls, success, tokens_saved}
+            today_str = datetime.now().strftime('%Y-%m-%d')
+
+            # Session boundary: find when the current burst started
+            # Use budget state's since_last_gap.gap_started if available
+            # Normalize to naive local time for comparison with eval log timestamps
+            session_start = None
+            if BUDGET_STATE.exists():
+                try:
+                    bs = json.loads(BUDGET_STATE.read_text())
+                    gap_started = bs.get('since_last_gap', {}).get('gap_started')
+                    if gap_started:
+                        # Convert TZ-aware UTC to naive local time
+                        from datetime import timezone
+                        try:
+                            dt = datetime.fromisoformat(gap_started)
+                            if dt.tzinfo is not None:
+                                dt = dt.astimezone().replace(tzinfo=None)
+                            session_start = dt.strftime('%Y-%m-%dT%H:%M:%S')
+                        except (ValueError, TypeError):
+                            session_start = gap_started[:19]
+                except (json.JSONDecodeError, OSError):
+                    pass
+
+            session_saved = 0
+            session_calls = 0
+
+            for line in route_lines:
+                entry = json.loads(line)
+                cat = entry.get('category', 'unknown')
+                ts = entry.get('ts', '')
+                saved = entry.get('est_tokens_saved', 0)
+                success = entry.get('success', False)
+
+                cats[cat] = cats.get(cat, 0) + 1
+                if success:
+                    ok += 1
+                total_saved += saved
+
+                # Daily aggregation
+                date_key = ts[:10] if len(ts) >= 10 else 'unknown'
+                if date_key not in by_date:
+                    by_date[date_key] = {"calls": 0, "success": 0, "tokens_saved": 0}
+                by_date[date_key]["calls"] += 1
+                if success:
+                    by_date[date_key]["success"] += 1
+                by_date[date_key]["tokens_saved"] += saved
+
+                # Session aggregation (entries after gap_started)
+                if session_start and ts >= session_start:
+                    session_saved += saved
+                    session_calls += 1
+
+            data["route_calls"] = len(route_lines)
+            data["route_success"] = ok
+            data["route_success_pct"] = round(ok * 100 / max(len(route_lines), 1))
+            data["est_tokens_saved"] = total_saved
+            data["by_category"] = cats
+
+            # Session breakdown
+            data["session_tokens_saved"] = session_saved
+            data["session_route_calls"] = session_calls
+
+            # Daily breakdown (sorted, last 7 days)
+            sorted_dates = sorted(by_date.items(), reverse=True)[:7]
+            data["by_date"] = [
+                {"date": d, **stats} for d, stats in sorted_dates
+            ]
+
+            # Today's totals
+            today_data = by_date.get(today_str, {"calls": 0, "success": 0, "tokens_saved": 0})
+            data["today_tokens_saved"] = today_data["tokens_saved"]
+            data["today_route_calls"] = today_data["calls"]
+
+        except (OSError, json.JSONDecodeError, ValueError):
+            pass
+
+    # Compute delegation efficiency ratio
+    # = tokens_saved / (claude_tokens + tokens_saved) * 100
+    # Cross-reference with budget state for Claude's token usage
+    if BUDGET_STATE.exists():
+        try:
+            bs = json.loads(BUDGET_STATE.read_text())
+            gap = bs.get('since_last_gap', {})
+            lifetime = bs.get('lifetime', {})
+
+            session_claude = gap.get('tokens_used', 0)
+            session_saved = data.get('session_tokens_saved', 0)
+            session_total = session_claude + session_saved
+            data["session_efficiency_pct"] = round(
+                session_saved * 100 / session_total) if session_total > 0 else 0
+            data["session_claude_tokens"] = session_claude
+
+            lifetime_claude = lifetime.get('total_tokens', 0)
+            alltime_saved = data.get('est_tokens_saved', 0)
+            alltime_total = lifetime_claude + alltime_saved
+            data["alltime_efficiency_pct"] = round(
+                alltime_saved * 100 / alltime_total) if alltime_total > 0 else 0
+            data["lifetime_claude_tokens"] = lifetime_claude
+
+            # Today's efficiency: today_saved vs today's Claude usage
+            # Use 5h window tokens as today's Claude proxy (most accurate)
+            window_tokens = bs.get('five_hour_window', {}).get('tokens_used', 0)
+            today_saved = data.get('today_tokens_saved', 0)
+            today_total = window_tokens + today_saved
+            data["today_efficiency_pct"] = round(
+                today_saved * 100 / today_total) if today_total > 0 else 0
+
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Daily counter
+    if DELEGATION_COUNTER.exists():
+        try:
+            counter = json.loads(DELEGATION_COUNTER.read_text())
+            data["gemini_today"] = counter.get('count', 0)
+            data["gemini_date"] = counter.get('date', '')
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Compliance
+    if DELEGATION_COMPLIANCE.exists():
+        try:
+            comp = json.loads(DELEGATION_COMPLIANCE.read_text())
+            data["delegation_rate"] = comp.get('delegation_rate', '0%')
+            data["total_prompts"] = comp.get('total_prompts', 0)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Quality gate — disabled/warned templates
+    if DELEGATION_DISABLED.exists():
+        try:
+            disabled_data = json.loads(DELEGATION_DISABLED.read_text())
+            data["disabled_templates"] = disabled_data.get('disabled', [])
+            data["warned_templates"] = disabled_data.get('warned', [])
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    return data
+
+
+def get_delegation_stats():
+    return cached("delegation_stats", _load_delegation_stats, ttl=10)
+
+
 # === AGGREGATE (for /api/data) ===
 
 def _smart_model_recommendation(usage):
@@ -837,6 +1073,7 @@ def get_all_dashboard_data():
     warnings = validate_data(usage, kb_stats)
     budget_age = get_budget_age_minutes()
     session = get_current_session_stats()
+    delegation = get_delegation_stats()
 
     # Override model recommendation with smart logic
     smart_rec, smart_alert = _smart_model_recommendation(usage)
@@ -866,4 +1103,5 @@ def get_all_dashboard_data():
             "alert_level": smart_alert,
         },
         "current_session": session,
+        "delegation": delegation,
     }

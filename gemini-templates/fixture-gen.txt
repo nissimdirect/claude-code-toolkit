@@ -1,0 +1,18 @@
+Generate pytest fixtures for testing code that uses these data structures.
+
+Requirements:
+- One fixture per logical test scenario (happy path, edge case, error case)
+- Use @pytest.fixture with descriptive names
+- Include factory fixtures for parameterized testing
+- Add docstrings explaining what each fixture represents
+- Include both valid and invalid data variants
+- Use tmp_path for any file-based fixtures
+
+Source code with data structures:
+```
+{context}
+```
+
+{task}
+
+Output ONLY the fixture code (no test functions). No explanations.

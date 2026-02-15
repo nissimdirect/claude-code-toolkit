@@ -1,0 +1,20 @@
+Structure this raw text/notes into a well-organized Obsidian markdown note.
+
+Requirements:
+- Add YAML frontmatter (tags, date, source, status)
+- Use hierarchical headers (## for sections, ### for subsections)
+- Convert lists to proper markdown
+- Add [[wiki-links]] for concepts that could link to other notes
+- Bold key terms and insights
+- Add a ## Summary section at the top (2-3 sentences)
+- Add a ## Action Items section at the bottom if any tasks are implied
+- Keep the original information intact — restructure, don't rewrite
+
+Raw notes:
+```
+{context}
+```
+
+{task}
+
+Output ONLY the formatted Obsidian note.

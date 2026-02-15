@@ -1,0 +1,33 @@
+Draft a GitHub issue from the following bug report or feature request.
+
+Format:
+## Title
+[Concise title under 60 chars]
+
+## Description
+[2-3 sentence summary]
+
+## Steps to Reproduce (for bugs)
+1. Step one
+2. Step two
+3. Expected vs actual behavior
+
+## Acceptance Criteria
+- [ ] Criterion 1
+- [ ] Criterion 2
+
+## Labels
+[Suggest: bug/enhancement/documentation + priority]
+
+## Additional Context
+[Any relevant logs, screenshots, or related issues]
+
+Report:
+{task}
+
+Context:
+```
+{context}
+```
+
+Output ONLY the GitHub issue markdown.

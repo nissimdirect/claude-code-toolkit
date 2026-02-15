@@ -1,0 +1,20 @@
+Add docstrings to all public functions and classes in this source file.
+
+Style: Google-style docstrings for Python, JSDoc for JavaScript.
+
+Requirements:
+- Document parameters with types
+- Document return values
+- Document exceptions/errors raised
+- Keep descriptions concise (1-2 sentences)
+- Do NOT change any code logic — only add documentation
+- Skip private/internal functions (prefixed with _)
+
+Source:
+```
+{context}
+```
+
+{task}
+
+Output the complete file with docstrings added.

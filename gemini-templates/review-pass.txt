@@ -1,0 +1,20 @@
+Perform a first-pass code review of this source file.
+
+Check for:
+1. Obvious bugs (off-by-one, null derefs, unhandled errors)
+2. Security issues (injection, path traversal, hardcoded secrets)
+3. Performance problems (O(n^2) in hot paths, unnecessary allocations)
+4. Style issues (inconsistent naming, dead code, missing error handling)
+5. Logic errors (wrong conditions, missing edge cases)
+
+Source:
+```
+{context}
+```
+
+{task}
+
+Output format:
+- Line N: [BUG|SECURITY|PERF|STYLE|LOGIC] Description
+- Only list actual issues, not nitpicks
+- Max 15 issues, prioritized by severity

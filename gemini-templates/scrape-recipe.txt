@@ -1,0 +1,24 @@
+Generate a Python web scraper configuration for the following source.
+
+Output a Python dict with:
+- name: source identifier (lowercase-hyphenated)
+- base_url: root URL
+- article_selector: CSS selector for article links on listing pages
+- title_selector: CSS selector for article title
+- content_selector: CSS selector for main content body
+- pagination: dict with type (next_link|page_number|scroll), selector
+- rate_limit: seconds between requests (minimum 2)
+- robots_txt: whether to respect (always True)
+- estimated_articles: rough count
+
+Also include a brief scraping strategy (2-3 sentences) noting any anti-scraping measures or unusual page structure.
+
+Source to scrape:
+{task}
+
+Reference scraper code (for style matching):
+```
+{context}
+```
+
+Output ONLY the Python dict and strategy note. No full script.

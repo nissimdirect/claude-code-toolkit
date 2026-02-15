@@ -1,0 +1,16 @@
+Extract key insights from this article for a creative professional building audio plugins and art tools.
+
+Requirements:
+- 5-8 bullet points of actionable insights
+- Include 1-2 direct quotes (with attribution if author named)
+- Note any specific tools, techniques, or frameworks mentioned
+- Flag anything contrarian or surprising
+- Keep total output under 500 words
+- Format: markdown bullets
+
+Article:
+```
+{context}
+```
+
+{task}

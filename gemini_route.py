@@ -25,6 +25,13 @@ from gemini_draft import draft as gemini_draft
 
 TEMPLATE_DIR = Path(__file__).parent / 'gemini-templates'
 EVAL_LOG = Path.home() / '.claude' / '.locks' / 'gemini-route-eval.jsonl'
+DISABLED_FILE = Path.home() / '.claude' / '.locks' / 'gemini-route-disabled.json'
+
+# Quality gate thresholds
+QUALITY_MIN_CALLS = 5          # Need at least N calls before judging
+QUALITY_FAIL_THRESHOLD = 0.50  # Disable if success rate drops below 50%
+QUALITY_WARN_THRESHOLD = 0.70  # Warn if success rate drops below 70%
+QUALITY_WINDOW = 20            # Evaluate over last N calls per category
 
 # ── Template metadata: skills, model compat, estimated token savings ──
 
@@ -325,6 +332,122 @@ def show_stats():
     print(f"  Models used:       {', '.join(f'{m}({c})' for m, c in by_model.items())}")
 
 
+def quality_gate():
+    """Evaluate template quality from eval log. Auto-disable degraded templates.
+
+    Returns dict: {category: {calls, success, rate, status}}
+    Status: 'ok', 'warn', 'disabled', 'insufficient_data'
+    """
+    results = {}
+
+    if not EVAL_LOG.exists():
+        return results
+
+    lines = EVAL_LOG.read_text().strip().split('\n')
+    entries = [json.loads(l) for l in lines if l.strip()]
+
+    # Group by category, keep only last QUALITY_WINDOW per category
+    by_cat = {}
+    for e in entries:
+        cat = e.get('category', 'unknown')
+        if cat not in by_cat:
+            by_cat[cat] = []
+        by_cat[cat].append(e)
+
+    newly_disabled = []
+    warned = []
+
+    # Load existing disabled list
+    disabled = set()
+    if DISABLED_FILE.exists():
+        try:
+            disabled = set(json.loads(DISABLED_FILE.read_text()).get('disabled', []))
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    for cat, cat_entries in by_cat.items():
+        recent = cat_entries[-QUALITY_WINDOW:]  # Last N calls
+        total = len(recent)
+        ok = sum(1 for e in recent if e.get('success'))
+        rate = ok / total if total else 0
+
+        if total < QUALITY_MIN_CALLS:
+            results[cat] = {'calls': total, 'success': ok, 'rate': rate, 'status': 'insufficient_data'}
+            continue
+
+        if rate < QUALITY_FAIL_THRESHOLD:
+            results[cat] = {'calls': total, 'success': ok, 'rate': rate, 'status': 'disabled'}
+            if cat not in disabled:
+                newly_disabled.append(cat)
+                disabled.add(cat)
+        elif rate < QUALITY_WARN_THRESHOLD:
+            results[cat] = {'calls': total, 'success': ok, 'rate': rate, 'status': 'warn'}
+            warned.append(cat)
+        else:
+            results[cat] = {'calls': total, 'success': ok, 'rate': rate, 'status': 'ok'}
+            # Re-enable if it was previously disabled but now above threshold
+            if cat in disabled:
+                disabled.discard(cat)
+
+    # Write disabled file
+    DISABLED_FILE.parent.mkdir(parents=True, exist_ok=True)
+    DISABLED_FILE.write_text(json.dumps({
+        'disabled': sorted(disabled),
+        'updated': time.strftime('%Y-%m-%dT%H:%M:%S'),
+    }, indent=2))
+
+    return results
+
+
+def show_quality_gate():
+    """Print quality gate results."""
+    results = quality_gate()
+    if not results:
+        print("No evaluation data yet.")
+        return
+
+    print("=== Gemini Route Quality Gate ===\n")
+
+    disabled = []
+    warned = []
+
+    for cat in sorted(results.keys()):
+        r = results[cat]
+        status_icon = {'ok': 'OK', 'warn': 'WARN', 'disabled': 'DISABLED', 'insufficient_data': '...'}
+        icon = status_icon.get(r['status'], '?')
+        rate_pct = round(r['rate'] * 100)
+        print(f"  {cat:20s}  {r['calls']:2d} calls  {r['success']:2d} ok  {rate_pct:3d}%  [{icon}]")
+
+        if r['status'] == 'disabled':
+            disabled.append(cat)
+        elif r['status'] == 'warn':
+            warned.append(cat)
+
+    print()
+    if disabled:
+        print(f"  AUTO-DISABLED ({len(disabled)}): {', '.join(disabled)}")
+        print(f"  These templates will be skipped by delegation_hook.py.")
+        print(f"  To re-enable: delete ~/.claude/.locks/gemini-route-disabled.json")
+    if warned:
+        print(f"  DEGRADED ({len(warned)}): {', '.join(warned)}")
+        print(f"  Below {int(QUALITY_WARN_THRESHOLD*100)}% success rate. Will auto-disable at {int(QUALITY_FAIL_THRESHOLD*100)}%.")
+    if not disabled and not warned:
+        print("  All templates healthy.")
+
+    print(f"\n  Thresholds: disable <{int(QUALITY_FAIL_THRESHOLD*100)}%, warn <{int(QUALITY_WARN_THRESHOLD*100)}%, window={QUALITY_WINDOW} calls, min={QUALITY_MIN_CALLS}")
+
+
+def is_template_disabled(category: str) -> bool:
+    """Check if a template category is disabled by quality gate."""
+    if not DISABLED_FILE.exists():
+        return False
+    try:
+        data = json.loads(DISABLED_FILE.read_text())
+        return category in data.get('disabled', [])
+    except (json.JSONDecodeError, OSError):
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description='Route tasks to Gemini/Ollama via templates')
     parser.add_argument('category', nargs='?', help='Template category')
@@ -334,6 +457,8 @@ def main():
     parser.add_argument('--list', action='store_true', help='List templates')
     parser.add_argument('--coverage', action='store_true', help='Coverage analysis')
     parser.add_argument('--stats', action='store_true', help='Empirical stats')
+    parser.add_argument('--quality-gate', action='store_true', help='Run quality gate check')
+    parser.add_argument('--quality-json', action='store_true', help='Quality gate as JSON')
     parser.add_argument('--temperature', type=float, default=0.3)
     args = parser.parse_args()
 
@@ -346,6 +471,12 @@ def main():
     if args.stats:
         show_stats()
         return
+    if args.quality_gate:
+        show_quality_gate()
+        return
+    if args.quality_json:
+        print(json.dumps(quality_gate(), indent=2))
+        return
 
     if not args.category:
         parser.print_help()
@@ -354,6 +485,12 @@ def main():
     if args.category not in TEMPLATES:
         print(f"ERROR: Unknown category '{args.category}'. Use --list.", file=sys.stderr)
         sys.exit(1)
+
+    # Check if template is disabled by quality gate
+    if is_template_disabled(args.category):
+        print(f"SKIPPED: '{args.category}' is auto-disabled (success rate below {int(QUALITY_FAIL_THRESHOLD*100)}%). "
+              f"Run --quality-gate to see details.", file=sys.stderr)
+        sys.exit(3)
 
     meta = TEMPLATES[args.category]
     if args.model == 'ollama' and not meta['ollama']:

@@ -1,0 +1,36 @@
+Draft a PRD (Product Requirements Document) section for the following feature.
+
+Structure:
+## Feature: [Name]
+
+### Problem Statement
+What pain point does this solve? Who experiences it?
+
+### User Stories
+- As a [user type], I want to [action] so that [benefit]
+
+### Requirements
+#### Must Have (P0)
+- Requirement with acceptance criteria
+
+#### Should Have (P1)
+- Requirement with acceptance criteria
+
+#### Nice to Have (P2)
+- Requirement with acceptance criteria
+
+### Technical Constraints
+- Known limitations, dependencies, or risks
+
+### Success Metrics
+- How we'll know this worked (measurable)
+
+Feature description:
+{task}
+
+Existing context (if any):
+```
+{context}
+```
+
+Output ONLY the PRD section in markdown.
