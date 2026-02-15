@@ -334,11 +334,38 @@ ADVISORS = {
     },
     "creative-capital": {
         "name": "Creative Capital",
-        "source": "Creative Capital Awardees",
+        "source": "Creative Capital (Handbook + Retreat Transcripts + Project Docs + Winner Analysis)",
         "article_dirs": [Path("~/Development/art-criticism/creative-capital/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 70,
+        "article_count": 35,
+        "excerpt_lines": 80,  # Transcripts need more context
+    },
+    "nyfa-source": {
+        "name": "NYFA Source / Grant Writing Guides",
+        "source": "NYFA Source + Format Magazine + ArtConnect + LearnGrantWriting + Winning Application Indices",
+        "article_dirs": [Path("~/Development/art-criticism/nyfa-source/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 35,
+        "excerpt_lines": 40,
+    },
+    "fractured-atlas": {
+        "name": "Fractured Atlas",
+        "source": "Fractured Atlas Blog (Fiscal Sponsorship + Grant Guides + Fundraising)",
+        "article_dirs": [Path("~/Development/art-criticism/fractured-atlas/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 27,
+        "excerpt_lines": 40,
+    },
+    "creative-independent": {
+        "name": "The Creative Independent",
+        "source": "TCI Guides (Grant Writing + Artist Statements + Storytelling)",
+        "article_dirs": [Path("~/Development/art-criticism/creative-independent/articles").expanduser()],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 4,
         "excerpt_lines": 40,
     },
     "ubuweb": {
@@ -455,10 +482,14 @@ ADVISORS = {
             Path("~/Development/atrium/the-quietus/articles").expanduser(),
             # Wave 7: TheNeedleDrop (music reviews, criticism)
             Path("~/Development/atrium/theneedledrop/articles").expanduser(),
+            # Grant strategy knowledge (scraped 2026-02-15)
+            Path("~/Development/art-criticism/nyfa-source/articles").expanduser(),
+            Path("~/Development/art-criticism/fractured-atlas/articles").expanduser(),
+            Path("~/Development/art-criticism/creative-independent/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 12099,  # 10099 + 2000 (TheNeedleDrop)
+        "article_count": 12165,  # 12099 + 35 (NYFA) + 27 (FA) + 4 (TCI)
         "excerpt_lines": 50,
     },
     "plugin-devs": {
@@ -608,6 +639,18 @@ ADVISORS = {
         "pattern": "*.md",
         "article_count": 1775,  # Verified 2026-02-14
         "excerpt_lines": 50,
+    },
+    # ── Fonts In Use (Dedicated Catalog Advisor) ──
+    "fonts-in-use": {
+        "name": "Fonts In Use (Typeface Catalog)",
+        "source": "Fonts In Use — typeface specimens, usage examples, designer credits",
+        "article_dirs": [
+            Path("~/Development/fonts-in-use/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 32578,
+        "excerpt_lines": 30,  # Catalog entries are short
     },
 }
 
@@ -831,7 +874,15 @@ ALIASES = {
     "creative-interviews": "art-director",
     "interviews": "art-director",
     "eno-interviews": "art-director",
-    "creative-independent": "art-director",
+    "creative-independent": "creative-independent",
+    "tci": "creative-independent",
+    # Grant strategy sources → atrium
+    "nyfa": "nyfa-source",
+    "nyfa-source": "nyfa-source",
+    "grant-writing": "atrium",
+    "grant-tips": "atrium",
+    "fractured-atlas": "fractured-atlas",
+    "fiscal-sponsorship": "fractured-atlas",
     # Lyric Analyst
     "lyric-analyst": "lyric-analyst",
     "lyrics": "lyric-analyst",
@@ -885,6 +936,78 @@ ALIASES = {
     "virgil-abloh": "art-director",
     "virgil": "art-director",
     "off-white": "art-director",
+    # Fonts In Use (dedicated catalog)
+    "fonts-in-use": "fonts-in-use",
+    "fonts": "fonts-in-use",
+    "typeface": "fonts-in-use",
+    "typefaces": "fonts-in-use",
+    "font-catalog": "fonts-in-use",
+    "font-specimen": "fonts-in-use",
+}
+
+
+# ── Source Quality Weights ────────────────────────────────────────
+# Multiplied with term frequency in search scoring.
+# 1.0 = default, >1.0 = boost high-signal sources, <1.0 = penalize catalog/thin content
+SOURCE_WEIGHTS = {
+    # High-signal strategic content (deep analysis, actionable knowledge)
+    "cherie-hu": 3.0,
+    "valhalla-dsp": 2.5,
+    "attack-magazine": 2.5,
+    "fabfilter": 2.5,
+    "airwindows": 2.0,
+    "brandnew": 2.5,
+    "daniel-miessler": 2.0,
+    "kent-beck": 2.5,
+    "julia-evans": 2.5,
+    "jesse-cannon": 2.0,
+    "ari-herstand": 2.0,
+    "splice": 2.0,
+    "e-flux-journal": 2.0,
+    "bomb-magazine": 2.0,
+    "simon-willison": 2.0,
+    "ubuweb-papers": 2.0,
+    "backlinko": 2.0,
+    "swyx": 2.0,
+    "don-norman": 2.5,
+    "nngroup": 2.5,
+    "baymard": 2.0,
+    "lawsofux": 2.5,
+    "stanford-aesthetics": 2.0,
+    "brian-eno": 2.0,
+    "tape-op": 2.0,
+    # Medium-signal content (solid but variable quality)
+    "hyperallergic": 1.5,
+    "the-brand-identity": 1.5,
+    "its-nice-that": 1.5,
+    "creative-boom": 1.5,
+    "hypebot": 1.5,
+    "music-biz-worldwide": 1.5,
+    "bandzoogle-blog": 1.5,
+    "sparktoro": 1.5,
+    "kevin-indig": 1.5,
+    "arvid-kahl": 1.5,
+    "lukew": 1.5,
+    "the-quietus": 1.5,
+    "ditto-music": 1.2,
+    "bedroom-producers-blog": 1.2,
+    "cdm": 1.5,
+    # Catalog/reference content (metadata-heavy, low insight per article)
+    "fonts-in-use": 0.3,
+    # Grant recipient listings (structured data, not analysis)
+    "creative-capital-awardees": 0.5,
+    "artadia-awardees": 0.5,
+    "usa-fellows": 0.5,
+    # Grant strategy (high-signal — actual winner transcripts, application guides)
+    "creative-capital": 3.0,  # Awardee retreat transcripts = ground truth
+    "nyfa-source": 2.5,  # NYFA application tips + winning app indices
+    "fractured-atlas": 2.0,  # Fiscal sponsorship + grant guides
+    "creative-independent": 2.5,  # CC insider guide + artist statement guides
+    # Theory journals (valuable but dense, less actionable)
+    "texte-zur-kunst": 0.8,
+    "momus": 0.8,
+    "marxists-aesthetics": 0.7,
+    "situationist-international": 0.8,
 }
 
 
@@ -947,10 +1070,10 @@ class KBLoader:
                     except subprocess.TimeoutExpired:
                         pass
 
-        # Score by frequency (more terms matched = higher score)
+        # Score by frequency * source weight (quality-weighted ranking)
         from collections import Counter
         freq = Counter(matches)
-        scored = sorted(freq.items(), key=lambda x: -x[1])
+        scored = sorted(freq.items(), key=lambda x: -(x[1] * self._get_source_weight(x[0])))
 
         # Extract metadata and excerpts for top results
         results = []
@@ -961,6 +1084,14 @@ class KBLoader:
                 results.append(article)
 
         return results
+
+    @staticmethod
+    def _get_source_weight(path: str) -> float:
+        """Get quality weight for a source based on its directory path."""
+        for source_key, weight in SOURCE_WEIGHTS.items():
+            if source_key in path:
+                return weight
+        return 1.0  # default weight for unlisted sources
 
     def _read_article(self, path: str, excerpt_lines: int) -> Optional[dict]:
         """Read article metadata and excerpt."""
