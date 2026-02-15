@@ -43,10 +43,12 @@ ADVISORS = {
             Path("~/Development/ux-design/smashingmag/articles").expanduser(),
             # Leading Product newsletter (product strategy, AI UX, GTM)
             Path("~/Development/lenny/leading-product/articles").expanduser(),
+            # Product Talk (Teresa Torres — product discovery, opportunity trees)
+            Path("~/Development/lenny/product-talk/articles").expanduser(),
         ],
         "index_dir": Path("~/Development/lennys-podcast-transcripts/index").expanduser(),
         "pattern": "*.md",
-        "article_count": 4052,  # 4006 + 46 (Leading Product)
+        "article_count": 4491,  # 4006 + 46 (Leading Product) + 439 (Product Talk)
         "excerpt_lines": 80,  # Transcripts are huge, take more context
     },
     "music-biz": {
@@ -870,6 +872,10 @@ ALIASES = {
     # Leading Product newsletter
     "leading-product": "lenny",
     "leadingproduct": "lenny",
+    # Product Talk (Teresa Torres)
+    "product-talk": "lenny",
+    "producttalk": "lenny",
+    "teresa-torres": "lenny",
     # TheNeedleDrop (Anthony Fantano music reviews)
     "theneedledrop": "atrium",
     "needledrop": "atrium",
