@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Pre-commit hook: run router tests when llm_router.py changes
+# Install: git -C ~/Development/tools config core.hooksPath .githooks
+
+set -euo pipefail
+
+# Check if router or its tests are staged for commit
+if git diff --cached --name-only | grep -qE "(llm_router\.py|test_llm_router\.py)"; then
+    echo "=== LLM Router changed — running test suite ==="
+    python3 -m pytest "$(git rev-parse --show-toplevel)/test_llm_router.py" -v --tb=short
+    if [ $? -ne 0 ]; then
+        echo "FAIL: LLM Router tests failed. Fix before committing."
+        exit 1
+    fi
+    echo "=== All router tests passed ==="
+fi
