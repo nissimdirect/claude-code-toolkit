@@ -91,5 +91,41 @@ def main():
 
     print(f"\n{'=' * 55}")
 
+
+def json_summary():
+    """Machine-readable summary for startup_checks.py integration."""
+    data = {}
+
+    if AUDIT_LOG.exists():
+        lines = [l.strip() for l in AUDIT_LOG.read_text().strip().split('\n') if l.strip()]
+        entries = [parse_audit_line(l) for l in lines]
+        prefetched = sum(1 for e in entries if e.get('prefetch') == 'OK')
+        data['hook_fires'] = len(entries)
+        data['prefetched'] = prefetched
+
+    if EVAL_LOG.exists():
+        route_lines = [l.strip() for l in EVAL_LOG.read_text().strip().split('\n') if l.strip()]
+        route_entries = [json.loads(l) for l in route_lines]
+        ok = sum(1 for e in route_entries if e.get('success'))
+        total_saved = sum(e.get('est_tokens_saved', 0) for e in route_entries)
+        data['route_calls'] = len(route_entries)
+        data['route_success'] = ok
+        data['est_tokens_saved'] = total_saved
+
+    if COUNTER.exists():
+        try:
+            counter = json.loads(COUNTER.read_text())
+            data['gemini_today'] = counter.get('count', 0)
+            data['gemini_date'] = counter.get('date', '?')
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    print(json.dumps(data))
+
+
 if __name__ == '__main__':
-    main()
+    import sys
+    if '--json' in sys.argv:
+        json_summary()
+    else:
+        main()

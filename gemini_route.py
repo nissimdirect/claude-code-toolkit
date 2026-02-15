@@ -209,14 +209,14 @@ def validate_output(result: str, category: str) -> tuple[bool, str]:
     if not result or not result.strip():
         return False, 'empty_output'
     stripped = result.strip()
-    # Too short to be useful (< 50 chars)
-    if len(stripped) < 50:
-        return False, f'too_short ({len(stripped)} chars)'
-    # Starts with error indicators
+    # Starts with error indicators (check before length)
     error_prefixes = ['ERROR:', 'error:', 'I cannot', "I'm sorry", 'I apologize']
     for prefix in error_prefixes:
         if stripped.startswith(prefix):
             return False, f'error_response ({prefix})'
+    # Too short to be useful (< 50 chars)
+    if len(stripped) < 50:
+        return False, f'too_short ({len(stripped)} chars)'
     # Category-specific checks
     if category == 'test-gen' and 'def test_' not in stripped and 'def Test' not in stripped:
         return False, 'no_test_functions'

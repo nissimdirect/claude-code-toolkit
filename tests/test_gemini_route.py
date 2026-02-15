@@ -19,6 +19,7 @@ from gemini_route import (
     fill_template,
     load_template,
     log_eval,
+    validate_output,
 )
 
 
@@ -218,3 +219,61 @@ def test_cli_coverage_flag():
     )
     assert result.returncode == 0
     assert 'Coverage' in result.stdout
+
+
+# --- Output validation ---
+
+def test_validate_output_empty():
+    is_valid, reason = validate_output('', 'test-gen')
+    assert not is_valid
+    assert reason == 'empty_output'
+
+
+def test_validate_output_too_short():
+    is_valid, reason = validate_output('hi', 'test-gen')
+    assert not is_valid
+    assert 'too_short' in reason
+
+
+def test_validate_output_error_response():
+    is_valid, reason = validate_output("ERROR: something went wrong with the request", 'css-draft')
+    assert not is_valid
+    assert 'error_response' in reason
+
+
+def test_validate_output_apology_response():
+    is_valid, reason = validate_output("I'm sorry, I can't help with that. " * 5, 'test-gen')
+    assert not is_valid
+    assert 'error_response' in reason
+
+
+def test_validate_output_test_gen_no_functions():
+    is_valid, reason = validate_output("Here are some tests:\n\nassert True\nassert 1 == 1\n" * 5, 'test-gen')
+    assert not is_valid
+    assert reason == 'no_test_functions'
+
+
+def test_validate_output_test_gen_valid():
+    code = "import pytest\n\ndef test_example():\n    assert True\n\ndef test_another():\n    assert 1 == 1\n" * 3
+    is_valid, reason = validate_output(code, 'test-gen')
+    assert is_valid
+    assert reason == 'ok'
+
+
+def test_validate_output_css_draft_no_blocks():
+    is_valid, reason = validate_output("Change the color to blue and make the font bigger. " * 5, 'css-draft')
+    assert not is_valid
+    assert reason == 'no_css_blocks'
+
+
+def test_validate_output_css_draft_valid():
+    css = ".container { color: blue; font-size: 16px; }\n.header { background: red; }\n" * 3
+    is_valid, reason = validate_output(css, 'css-draft')
+    assert is_valid
+
+
+def test_validate_output_generic_valid():
+    text = "This is a perfectly normal output that should pass validation without any issues. " * 5
+    is_valid, reason = validate_output(text, 'kb-summarize')
+    assert is_valid
+    assert reason == 'ok'
