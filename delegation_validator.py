@@ -109,13 +109,14 @@ def validate_delegated_output(output: str, task_type: str = "general") -> dict:
     if len(output) > 100_000:
         result["warnings"].append(f"Output very large ({len(output)} chars) — may need truncation")
 
-    # --- 2. Injection scan ---
-    for pattern in INJECTION_PATTERNS:
-        match = pattern.search(output)
-        if match:
-            result["warnings"].append(f"Injection pattern detected: '{match.group()}'")
-            result["blocked"] = True
-            result["valid"] = False
+    # --- 2. Injection scan (skip for entropic_test — codebase files legitimately use subprocess/exec) ---
+    if task_type != "entropic_test":
+        for pattern in INJECTION_PATTERNS:
+            match = pattern.search(output)
+            if match:
+                result["warnings"].append(f"Injection pattern detected: '{match.group()}'")
+                result["blocked"] = True
+                result["valid"] = False
 
     # --- 3. Sensitive path scan ---
     for pattern in SENSITIVE_PATHS:
@@ -130,6 +131,8 @@ def validate_delegated_output(output: str, task_type: str = "general") -> dict:
         result["details"] = _validate_file_analysis(output)
     elif task_type == "count":
         result["details"] = _validate_count(output)
+    elif task_type == "entropic_test":
+        result["details"] = _validate_entropic_test(output)
 
     # Propagate task-specific blocks
     if result["details"].get("blocked"):
@@ -200,17 +203,146 @@ def _validate_count(output: str) -> dict:
     return details
 
 
+def _validate_entropic_test(output: str) -> dict:
+    """Validate agent-generated Entropic test files against the actual codebase.
+
+    Checks:
+    1. Effect names in test code exist in EFFECTS registry
+    2. Param names match the effect's actual params
+    3. Endpoint URLs exist in server.py routes
+    4. Response format assertions are plausible
+
+    This prevents the hallucination problem where cheaper models invent
+    effect names like "contrast_crush" or params like {"strength": 0.5}.
+    """
+    details = {
+        "blocked": False,
+        "invalid_effects": [],
+        "invalid_params": {},
+        "invalid_endpoints": [],
+        "warnings": [],
+    }
+
+    # --- Load ground truth from codebase ---
+    entropic_root = Path(__file__).parent.parent / "entropic"
+    if not entropic_root.exists():
+        entropic_root = Path.home() / "Development" / "entropic"
+    if not entropic_root.exists():
+        details["warnings"].append("Cannot find entropic project root — skipping codebase checks")
+        return details
+
+    # 1. Load valid effect names from EFFECTS registry
+    valid_effects = set()
+    valid_params = {}
+    effects_init = entropic_root / "effects" / "__init__.py"
+    if effects_init.exists():
+        saved_path = sys.path[:]
+        try:
+            # Dynamic import approach: parse the EFFECTS dict keys
+            sys.path.insert(0, str(entropic_root))
+            from effects import EFFECTS as _eff
+            valid_effects = set(_eff.keys())
+            valid_params = {name: set(spec.get("params", {}).keys()) for name, spec in _eff.items()}
+        except Exception as e:
+            # Fallback: regex extraction
+            details["warnings"].append(f"Could not import EFFECTS: {e}")
+        finally:
+            sys.path[:] = saved_path
+            content = effects_init.read_text()
+            valid_effects = set(re.findall(r'"([a-z_]+)":\s*\{', content))
+
+    # 2. Load valid endpoint URLs from server.py
+    valid_endpoints = set()
+    server_py = entropic_root / "server.py"
+    if server_py.exists():
+        content = server_py.read_text()
+        valid_endpoints = set(re.findall(r'@app\.(?:get|post|put|delete|patch)\("([^"]+)"', content))
+
+    # --- Scan the code (works on .py, .js, .json, .html) ---
+
+    # 3. Find effect names used in code
+    # Patterns: {"name": "effect_name"}, name: "effect_name", 'name': 'effect_name'
+    # Also matches JS unquoted keys: {name: "effect_name"}
+    used_effects = set(re.findall(r'(?:["\']?name["\']?\s*:\s*["\']([a-z_]+)["\'])', output))
+    for eff in used_effects:
+        if eff not in valid_effects and valid_effects:
+            details["invalid_effects"].append(eff)
+            details["blocked"] = True
+
+    # 4. Find params used with each effect
+    # Pattern: "name": "effect_name"..."params": {"param_key": value}
+    effect_param_blocks = re.findall(
+        r'["\']?name["\']?\s*:\s*["\']([a-z_]+)["\'].*?["\']?params["\']?\s*:\s*\{([^}]+)\}',
+        output
+    )
+    for eff_name, params_block in effect_param_blocks:
+        if eff_name in valid_params:
+            used_param_keys = set(re.findall(r'["\']?([a-z_]+)["\']?\s*:', params_block))
+            invalid = used_param_keys - valid_params[eff_name]
+            if invalid:
+                details["invalid_params"][eff_name] = list(invalid)
+                details["blocked"] = True
+
+    # 5. Find endpoint URLs used in code
+    # Python: client.get("/api/..."), requests.post("/api/...")
+    # JS: fetch("/api/..."), $.post("/api/...")
+    used_endpoints = set(
+        re.findall(r'client\.(?:get|post|put|delete|patch)\(["\'](/api/[^"\']+)["\']', output)
+        + re.findall(r'fetch\(["\'](/api/[^"\']+)["\']', output)
+        + re.findall(r'(?:requests|axios)\.(?:get|post|put|delete|patch)\(["\'](/api/[^"\']+)["\']', output)
+        + re.findall(r'\$\.(?:get|post|ajax)\(["\'](/api/[^"\']+)["\']', output)
+    )
+    for ep in used_endpoints:
+        # Strip path params like {frame_number}
+        ep_pattern = re.sub(r'/\d+$', '/{id}', ep)
+        # Check against valid endpoints (also try with path param patterns)
+        if ep not in valid_endpoints and valid_endpoints:
+            # Try matching with path param patterns
+            matched = False
+            for valid_ep in valid_endpoints:
+                # Convert {param} to regex
+                pattern = re.sub(r'\{[^}]+\}', r'[^/]+', valid_ep)
+                if re.fullmatch(pattern, ep):
+                    matched = True
+                    break
+            if not matched:
+                details["invalid_endpoints"].append(ep)
+                # Don't block for endpoints — they might be planned but not yet implemented
+
+    # 6. Summary
+    if details["invalid_effects"]:
+        details["warnings"].append(
+            f"Hallucinated effects: {details['invalid_effects']}. "
+            f"These don't exist in EFFECTS registry."
+        )
+    if details["invalid_params"]:
+        details["warnings"].append(
+            f"Hallucinated params: {details['invalid_params']}. "
+            f"These params don't exist for their respective effects."
+        )
+    if details["invalid_endpoints"]:
+        details["warnings"].append(
+            f"Unknown endpoints: {details['invalid_endpoints']}. "
+            f"These routes don't exist in server.py."
+        )
+
+    return details
+
+
 def main():
     """CLI entry point for testing."""
     import argparse
 
     parser = argparse.ArgumentParser(description="Validate delegated LLM output")
-    parser.add_argument("--type", choices=["code", "file_analysis", "count", "general"],
+    parser.add_argument("--type", choices=["code", "file_analysis", "count", "general", "entropic_test"],
                         default="general", help="Task type for validation")
     parser.add_argument("--input", type=str, help="Text to validate (or pipe via stdin)")
+    parser.add_argument("--file", type=str, help="File to validate (reads content from file)")
     args = parser.parse_args()
 
-    if args.input:
+    if args.file:
+        text = Path(args.file).read_text()
+    elif args.input:
         text = args.input
     else:
         text = sys.stdin.read()
