@@ -13,6 +13,7 @@ Created: 2026-02-15 | Owner: /today skill
 """
 
 import json
+import os
 import subprocess
 import sys
 import time
@@ -232,6 +233,139 @@ def check_repos():
     return {'status': 'ok', 'data': results}
 
 
+def check_delegation_health():
+    """Step 1k: Live LLM backend health — verifies delegation can actually work."""
+    import urllib.request
+    results = {}
+
+    # 1. Check GEMINI_API_KEY is set
+    gemini_key = os.environ.get("GEMINI_API_KEY", "")
+    results['gemini_api_key'] = 'set' if gemini_key else 'MISSING'
+
+    # 2. Check Ollama is running and responsive
+    try:
+        req = urllib.request.Request(
+            "http://localhost:11434/api/version",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = json.loads(resp.read())
+            version = data.get("version", "unknown")
+            results['ollama'] = f'running (v{version})'
+    except Exception:
+        results['ollama'] = 'NOT RUNNING'
+
+    # 3. Check Ollama has models loaded
+    try:
+        req = urllib.request.Request(
+            "http://localhost:11434/api/tags",
+            headers={"Content-Type": "application/json"},
+        )
+        with urllib.request.urlopen(req, timeout=3) as resp:
+            data = json.loads(resp.read())
+            models = [m.get('name', '?') for m in data.get('models', [])]
+            results['ollama_models'] = models if models else ['NONE']
+    except Exception:
+        results['ollama_models'] = ['check_failed']
+
+    # 4. Test prefetch from Ollama (quick ping — "What is 2+2?")
+    try:
+        payload = json.dumps({
+            "model": "mistral:7b",
+            "messages": [{"role": "user", "content": "What is 2+2? Answer with just the number."}],
+            "stream": False,
+            "options": {"num_predict": 10},
+        }).encode()
+        req = urllib.request.Request(
+            "http://localhost:11434/api/chat",
+            data=payload,
+            headers={"Content-Type": "application/json"},
+        )
+        start = time.time()
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            data = json.loads(resp.read())
+            answer = data.get("message", {}).get("content", "").strip()[:50]
+            latency = round((time.time() - start) * 1000)
+            results['ollama_prefetch'] = f'OK ({latency}ms): "{answer}"'
+    except Exception as e:
+        results['ollama_prefetch'] = f'FAILED: {str(e)[:80]}'
+
+    # 5. Test Gemini REST API (only if key is set)
+    if gemini_key:
+        try:
+            payload = json.dumps({
+                "contents": [{"parts": [{"text": "What is 2+2? Answer with just the number."}]}],
+                "generationConfig": {"maxOutputTokens": 10, "temperature": 0},
+            }).encode()
+            req = urllib.request.Request(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+                data=payload,
+                headers={
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": gemini_key,
+                },
+            )
+            start = time.time()
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                data = json.loads(resp.read())
+                answer = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()[:50]
+                latency = round((time.time() - start) * 1000)
+                results['gemini_api'] = f'OK ({latency}ms): "{answer}"'
+        except Exception as e:
+            results['gemini_api'] = f'FAILED: {str(e)[:80]}'
+    else:
+        results['gemini_api'] = 'SKIPPED (no key)'
+
+    # 6. Check delegation hook is registered (check both settings files)
+    hook_found = False
+    for settings_name in ['settings.json', 'settings.local.json']:
+        settings = Path.home() / '.claude' / settings_name
+        if not settings.exists():
+            continue
+        try:
+            sdata = json.loads(settings.read_text())
+            hooks = sdata.get('hooks', {})
+            # Hooks can be nested: {event: [{hooks: [{command: ...}]}]}
+            for event_hooks in hooks.values():
+                items = event_hooks if isinstance(event_hooks, list) else [event_hooks]
+                for item in items:
+                    if isinstance(item, dict):
+                        inner = item.get('hooks', [item])
+                        for h in (inner if isinstance(inner, list) else [inner]):
+                            if 'delegation_hook' in str(h):
+                                hook_found = True
+                    elif 'delegation_hook' in str(item):
+                        hook_found = True
+        except Exception:
+            pass
+    results['hook_registered'] = 'yes' if hook_found else 'NOT FOUND'
+
+    # 7. Check compliance file
+    comp = LOCKS / 'delegation-compliance.json'
+    if comp.exists():
+        try:
+            cdata = json.loads(comp.read_text())
+            results['compliance'] = cdata
+        except Exception:
+            results['compliance'] = 'invalid_json'
+    else:
+        results['compliance'] = 'no_file'
+
+    # Determine overall status
+    problems = []
+    if results['gemini_api_key'] == 'MISSING':
+        problems.append('GEMINI_API_KEY not set')
+    if 'NOT RUNNING' in str(results.get('ollama', '')):
+        problems.append('Ollama not running')
+    if 'FAILED' in str(results.get('ollama_prefetch', '')):
+        problems.append('Ollama prefetch failed')
+    if 'NOT FOUND' in str(results.get('hook_registered', '')):
+        problems.append('Delegation hook not registered')
+
+    status = 'ok' if not problems else 'degraded'
+    return {'status': status, 'problems': problems, 'data': results}
+
+
 def check_openclaw_exchange():
     """Step 1c: New files from Entropy Bot"""
     exchange = HOME / 'Development' / 'AI-Knowledge-Exchange' / 'entropy-insights'
@@ -332,6 +466,7 @@ def run_all_checks(run_workflows=False):
         'delegation': check_delegation,
         'repos': check_repos,
         'openclaw_exchange': check_openclaw_exchange,
+        'delegation_health': check_delegation_health,
     }
 
     if run_workflows:
@@ -369,6 +504,11 @@ def run_all_checks(run_workflows=False):
                    if v.get('status') == 'dirty']
     if dirty_repos:
         issues.append(f'uncommitted_work:{",".join(dirty_repos)}')
+
+    # Delegation health problems
+    deleg_health = results.get('delegation_health', {})
+    for prob in deleg_health.get('problems', []):
+        issues.append(f'delegation:{prob}')
 
     output = {
         'timestamp': datetime.now().isoformat(),
@@ -436,11 +576,26 @@ def format_human_readable(data):
     else:
         lines.append("Violations: Clean record")
 
-    # Delegation
+    # Delegation stats
     deleg = checks.get('delegation', {})
     if deleg.get('status') == 'ok':
         d = deleg['data']
-        lines.append(f"Delegation: {d['total_prompts']} prompts, {d['total_delegated']} delegated, {d['consecutive_ignored']} ignored")
+        lines.append(f"Delegation stats: {d['total_prompts']} prompts, {d['total_delegated']} delegated, {d['consecutive_ignored']} ignored")
+
+    # Delegation health (live LLM checks)
+    dh = checks.get('delegation_health', {})
+    if dh.get('status'):
+        dhd = dh.get('data', {})
+        lines.append(f"Delegation health: {dh['status'].upper()}")
+        lines.append(f"  Gemini API key: {dhd.get('gemini_api_key', '?')}")
+        lines.append(f"  Ollama: {dhd.get('ollama', '?')}")
+        lines.append(f"  Ollama models: {', '.join(dhd.get('ollama_models', ['?']))}")
+        lines.append(f"  Ollama prefetch: {dhd.get('ollama_prefetch', '?')}")
+        lines.append(f"  Gemini API: {dhd.get('gemini_api', '?')}")
+        lines.append(f"  Hook registered: {dhd.get('hook_registered', '?')}")
+        if dh.get('problems'):
+            for p in dh['problems']:
+                lines.append(f"  PROBLEM: {p}")
 
     # Experiments
     exp = checks.get('experiments', {})
