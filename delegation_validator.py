@@ -5,6 +5,7 @@ Checks:
 1. Size (empty or suspiciously large)
 2. Injection patterns (prompt injection, command injection)
 3. Task-specific validation (code syntax, file existence, number sanity)
+4. Project-specific validation via YAML profiles (registries, routes)
 
 Usage:
     from delegation_validator import validate_delegated_output
@@ -18,6 +19,7 @@ CLI usage (for testing):
     python3 delegation_validator.py --type code --input "def foo(): pass"
     python3 delegation_validator.py --type file_analysis --input "Found 3 files in ~/Development/"
     echo "some output" | python3 delegation_validator.py --type count
+    python3 delegation_validator.py --type entropic_test --input "test"
 """
 
 import ast
@@ -73,13 +75,229 @@ SENSITIVE_PATHS = [
     re.compile(r'secret[s]?\.(?:json|yaml|yml|env)\b', re.IGNORECASE),
 ]
 
+# Profile cache
+_profile_cache: dict = {}
+
+# Known project roots for auto-detection
+_PROJECT_ROOTS: dict[str, str] = {
+    'entropic': str(Path.home() / 'Development' / 'entropic'),
+}
+
+
+def _load_profile(name: str) -> dict | None:
+    """Load a YAML validation profile from validator_profiles/.
+
+    Returns parsed dict or None if profile doesn't exist.
+    """
+    if name in _profile_cache:
+        return _profile_cache[name]
+
+    profiles_dir = Path(__file__).parent / 'validator_profiles'
+    profile_path = profiles_dir / f'{name}.yaml'
+    if not profile_path.exists():
+        return None
+
+    try:
+        # Use simple YAML parsing (no external dependency)
+        content = profile_path.read_text()
+        profile = _parse_simple_yaml(content)
+        _profile_cache[name] = profile
+        return profile
+    except Exception:
+        return None
+
+
+def _parse_simple_yaml(content: str) -> dict:
+    """Minimal YAML parser for flat/nested dicts and lists.
+
+    Handles the structure used by validator profiles without requiring PyYAML.
+    """
+    result: dict = {}
+    lines = content.split('\n')
+    current_key = None
+    current_list: list | None = None
+    current_dict: dict | None = None
+    indent_stack: list[tuple[int, str, dict | list]] = []
+
+    for line in lines:
+        stripped = line.rstrip()
+        if not stripped or stripped.startswith('#'):
+            continue
+
+        indent = len(line) - len(line.lstrip())
+
+        # Pop indent stack to find current context
+        while indent_stack and indent <= indent_stack[-1][0]:
+            indent_stack.pop()
+
+        # Determine parent context
+        parent = indent_stack[-1][2] if indent_stack else result
+
+        stripped = stripped.strip()
+
+        # List item
+        if stripped.startswith('- '):
+            item_val = stripped[2:].strip()
+            if isinstance(parent, list):
+                # Check if item is a dict start (key: value)
+                if ':' in item_val and not item_val.startswith("'") and not item_val.startswith('"'):
+                    item_dict: dict = {}
+                    k, v = item_val.split(':', 1)
+                    item_dict[k.strip()] = _yaml_value(v.strip())
+                    parent.append(item_dict)
+                    indent_stack.append((indent, '-', item_dict))
+                else:
+                    parent.append(_yaml_value(item_val))
+            continue
+
+        # Key: value
+        if ':' in stripped:
+            key, _, val = stripped.partition(':')
+            key = key.strip()
+            val = val.strip()
+
+            if val:
+                # Simple key: value
+                if isinstance(parent, dict):
+                    parent[key] = _yaml_value(val)
+            else:
+                # Key with nested content — peek at next non-empty line
+                next_indent = _next_line_indent(lines, lines.index(line + '\n') if (line + '\n') in lines else -1)
+                # Check if next content is a list or dict
+                next_stripped = _next_non_empty(lines, lines.index(line) if line in [l.rstrip() for l in lines] else -1, content)
+
+                if next_stripped and next_stripped.strip().startswith('- '):
+                    new_list: list = []
+                    if isinstance(parent, dict):
+                        parent[key] = new_list
+                    indent_stack.append((indent, key, new_list))
+                else:
+                    new_dict: dict = {}
+                    if isinstance(parent, dict):
+                        parent[key] = new_dict
+                    indent_stack.append((indent, key, new_dict))
+
+    return result
+
+
+def _next_non_empty(lines: list[str], current_idx: int, content: str) -> str | None:
+    """Find the next non-empty, non-comment line after current index."""
+    # Re-find index by matching lines
+    all_lines = content.split('\n')
+    for i in range(current_idx + 1, len(all_lines)):
+        s = all_lines[i].strip()
+        if s and not s.startswith('#'):
+            return all_lines[i]
+    return None
+
+
+def _next_line_indent(lines: list[str], current_idx: int) -> int:
+    """Get indent of next non-empty line."""
+    for i in range(current_idx + 1, len(lines)):
+        s = lines[i].strip()
+        if s and not s.startswith('#'):
+            return len(lines[i]) - len(lines[i].lstrip())
+    return 0
+
+
+def _yaml_value(val: str):
+    """Convert a YAML value string to Python type."""
+    if val.lower() == 'true':
+        return True
+    if val.lower() == 'false':
+        return False
+    if val.isdigit():
+        return int(val)
+    # Strip quotes
+    if (val.startswith("'") and val.endswith("'")) or (val.startswith('"') and val.endswith('"')):
+        return val[1:-1]
+    return val
+
+
+def discover_project(file_path: str) -> str | None:
+    """Match a file path to a known project name.
+
+    Returns profile name or None.
+    """
+    normalized = str(Path(file_path).resolve())
+    for name, root in _PROJECT_ROOTS.items():
+        resolved_root = str(Path(root).resolve())
+        if normalized.startswith(resolved_root):
+            return name
+    return None
+
+
+def _validate_project(output: str, profile: dict) -> dict:
+    """Generic project validation using a loaded profile.
+
+    Scans output for references to registry keys and route endpoints,
+    checking them against ground truth extracted from the project files.
+    """
+    details = {
+        "blocked": False,
+        "invalid_items": {},
+        "warnings": [],
+    }
+
+    root_path = Path(profile.get('root', '~')).expanduser()
+    if not root_path.exists():
+        details["warnings"].append(f"Cannot find project root {root_path} — skipping")
+        return details
+
+    # Load ground truth from registries
+    ground_truth: dict[str, set[str]] = {}
+    for i, reg in enumerate(profile.get('registries', [])):
+        reg_path = root_path / reg.get('path', '')
+        pattern = reg.get('pattern', '')
+        key = f"registries.{i}"
+        if reg_path.exists() and pattern:
+            content = reg_path.read_text()
+            ground_truth[key] = set(re.findall(pattern, content))
+
+    # Load ground truth from routes
+    for i, route in enumerate(profile.get('routes', [])):
+        route_path = root_path / route.get('path', '')
+        pattern = route.get('pattern', '')
+        key = f"routes.{i}"
+        if route_path.exists() and pattern:
+            content = route_path.read_text()
+            ground_truth[key] = set(re.findall(pattern, content))
+
+    # Run checks
+    for check_name, check_cfg in profile.get('checks', {}).items():
+        if not isinstance(check_cfg, dict):
+            continue
+        scan_pattern = check_cfg.get('scan_pattern', '')
+        source_key = check_cfg.get('source', '')
+        block_on_miss = check_cfg.get('block_on_miss', False)
+
+        if not scan_pattern or source_key not in ground_truth:
+            continue
+
+        valid_set = ground_truth[source_key]
+        if not valid_set:
+            continue
+
+        found = set(re.findall(scan_pattern, output))
+        invalid = found - valid_set
+        if invalid:
+            details["invalid_items"][check_name] = list(invalid)
+            details["warnings"].append(
+                f"{check_name}: {list(invalid)} not found in {source_key}"
+            )
+            if block_on_miss:
+                details["blocked"] = True
+
+    return details
+
 
 def validate_delegated_output(output: str, task_type: str = "general") -> dict:
     """Validate output from Gemini/Qwen before Claude uses it.
 
     Args:
         output: The raw text output from the delegated model.
-        task_type: One of "code", "file_analysis", "count", "general".
+        task_type: One of "code", "file_analysis", "count", "general",
+                   "entropic_test", or a profile name.
 
     Returns:
         dict with keys:
@@ -109,8 +327,9 @@ def validate_delegated_output(output: str, task_type: str = "general") -> dict:
     if len(output) > 100_000:
         result["warnings"].append(f"Output very large ({len(output)} chars) — may need truncation")
 
-    # --- 2. Injection scan (skip for entropic_test — codebase files legitimately use subprocess/exec) ---
-    if task_type != "entropic_test":
+    # --- 2. Injection scan (skip for project validators — codebase files legitimately use subprocess/exec) ---
+    skip_injection = task_type == "entropic_test" or _load_profile(task_type) is not None
+    if not skip_injection:
         for pattern in INJECTION_PATTERNS:
             match = pattern.search(output)
             if match:
@@ -132,7 +351,17 @@ def validate_delegated_output(output: str, task_type: str = "general") -> dict:
     elif task_type == "count":
         result["details"] = _validate_count(output)
     elif task_type == "entropic_test":
-        result["details"] = _validate_entropic_test(output)
+        # Backward compatible: use profile if available, else hardcoded
+        profile = _load_profile("entropic")
+        if profile:
+            result["details"] = _validate_project(output, profile)
+        else:
+            result["details"] = _validate_entropic_test(output)
+    else:
+        # Try loading as a profile name
+        profile = _load_profile(task_type)
+        if profile:
+            result["details"] = _validate_project(output, profile)
 
     # Propagate task-specific blocks
     if result["details"].get("blocked"):

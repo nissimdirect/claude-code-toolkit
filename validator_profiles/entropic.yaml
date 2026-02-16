@@ -1,0 +1,18 @@
+name: entropic
+root: ~/Development/entropic
+registries:
+  - path: effects/__init__.py
+    type: python_dict_keys
+    pattern: '"([a-z_]+)":\s*\{'
+routes:
+  - path: server.py
+    pattern: '@app\.(?:get|post|put|delete|patch)\("([^"]+)"'
+checks:
+  effect_names:
+    scan_pattern: '(?:["\']?name["\']?\s*:\s*["\']([a-z_]+)["\'])'
+    source: registries.0
+    block_on_miss: true
+  endpoints:
+    scan_pattern: '(?:client\.(?:get|post|put|delete|patch)\(["'']|fetch\(["'']|(?:requests|axios)\.(?:get|post|put|delete|patch)\(["'']|\$\.(?:get|post|ajax)\(["''])(/api/[^"'']+)["\']'
+    source: routes.0
+    block_on_miss: false
