@@ -124,7 +124,7 @@ rules:
     tool_triggers: [skill, bash, edit]
     antigens: ["Mistake #36"]
     connections: {R9: 0.3, R4: 0.3}
-    reminder: "Before every action: Skill? Read? Doing? Code? Verify?"
+    reminder: "Before every action: Skill? Read? Doing? Code? Verify? Fixing? Fix root cause first, then test."
 
   - id: R42
     principle_id: P10
