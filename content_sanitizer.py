@@ -85,6 +85,10 @@ PROMPT_INJECTION = [
     re.compile(r'(?:system|admin|root)\s*(?:prompt|override|command|instruction)\s*:', re.IGNORECASE),
     re.compile(r'</?\s*(?:system|admin|root)\s*(?:prompt|message|instruction)\s*/?>', re.IGNORECASE),
     re.compile(r'\[SYSTEM\]|\[ADMIN\]|\[OVERRIDE\]|\[INSTRUCTION\]', re.IGNORECASE),
+    # Llama/Mistral instruction format injections
+    re.compile(r'\[/?INST\]', re.IGNORECASE),
+    re.compile(r'<<\s*SYS\s*>>.*?<<\s*/SYS\s*>>', re.IGNORECASE | re.DOTALL),
+    re.compile(r'\[/?INST\]\s*(?:ignore|disregard|forget|override)', re.IGNORECASE),
 ]
 
 # 4. Command injection (attempts to execute code via LLM output)
@@ -100,6 +104,9 @@ COMMAND_INJECTION = [
 
 # 5. Markdown/XML structure attacks (trying to break out of content context)
 STRUCTURE_ATTACKS = [
+    # Script tags (XSS / injection in scraped HTML that wasn't fully stripped)
+    re.compile(r'<\s*script\b[^>]*>.*?</\s*script\s*>', re.IGNORECASE | re.DOTALL),
+    re.compile(r'<\s*script\b[^>]*/\s*>', re.IGNORECASE),  # self-closing <script/>
     # Fake XML tags that mimic system prompts
     re.compile(r'<\s*/?(?:system[-_]?(?:prompt|message|instruction)|admin[-_]?(?:override|command)|assistant[-_]?(?:instruction|override))\s*/?>', re.IGNORECASE),
     # Triple-backtick fence breaking (trying to escape code blocks)
