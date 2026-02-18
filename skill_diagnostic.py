@@ -635,6 +635,8 @@ class SkillDiagnostic:
             results = self._run_expand_test_set(skill)
         elif mode == "usage-report":
             results = self._run_usage_report()
+        elif mode == "opinion-strength":
+            results = self._run_opinion_strength(skill)
         else:
             print(f"Unknown mode: {mode}", file=sys.stderr)
             sys.exit(1)
@@ -1205,6 +1207,87 @@ class SkillDiagnostic:
             "active_skills": len(usage),
         }
 
+    def _run_opinion_strength(self, skill: str) -> dict:
+        """Measure opinion strength of a skill's SKILL.md via regex-based scoring.
+
+        Metrics (each 0-25, total 0-100):
+        - hedging_score: Low hedging = high score (penalizes "might", "perhaps", "could be")
+        - conviction_score: Conviction markers ("must", "always", "never", "non-negotiable")
+        - specificity_score: Specific references (names, numbers, source citations)
+        - attribution_score: KB source attribution ("Source:", article counts, named experts)
+        """
+        print(f"\n=== Opinion Strength: {skill} ===")
+        skill_path = Path.home() / ".claude" / "skills" / skill / "SKILL.md"
+        if not skill_path.exists():
+            print(f"  ERROR: {skill_path} not found")
+            return {"error": f"SKILL.md not found for {skill}"}
+
+        text = skill_path.read_text(encoding="utf-8", errors="replace")
+        words = text.split()
+        word_count = len(words)
+        text_lower = text.lower()
+
+        if word_count < 50:
+            print(f"  Too short ({word_count} words)")
+            return {"score": 0, "word_count": word_count}
+
+        # 1. Hedging score (low hedging = high score)
+        hedging_words = [
+            "might", "maybe", "perhaps", "possibly", "could be", "it depends",
+            "in some cases", "generally", "tends to", "arguably", "debatable",
+            "it varies", "sometimes", "not always", "hard to say",
+        ]
+        hedge_count = sum(text_lower.count(h) for h in hedging_words)
+        hedge_ratio = hedge_count / max(word_count / 100, 1)  # per 100 words
+        hedging_score = max(0, 25 - int(hedge_ratio * 8))  # 0 hedges=25, 3+=1
+
+        # 2. Conviction score (strong position markers)
+        conviction_markers = [
+            "must", "always", "never", "non-negotiable", "critical", "essential",
+            "the most important", "fundamental", "required", "mandatory",
+            "do not", "is not optional", "fails", "broken",
+        ]
+        conviction_count = sum(text_lower.count(c) for c in conviction_markers)
+        conv_ratio = conviction_count / max(word_count / 100, 1)
+        conviction_score = min(25, int(conv_ratio * 6))  # 4+ per 100 words = 25
+
+        # 3. Specificity score (names, numbers, concrete references)
+        import re as _re
+        # Count numbers (years, article counts, percentages)
+        number_matches = len(_re.findall(r'\b\d{2,}\b', text))
+        # Count proper nouns (capitalized words not at sentence start)
+        proper_nouns = len(_re.findall(r'(?<=[a-z]\s)[A-Z][a-z]{2,}', text))
+        spec_raw = number_matches + proper_nouns
+        spec_ratio = spec_raw / max(word_count / 100, 1)
+        specificity_score = min(25, int(spec_ratio * 3))
+
+        # 4. Attribution score (source citations)
+        attribution_markers = [
+            "source:", "(source:", "articles)", "case studies", "interviews",
+            "profiles", "specimens", "critiques", "episodes",
+        ]
+        attr_count = sum(text_lower.count(a) for a in attribution_markers)
+        attr_ratio = attr_count / max(word_count / 100, 1)
+        attribution_score = min(25, int(attr_ratio * 12))
+
+        total = hedging_score + conviction_score + specificity_score + attribution_score
+
+        print(f"  Word count: {word_count}")
+        print(f"  Hedging:     {hedging_score}/25 ({hedge_count} hedge words)")
+        print(f"  Conviction:  {conviction_score}/25 ({conviction_count} markers)")
+        print(f"  Specificity: {specificity_score}/25 ({spec_raw} specific refs)")
+        print(f"  Attribution: {attribution_score}/25 ({attr_count} citations)")
+        print(f"  TOTAL:       {total}/100")
+
+        return {
+            "score": total,
+            "word_count": word_count,
+            "hedging": {"score": hedging_score, "count": hedge_count},
+            "conviction": {"score": conviction_score, "count": conviction_count},
+            "specificity": {"score": specificity_score, "count": spec_raw},
+            "attribution": {"score": attribution_score, "count": attr_count},
+        }
+
     def _run_health_all(self) -> dict:
         """Lightweight scan across all diagnosable skills."""
         print(f"\n{'='*50}")
@@ -1359,6 +1442,8 @@ def main():
                        help="Generate test questions from KB article titles/headers ($0)")
     modes.add_argument("--usage-report", action="store_true",
                        help="Parse user-input-log.md for skill invocation stats ($0)")
+    modes.add_argument("--opinion-strength", action="store_true",
+                       help="Measure opinion strength of a skill's SKILL.md ($0)")
 
     # Options
     parser.add_argument("--model", choices=["haiku", "sonnet"], default="haiku")
@@ -1389,7 +1474,8 @@ def main():
     mode = None
     for m in ["map", "dry_run", "generate", "analyze", "rebuttal", "full",
               "post_scrape", "health", "report", "diff", "directive_audit",
-              "validate_skill", "expand_test_set", "usage_report"]:
+              "validate_skill", "expand_test_set", "usage_report",
+              "opinion_strength"]:
         if getattr(args, m, False):
             mode = m.replace("_", "-")
             break
