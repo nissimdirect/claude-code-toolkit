@@ -21,7 +21,7 @@ can read code but cannot observe what happens when it runs.
 
 | Component | Status | Location |
 |-----------|--------|----------|
-| MCP Config | DONE | `~/.claude/.mcp.json` → `https://mcp.sentry.dev/mcp` |
+| MCP Config | DONE | `~/.claude/.mcp.json` → `@sentry/mcp-server-stdio` (stdio, `SENTRY_AUTH_TOKEN`) |
 | Sentry SDK | DONE | `sentry-sdk==2.53.0` installed globally |
 | Entropic init | DONE | `server.py` lines 20-26, reads `SENTRY_DSN` env var |
 | OAuth Auth | **USER BLOCKER #27** | Run `/mcp` → Sentry → Authenticate after restart |
@@ -141,7 +141,21 @@ What happens:
 | `/ship` | Ship checklist: "Check Sentry after deploy" |
 | `/session-close` | Report: "Sentry: N new errors this session" |
 | `/today` | Morning check: "Any overnight errors?" |
-| `debug-session` (WF#35) | Step 3: Fetch Sentry traces before adding logging |
+| `debug-session` (WF#35) | Step 0: Fetch Sentry traces before adding logging |
+
+### Companion Tool: Playwright MCP
+
+Playwright MCP complements Sentry by providing **visual verification** where Sentry provides **runtime data**:
+
+| Scenario | Sentry Provides | Playwright Provides |
+|----------|----------------|-------------------|
+| Bug report | Stack trace, error context | Visual reproduction, screenshot of failure |
+| Post-fix verify | 0 error recurrence | UI renders correctly, user flow works |
+| Pre-ship check | No new runtime errors | All buttons/forms functional |
+| Security audit | Error info leakage | CSRF tokens present, redirects work |
+
+**Combined workflow:** Sentry finds the error → Playwright reproduces it visually → Fix applied → Sentry confirms no recurrence → Playwright confirms UI works.
+Config: `~/.claude/.mcp.json` → `@playwright/mcp@latest`
 
 ### In Compound Engineering Loops
 
