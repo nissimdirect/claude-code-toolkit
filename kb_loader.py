@@ -24,6 +24,7 @@ import subprocess
 import re
 import sys
 import time
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -58,19 +59,18 @@ ADVISORS = {
         "name": "Music Business (Cherie Hu + Jesse Cannon + Ari Herstand + Bandzoogle Blog)",
         "source": "Water & Music + Music Marketing Trends + Ari's Take + DMN + Bandzoogle Blog + Guest Articles",
         "article_dirs": [
+            # music-biz exclusive: analytics, strategy, indie business
             Path("~/Development/cherie-hu/articles").expanduser(),
-            Path("~/Development/jesse-cannon/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand-dmn/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand-guest/articles").expanduser(),
-            # Full Bandzoogle blog (direct-to-fan marketing, artist websites)
+            # Shared with label: tactics, direct-to-fan
+            Path("~/Development/jesse-cannon/articles").expanduser(),
             Path("~/Development/music-marketing/bandzoogle-blog/articles").expanduser(),
-            # Ditto Music blog (indie marketing, distribution)
-            Path("~/Development/music-production/ditto-music/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 3860,  # Verified 2026-02-14
+        "article_count": 3628,  # Removed ditto-music (232) from music-biz
         "excerpt_lines": 40,
     },
     "chatprd": {
@@ -558,27 +558,20 @@ ADVISORS = {
         "excerpt_lines": 50,
     },
     "label": {
-        "name": "Record Label (Music Business + Hypebot + MBW + Bandzoogle Blog)",
-        "source": "Music Biz (Cherie + Jesse + Ari) + Hypebot + Music Business Worldwide + Bandzoogle Blog",
+        "name": "Record Label (Hypebot + MBW + Ditto + Jesse + Bandzoogle)",
+        "source": "Hypebot + Music Business Worldwide + Ditto Music + Jesse Cannon + Bandzoogle Blog",
         "article_dirs": [
-            # All music-biz sources
-            Path("~/Development/cherie-hu/articles").expanduser(),
+            # Shared with music-biz: tactics, direct-to-fan
             Path("~/Development/jesse-cannon/articles").expanduser(),
-            Path("~/Development/music-marketing/ari-herstand/articles").expanduser(),
-            Path("~/Development/music-marketing/ari-herstand-dmn/articles").expanduser(),
-            Path("~/Development/music-marketing/ari-herstand-guest/articles").expanduser(),
-            # Bandzoogle blog (direct-to-fan, artist websites)
             Path("~/Development/music-marketing/bandzoogle-blog/articles").expanduser(),
-            # Hypebot (label-specific: indie news, streaming, deals)
+            # Label exclusive: industry news, streaming economics, distribution
             Path("~/Development/music-business/hypebot/articles").expanduser(),
-            # Music Business Worldwide (streaming economics, label deals)
             Path("~/Development/music-business/music-biz-worldwide/articles").expanduser(),
-            # Ditto Music blog (indie marketing, distribution)
             Path("~/Development/music-production/ditto-music/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 7860,  # Verified 2026-02-14
+        "article_count": 5406,  # Removed cherie (1710) + ari (744) from label
         "excerpt_lines": 40,
     },
     "audio-production": {
@@ -1330,6 +1323,38 @@ DOMAIN_BOOST_PER_HIT = 2.0
 DOMAIN_BOOST_CAP = 6.0  # Max total multiplier from domain relevance
 
 
+
+# ── Query Expansion ────────────────────────────────────────────
+# Domain synonyms: common abbreviations/aliases → expanded forms
+QUERY_SYNONYMS = {
+    "seo": ["search engine optimization", "rankings"],
+    "ux": ["user experience", "usability"],
+    "dsp": ["digital signal processing", "audio processing"],
+    "ui": ["user interface", "interface design"],
+    "dx": ["developer experience"],
+    "ci": ["continuous integration"],
+    "cd": ["continuous deployment", "continuous delivery"],
+    "api": ["application programming interface", "endpoint"],
+    "eq": ["equalizer", "equalization"],
+    "daw": ["digital audio workstation"],
+    "midi": ["musical instrument digital interface"],
+    "lfo": ["low frequency oscillator"],
+    "adsr": ["attack decay sustain release", "envelope"],
+    "vst": ["virtual studio technology", "plugin"],
+    "au": ["audio unit", "plugin"],
+    "wdf": ["wave digital filter"],
+    "va": ["virtual analog"],
+    "ml": ["machine learning"],
+    "ai": ["artificial intelligence"],
+    "pmf": ["product market fit"],
+}
+
+
+# ── Confidence Gating ──────────────────────────────────────────
+MIN_HITS_FOR_CONFIDENCE = 3  # Below this, show low-confidence warning
+MIN_KB_ARTICLES = 25  # Below this, show degraded KB warning
+
+
 class KBLoader:
     """Knowledge Base Loader - searches advisor KBs and returns context."""
 
@@ -1345,6 +1370,48 @@ class KBLoader:
         key = name.lower().strip()
         return self.aliases.get(key)
 
+    @staticmethod
+    def _expand_query_terms(query: str) -> list[tuple[str, float]]:
+        """Expand query into weighted (term, weight) pairs using 3 layers.
+
+        Layer 1: Original terms (weight 1.0)
+        Layer 2: Porter-stemmed variants (weight 0.7)
+        Layer 3: Domain synonyms (weight 0.5)
+        """
+        try:
+            from porter_stemmer import stem
+        except ImportError:
+            stem = None
+
+        raw_terms = query.lower().split()
+        expanded = []
+        seen = set()
+
+        # Layer 1: Original terms
+        for t in raw_terms:
+            if t not in seen:
+                expanded.append((t, 1.0))
+                seen.add(t)
+
+        # Layer 2: Stemmed variants
+        if stem:
+            for t in raw_terms:
+                stemmed = stem(t)
+                if stemmed and stemmed != t and stemmed not in seen:
+                    expanded.append((stemmed, 0.7))
+                    seen.add(stemmed)
+
+        # Layer 3: Domain synonyms
+        for t in raw_terms:
+            for synonym in QUERY_SYNONYMS.get(t, []):
+                # Synonyms can be multi-word; add each word separately
+                for word in synonym.lower().split():
+                    if word not in seen:
+                        expanded.append((word, 0.5))
+                        seen.add(word)
+
+        return expanded
+
     def search(self, advisor: str, query: str, max_results: int = 5) -> list[dict]:
         """Search an advisor's KB for articles matching query.
 
@@ -1355,19 +1422,20 @@ class KBLoader:
             return []
 
         config = self.advisors[key]
-        matches = []
+        # weighted_matches: path → cumulative weighted score
+        weighted_matches: dict[str, float] = {}
 
-        # Split query into search terms
-        terms = query.lower().split()
+        # Expand query into weighted terms
+        expanded_terms = self._expand_query_terms(query)
+        # Keep raw terms for dynamic weight computation
+        raw_terms = query.lower().split()
 
         for article_dir in config["article_dirs"]:
             if not article_dir.exists():
                 continue
 
-            # Use ripgrep for fast search (fall back to grep)
             import re as _re
-            for term in terms:
-                # Escape regex special chars to prevent ReDoS / unintended matches
+            for term, weight in expanded_terms:
                 safe_term = _re.escape(term)
                 try:
                     result = subprocess.run(
@@ -1377,9 +1445,8 @@ class KBLoader:
                     if result.returncode == 0:
                         for path in result.stdout.strip().split("\n"):
                             if path and path.endswith(".md"):
-                                matches.append(path)
+                                weighted_matches[path] = weighted_matches.get(path, 0) + weight
                 except (FileNotFoundError, subprocess.TimeoutExpired):
-                    # Fall back to grep
                     try:
                         result = subprocess.run(
                             ["grep", "-rl", "-i", safe_term, str(article_dir)],
@@ -1388,14 +1455,25 @@ class KBLoader:
                         if result.returncode == 0:
                             for path in result.stdout.strip().split("\n"):
                                 if path and path.endswith(".md"):
-                                    matches.append(path)
+                                    weighted_matches[path] = weighted_matches.get(path, 0) + weight
                     except subprocess.TimeoutExpired:
                         pass
 
-        # Score by frequency * dynamic weight (quality × domain relevance)
-        from collections import Counter
-        freq = Counter(matches)
-        scored = sorted(freq.items(), key=lambda x: -(x[1] * self._compute_dynamic_weight(x[0], terms)))
+        # Score by weighted frequency * dynamic weight (quality × domain relevance)
+        scored = sorted(
+            weighted_matches.items(),
+            key=lambda x: -(x[1] * self._compute_dynamic_weight(x[0], raw_terms))
+        )
+
+        # Apply recency boost to top 20 pre-scored results only (minimize I/O)
+        top_candidates = scored[:20]
+        if top_candidates:
+            recency_scored = [
+                (path, score * self._compute_recency_boost(path))
+                for path, score in top_candidates
+            ]
+            recency_scored.sort(key=lambda x: -x[1])
+            scored = recency_scored + scored[20:]
 
         # Extract metadata and excerpts for top results
         results = []
@@ -1521,6 +1599,70 @@ class KBLoader:
         except Exception:
             return None
 
+    @staticmethod
+    def _compute_recency_boost(path: str) -> float:
+        """Compute recency multiplier from article date in YAML frontmatter.
+
+        Returns: 1.2 (<1yr), 1.0 (1-3yr), 0.8 (>3yr), 1.0 (no date found).
+        Only reads first 20 lines to minimize I/O.
+        """
+        try:
+            p = Path(path)
+            lines = p.read_text(encoding="utf-8", errors="replace").split("\n")[:20]
+
+            date_str = None
+            for line in lines:
+                stripped = line.strip()
+                # YAML frontmatter: date: 2024-01-15 or date: "January 2024"
+                if stripped.startswith("date:") or stripped.startswith("publish_date:") or stripped.startswith("date_published:"):
+                    date_str = stripped.split(":", 1)[1].strip().strip("\"'")
+                    break
+                # Markdown format: **Date:** 2024-01-15
+                if stripped.startswith("**Date:**"):
+                    date_str = stripped.replace("**Date:**", "").strip()
+                    break
+
+            if not date_str:
+                return 1.0
+
+            # Parse year from various date formats
+            year_match = re.search(r'20[12]\d', date_str)
+            if not year_match:
+                return 1.0
+
+            year = int(year_match.group())
+            current_year = datetime.now().year
+            age = current_year - year
+
+            if age < 1:
+                return 1.2
+            elif age <= 3:
+                return 1.0
+            else:
+                return 0.8
+        except (OSError, ValueError):
+            return 1.0
+
+    @staticmethod
+    def _suggest_alternates(query: str, current_advisor: str) -> list[str]:
+        """Suggest alternate advisors that might handle this query better."""
+        query_lower = query.lower()
+        suggestions = []
+        # Check which advisor domains overlap with the query terms
+        for source_key, domain_keywords in SOURCE_DOMAINS.items():
+            hits = sum(1 for dk in domain_keywords if dk in query_lower)
+            if hits >= 2:
+                # Find which advisor owns this source
+                for adv_key, adv_config in ADVISORS.items():
+                    if adv_key == current_advisor:
+                        continue
+                    for d in adv_config["article_dirs"]:
+                        if source_key in str(d):
+                            if adv_key not in suggestions:
+                                suggestions.append(adv_key)
+                            break
+        return suggestions[:3]
+
     def get_context(self, advisor: str, query: str,
                     max_tokens: int = 4000, max_results: int = 5) -> str:
         """Get formatted context block ready for prompt injection.
@@ -1537,6 +1679,16 @@ class KBLoader:
 
         config = self.advisors[key]
 
+        # Sprint 2.5: MIN_KB_THRESHOLD gate
+        warnings = []
+        article_count = config.get("article_count", 0)
+        if article_count < MIN_KB_ARTICLES:
+            warnings.append(
+                f"**DEGRADED KB** — {config['name']} has only {article_count} articles "
+                f"(minimum recommended: {MIN_KB_ARTICLES}). Results may be incomplete. "
+                "Consider expanding this knowledge base."
+            )
+
         # Also check index files for Lenny (topic-based lookup)
         index_context = ""
         if config["index_dir"] and config["index_dir"].exists():
@@ -1544,16 +1696,32 @@ class KBLoader:
 
         results = self.search(advisor, query, max_results=max_results)
 
+        # Sprint 2.2: Confidence gating
+        if len(results) < MIN_HITS_FOR_CONFIDENCE:
+            alternates = self._suggest_alternates(query, key)
+            alt_str = ", ".join(f"`/skill {a}`" for a in alternates) if alternates else "none found"
+            warnings.append(
+                f"**WARNING: LOW CONFIDENCE** — Only {len(results)} article(s) matched. "
+                f"This query may be outside {config['name']}'s domain. "
+                f"Try alternate advisors: {alt_str}"
+            )
+
         if not results and not index_context:
-            return f"[No relevant articles found in {config['name']}'s knowledge base for: {query}]"
+            prefix = "\n".join(warnings) + "\n\n" if warnings else ""
+            return prefix + f"[No relevant articles found in {config['name']}'s knowledge base for: {query}]"
 
         # Build context block
-        lines = [
+        lines = []
+        if warnings:
+            lines.extend(warnings)
+            lines.append("")
+
+        lines.extend([
             f"## Knowledge Base Context: {config['name']} ({config['source']})",
             f"Query: \"{query}\"",
             f"Matched: {len(results)} articles from {config['article_count']} total",
             "",
-        ]
+        ])
 
         if index_context:
             lines.append("### Topic Index Matches")

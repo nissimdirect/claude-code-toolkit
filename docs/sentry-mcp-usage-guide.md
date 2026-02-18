@@ -21,11 +21,11 @@ can read code but cannot observe what happens when it runs.
 
 | Component | Status | Location |
 |-----------|--------|----------|
-| MCP Config | DONE | `~/.claude/.mcp.json` → `@sentry/mcp-server-stdio` (stdio, `SENTRY_AUTH_TOKEN`) |
+| MCP Config | DONE | `~/.claude/.mcp.json` → `@sentry/mcp-server` (stdio, `--access-token` flag) |
 | Sentry SDK | DONE | `sentry-sdk==2.53.0` installed globally |
 | Entropic init | DONE | `server.py` lines 20-26, reads `SENTRY_DSN` env var |
-| OAuth Auth | **USER BLOCKER #27** | Run `/mcp` → Sentry → Authenticate after restart |
-| SENTRY_DSN | **USER BLOCKER #27** | Create project at sentry.io → get DSN → `export SENTRY_DSN=...` |
+| Auth Token | DONE | `SENTRY_AUTH_TOKEN` env var set in `.zshrc` |
+| SENTRY_DSN | DONE | `SENTRY_DSN` env var set in `.zshrc` |
 
 ---
 

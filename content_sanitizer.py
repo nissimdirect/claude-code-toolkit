@@ -263,6 +263,32 @@ def sanitize_directory(
     return reports
 
 
+def sanitize_before_write(content: str, filepath: Path | None = None) -> str:
+    """Sanitize content before writing to disk. For use in scraper pipelines.
+
+    Returns sanitized content. Raises ValueError if content is blocked (too contaminated).
+    If filepath is provided, logs the file path in warnings.
+    """
+    if not content or not content.strip():
+        return content
+
+    sanitized, report = sanitize_content(content)
+
+    if report.blocked:
+        label = str(filepath) if filepath else "<unknown>"
+        raise ValueError(
+            f"Content blocked — too contaminated to use ({report.items_removed} items "
+            f"across {len(report.patterns_matched)} categories): {label}"
+        )
+
+    if report.items_removed > 0:
+        label = str(filepath) if filepath else "<stdin>"
+        print(f"  [SANITIZED] {label}: removed {report.items_removed} item(s) "
+              f"({', '.join(report.patterns_matched)})", file=sys.stderr)
+
+    return sanitized
+
+
 def main():
     """CLI entry point."""
     import argparse

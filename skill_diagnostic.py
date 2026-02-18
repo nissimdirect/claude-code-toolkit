@@ -629,6 +629,12 @@ class SkillDiagnostic:
             results = self._run_health_all()
         elif mode == "directive-audit":
             results = self._run_directive_audit()
+        elif mode == "validate-skill":
+            results = self._run_validate_skill(skill)
+        elif mode == "expand-test-set":
+            results = self._run_expand_test_set(skill)
+        elif mode == "usage-report":
+            results = self._run_usage_report()
         else:
             print(f"Unknown mode: {mode}", file=sys.stderr)
             sys.exit(1)
@@ -887,6 +893,318 @@ class SkillDiagnostic:
             "avg_lines": round(avg_lines),
         }
 
+    def _run_validate_skill(self, skill: str) -> dict:
+        """Validate a single skill against governance checklist. $0.
+
+        Checks:
+        - SKILL.md exists and line count ≤300 (warn) / ≤500 (fail)
+        - Has ## Domain Boundaries section (warn if missing for KB-backed skills)
+        - Code blocks ≤10 (warn if exceeded)
+        - Has references/ dir if line count >200
+        - If KB-backed: matching entry in ADVISORS dict
+        - Sections <15
+        """
+        from kb_loader import ADVISORS
+
+        skill_dir = SKILLS_DIR / skill
+        skill_md = skill_dir / "SKILL.md"
+        refs_dir = skill_dir / "references"
+
+        results = {"skill": skill, "checks": [], "verdict": "PASS"}
+
+        if not skill_md.exists():
+            results["checks"].append({"check": "skill_md_exists", "status": "FAIL",
+                                       "detail": f"SKILL.md not found at {skill_md}"})
+            results["verdict"] = "FAIL"
+            self._print_validate(results)
+            return results
+
+        text = skill_md.read_text(encoding="utf-8")
+        lines = text.splitlines()
+        line_count = len(lines)
+        sections = [l for l in lines if l.startswith("## ")]
+        code_blocks = text.count("```") // 2
+        has_boundaries = any("Domain Boundaries" in s for s in sections)
+        has_refs = refs_dir.exists() and any(refs_dir.iterdir())
+        is_kb_backed = skill in ADVISORS or skill.replace("-", "_") in ADVISORS
+
+        # Check 1: Line count
+        if line_count > 500:
+            results["checks"].append({"check": "line_count", "status": "FAIL",
+                                       "detail": f"{line_count} lines (max 500)"})
+            results["verdict"] = "FAIL"
+        elif line_count > 300:
+            results["checks"].append({"check": "line_count", "status": "WARN",
+                                       "detail": f"{line_count} lines (target ≤300)"})
+            if results["verdict"] == "PASS":
+                results["verdict"] = "WARN"
+        else:
+            results["checks"].append({"check": "line_count", "status": "PASS",
+                                       "detail": f"{line_count} lines"})
+
+        # Check 2: Domain Boundaries
+        if not has_boundaries and is_kb_backed:
+            results["checks"].append({"check": "domain_boundaries", "status": "WARN",
+                                       "detail": "Missing ## Domain Boundaries (KB-backed skill)"})
+            if results["verdict"] == "PASS":
+                results["verdict"] = "WARN"
+        elif has_boundaries:
+            results["checks"].append({"check": "domain_boundaries", "status": "PASS",
+                                       "detail": "Present"})
+        else:
+            results["checks"].append({"check": "domain_boundaries", "status": "INFO",
+                                       "detail": "Missing (not KB-backed, optional)"})
+
+        # Check 3: Code blocks
+        if code_blocks > 10:
+            results["checks"].append({"check": "code_blocks", "status": "WARN",
+                                       "detail": f"{code_blocks} code blocks (consider extracting to references/)"})
+            if results["verdict"] == "PASS":
+                results["verdict"] = "WARN"
+        else:
+            results["checks"].append({"check": "code_blocks", "status": "PASS",
+                                       "detail": f"{code_blocks} code blocks"})
+
+        # Check 4: References dir
+        if line_count > 200 and not has_refs:
+            results["checks"].append({"check": "references_dir", "status": "WARN",
+                                       "detail": f"{line_count} lines but no references/ dir"})
+            if results["verdict"] == "PASS":
+                results["verdict"] = "WARN"
+        elif has_refs:
+            ref_count = sum(1 for _ in refs_dir.glob("*.md"))
+            results["checks"].append({"check": "references_dir", "status": "PASS",
+                                       "detail": f"references/ has {ref_count} files"})
+        else:
+            results["checks"].append({"check": "references_dir", "status": "PASS",
+                                       "detail": "Not needed (<200 lines)"})
+
+        # Check 5: ADVISORS entry
+        if is_kb_backed:
+            results["checks"].append({"check": "advisors_entry", "status": "PASS",
+                                       "detail": "Found in ADVISORS dict"})
+        elif any(kw in text.lower() for kw in ["knowledge base", "kb_loader", "--advisor"]):
+            results["checks"].append({"check": "advisors_entry", "status": "WARN",
+                                       "detail": "References KB but no ADVISORS entry"})
+            if results["verdict"] == "PASS":
+                results["verdict"] = "WARN"
+        else:
+            results["checks"].append({"check": "advisors_entry", "status": "INFO",
+                                       "detail": "Not KB-backed"})
+
+        # Check 6: Section count
+        if len(sections) >= 15:
+            results["checks"].append({"check": "section_count", "status": "WARN",
+                                       "detail": f"{len(sections)} sections (consider splitting)"})
+            if results["verdict"] == "PASS":
+                results["verdict"] = "WARN"
+        else:
+            results["checks"].append({"check": "section_count", "status": "PASS",
+                                       "detail": f"{len(sections)} sections"})
+
+        self._print_validate(results)
+        return results
+
+    @staticmethod
+    def _print_validate(results: dict):
+        """Pretty-print validation results."""
+        verdict = results["verdict"]
+        icon = {"PASS": "PASS", "WARN": "WARN", "FAIL": "FAIL"}[verdict]
+        print(f"\n=== Validate Skill: {results['skill']} → {icon} ===")
+        for check in results["checks"]:
+            status = check["status"]
+            marker = {"PASS": "  OK", "WARN": "WARN", "FAIL": "FAIL", "INFO": "INFO"}[status]
+            print(f"  [{marker}] {check['check']}: {check['detail']}")
+
+    @staticmethod
+    def _compute_content_density(advisor_key: str) -> dict:
+        """Compute content density for a KB source. Sample up to 50 articles.
+
+        Returns: {avg_body_chars, sample_size, classification}
+        classification: "strategic" (>= 200 chars avg), "catalog" (< 200 chars avg)
+        """
+        kb = _get_kb_loader()
+        config = kb.advisors.get(advisor_key)
+        if not config:
+            return {"error": f"Unknown advisor: {advisor_key}"}
+
+        sizes = []
+        for article_dir in config["article_dirs"]:
+            if not article_dir.exists():
+                continue
+            files = sorted(article_dir.glob("*.md"))
+            # Sample evenly across the directory
+            step = max(1, len(files) // 50)
+            for f in files[::step]:
+                try:
+                    text = f.read_text(encoding="utf-8", errors="replace")
+                    # Strip YAML frontmatter
+                    if text.startswith("---"):
+                        end = text.find("---", 3)
+                        if end > 0:
+                            text = text[end + 3:]
+                    # Strip markdown headers/images/links
+                    text = re.sub(r'^#+\s.*$', '', text, flags=re.MULTILINE)
+                    text = re.sub(r'!\[.*?\]\(.*?\)', '', text)
+                    text = re.sub(r'\[([^\]]*)\]\([^\)]*\)', r'\1', text)
+                    body = text.strip()
+                    sizes.append(len(body))
+                except OSError:
+                    pass
+                if len(sizes) >= 50:
+                    break
+            if len(sizes) >= 50:
+                break
+
+        if not sizes:
+            return {"avg_body_chars": 0, "sample_size": 0, "classification": "empty"}
+
+        avg = sum(sizes) / len(sizes)
+        return {
+            "avg_body_chars": round(avg),
+            "sample_size": len(sizes),
+            "classification": "strategic" if avg >= 200 else "catalog",
+        }
+
+    def _run_expand_test_set(self, skill: str) -> dict:
+        """Generate expanded test questions from KB article titles and H2 headers.
+
+        Samples 20 random articles from the advisor's KB, extracts titles and H2 headers,
+        and converts them to test questions. Saves to diagnostic-expanded/{skill}.json.
+        """
+        print(f"\n=== Expand Test Set: {skill} ===")
+        kb = _get_kb_loader()
+        config = kb.advisors.get(skill)
+        if not config:
+            print(f"  ERROR: Unknown advisor '{skill}'")
+            return {"error": f"Unknown advisor: {skill}"}
+
+        # Collect all .md files across article dirs
+        all_files = []
+        for article_dir in config["article_dirs"]:
+            if article_dir.exists():
+                all_files.extend(list(article_dir.glob("*.md")))
+
+        if not all_files:
+            print(f"  No articles found on disk")
+            return {"questions": [], "source_count": 0}
+
+        # Sample up to 20 random articles
+        import random
+        sample_size = min(20, len(all_files))
+        sampled = random.sample(all_files, sample_size)
+
+        questions = []
+        for f in sampled:
+            try:
+                text = f.read_text(encoding="utf-8", errors="replace")
+                lines = text.split("\n")
+
+                # Extract title from YAML frontmatter or H1
+                title = None
+                for line in lines[:20]:
+                    stripped = line.strip()
+                    if stripped.startswith("# ") and not title:
+                        title = stripped[2:].strip()
+                    elif stripped.startswith("title:"):
+                        title = stripped.replace("title:", "").strip().strip("\"'")
+
+                # Extract H2 headers
+                h2s = []
+                for line in lines:
+                    stripped = line.strip()
+                    if stripped.startswith("## ") and not stripped.startswith("### "):
+                        h2 = stripped[3:].strip()
+                        if h2 and len(h2) > 5:
+                            h2s.append(h2)
+
+                # Convert to questions
+                if title and len(title) > 5:
+                    questions.append({
+                        "source": f"title:{f.name}",
+                        "question": f"What is the key insight from '{title}'?",
+                    })
+
+                for h2 in h2s[:2]:  # Max 2 H2 questions per article
+                    questions.append({
+                        "source": f"h2:{f.name}",
+                        "question": f"Explain the concept of '{h2}' in the context of {config['name']}.",
+                    })
+            except OSError:
+                pass
+
+        # Save to diagnostic-expanded/{skill}.json
+        output_dir = Path.home() / ".claude" / ".locks" / "diagnostic-expanded"
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"{skill}.json"
+        output_data = {
+            "skill": skill,
+            "generated_at": datetime.now().isoformat(),
+            "article_pool": len(all_files),
+            "sampled": sample_size,
+            "questions": questions,
+        }
+        output_path.write_text(json.dumps(output_data, indent=2), encoding="utf-8")
+
+        print(f"  Articles on disk: {len(all_files)}")
+        print(f"  Sampled: {sample_size}")
+        print(f"  Generated questions: {len(questions)}")
+        print(f"  Saved: {output_path}")
+
+        return output_data
+
+    def _run_usage_report(self) -> dict:
+        """Parse user-input-log.md for /skillname invocations. Report usage stats."""
+        print(f"\n=== Skill Usage Report ===")
+        log_path = Path.home() / ".claude" / "projects" / "-Users-nissimagent" / "memory" / "user-input-log.md"
+
+        if not log_path.exists():
+            print(f"  ERROR: user-input-log.md not found at {log_path}")
+            return {"error": "user-input-log.md not found"}
+
+        text = log_path.read_text(encoding="utf-8", errors="replace")
+
+        # Find all /skill invocations (in quotes or at line start)
+        import re as _re
+        # Match /skillname patterns — word boundary after slash
+        slash_pattern = _re.compile(r'/([a-z][a-z0-9_-]{1,30})\b')
+        matches = slash_pattern.findall(text)
+
+        # Get list of real skills from skills directory
+        skills_dir = Path.home() / ".claude" / "skills"
+        real_skills = set()
+        if skills_dir.exists():
+            for d in skills_dir.iterdir():
+                if d.is_dir() and (d / "SKILL.md").exists():
+                    real_skills.add(d.name)
+
+        # Count only real skill invocations
+        usage: dict[str, int] = {}
+        for m in matches:
+            if m in real_skills:
+                usage[m] = usage.get(m, 0) + 1
+
+        # Build report table
+        sorted_usage = sorted(usage.items(), key=lambda x: -x[1])
+        dormant = real_skills - set(usage.keys())
+
+        print(f"\n  {'Skill':<25} {'Count':>5}")
+        print(f"  {'-'*25} {'-'*5}")
+        for skill_name, count in sorted_usage:
+            print(f"  {skill_name:<25} {count:>5}")
+
+        if dormant:
+            print(f"\n  Dormant skills (0 invocations in log): {len(dormant)}")
+            for s in sorted(dormant):
+                print(f"    - {s}")
+
+        return {
+            "usage": dict(sorted_usage),
+            "dormant": sorted(dormant),
+            "total_skills": len(real_skills),
+            "active_skills": len(usage),
+        }
+
     def _run_health_all(self) -> dict:
         """Lightweight scan across all diagnosable skills."""
         print(f"\n{'='*50}")
@@ -911,12 +1229,24 @@ class SkillDiagnostic:
                     except ValueError:
                         stale = True
 
+                # Content density check
+                density = self._compute_content_density(skill)
+
                 results[skill] = {
                     "has_corpus": has_corpus,
                     "stale_baseline": stale,
                     "source_count": map_results.get("source_mapping", {}).get("source_count", 0),
                     "cluster_count": len(map_results.get("source_mapping", {}).get("clusters", [])),
+                    "content_density": density,
                 }
+
+                # Print density info
+                cls = density.get("classification", "unknown")
+                avg = density.get("avg_body_chars", 0)
+                sample = density.get("sample_size", 0)
+                flag = " ⚠ CATALOG-TYPE" if cls == "catalog" else ""
+                print(f"  Content density: {avg} avg chars ({sample} sampled) → {cls}{flag}")
+
             except Exception as e:
                 results[skill] = {"error": str(e)}
                 print(f"  ERROR: {e}")
@@ -926,6 +1256,7 @@ class SkillDiagnostic:
         print(f"  HEALTH SUMMARY")
         print(f"{'='*50}")
         needs_attention = []
+        catalog_sources = []
         for skill, data in results.items():
             if data.get("error"):
                 needs_attention.append(f"{skill}: ERROR - {data['error']}")
@@ -933,6 +1264,10 @@ class SkillDiagnostic:
                 needs_attention.append(f"{skill}: No corpus (run --full)")
             elif data.get("stale_baseline"):
                 needs_attention.append(f"{skill}: Stale baseline (>30 days)")
+            # Flag catalog-type sources
+            density = data.get("content_density", {})
+            if density.get("classification") == "catalog":
+                catalog_sources.append(f"{skill}: avg {density.get('avg_body_chars', 0)} chars (catalog-type)")
 
         if needs_attention:
             print(f"\nNeeds Attention ({len(needs_attention)}):")
@@ -940,6 +1275,11 @@ class SkillDiagnostic:
                 print(f"  - {item}")
         else:
             print("\nAll skills healthy.")
+
+        if catalog_sources:
+            print(f"\nCatalog-Type Sources ({len(catalog_sources)}):")
+            for item in catalog_sources:
+                print(f"  - {item}")
 
         return results
 
@@ -1013,6 +1353,12 @@ def main():
     modes.add_argument("--diff", action="store_true", help="Compare to last baseline")
     modes.add_argument("--directive-audit", action="store_true",
                        help="Audit ALL skill files for bloat and specialization candidates ($0)")
+    modes.add_argument("--validate-skill", action="store_true",
+                       help="Validate a single skill against governance checklist ($0)")
+    modes.add_argument("--expand-test-set", action="store_true",
+                       help="Generate test questions from KB article titles/headers ($0)")
+    modes.add_argument("--usage-report", action="store_true",
+                       help="Parse user-input-log.md for skill invocation stats ($0)")
 
     # Options
     parser.add_argument("--model", choices=["haiku", "sonnet"], default="haiku")
@@ -1032,6 +1378,9 @@ def main():
     if args.directive_audit:
         args.all = True
 
+    if args.usage_report:
+        args.all = True
+
     if not args.skill and not args.all:
         print("ERROR: Specify --skill NAME or --all", file=sys.stderr)
         sys.exit(1)
@@ -1039,7 +1388,8 @@ def main():
     # Determine mode
     mode = None
     for m in ["map", "dry_run", "generate", "analyze", "rebuttal", "full",
-              "post_scrape", "health", "report", "diff", "directive_audit"]:
+              "post_scrape", "health", "report", "diff", "directive_audit",
+              "validate_skill", "expand_test_set", "usage_report"]:
         if getattr(args, m, False):
             mode = m.replace("_", "-")
             break
