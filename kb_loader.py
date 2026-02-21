@@ -616,8 +616,8 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 3,  # 3 educational guides + lyrics populated by genius_scraper.py
-        "excerpt_lines": 50,
+        "article_count": 15,  # 3 education + 12 lyrics (growing via free_lyrics_scraper.py)
+        "excerpt_lines": 80,  # Lyrics need more lines to capture full song
     },
     # ── Marketing Hacker (SEO, GEO, Growth) ──
     "marketing-hacker": {
@@ -647,6 +647,47 @@ ADVISORS = {
         "pattern": "*.md",
         "article_count": 32578,
         "excerpt_lines": 30,  # Catalog entries are short
+    },
+    # ── First 1000 (Audience Building + PMF + Customer Acquisition) ──
+    "first-1000": {
+        "name": "First 1000 (Audience Building + PMF + Customer Acquisition)",
+        "source": "Hormozi, Arvid Kahl, Pat Flynn, Jay Clouse, Amy Hoy, First Round, YC, MIDiA, Sean Ellis, Kevin Kelly, Li Jin, Andrew Chen, Noah Kagan, Russell Brunson, Dan Martell, Daniel Priestley, Sahil Lavingia, Dickie Bush, Nathan Barry, Demand Curve, Circle.so, Mighty Networks, Patreon",
+        "article_dirs": [
+            Path("~/Development/knowledge-bases/first-1000/articles").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/hormozi").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/arvid-kahl").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/pat-flynn").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/nathan-barry").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/jay-clouse").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/amy-hoy").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/russell-brunson").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/dan-martell").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/sahil-lavingia").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/daniel-priestley").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/dickie-bush").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/first-round").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/yc-library").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/pmf-show").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/indie-hackers").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/sean-ellis").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/andrew-chen").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/noah-kagan").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/midia-research").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/li-jin").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/circle-so").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/mighty-networks").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/patreon").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/startup-grind").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/mixergy").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/kevin-kelly").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/demand-curve").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/youtube-transcripts").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/supplementary").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 0,  # Updated after each scrape wave
+        "excerpt_lines": 60,
     },
 }
 
@@ -939,6 +980,33 @@ ALIASES = {
     "typefaces": "fonts-in-use",
     "font-catalog": "fonts-in-use",
     "font-specimen": "fonts-in-use",
+    # First 1000 (Audience Building + PMF + Customer Acquisition)
+    "first-1000": "first-1000",
+    "first1000": "first-1000",
+    "first_1000": "first-1000",
+    "superfans": "first-1000",
+    "audience-building": "first-1000",
+    "audience": "first-1000",
+    "customer-acquisition": "first-1000",
+    "funnels": "first-1000",
+    "lead-magnet": "first-1000",
+    "lead-magnets": "first-1000",
+    "true-fans": "first-1000",
+    "1000-fans": "first-1000",
+    "product-market-fit": "first-1000",
+    "sales-safari": "first-1000",
+    "waitlist": "first-1000",
+    "waiting-list": "first-1000",
+    "demand-generation": "first-1000",
+    "hormozi": "first-1000",
+    "creator-economy": "first-1000",
+    "direct-to-fan": "first-1000",
+    "d2f": "first-1000",
+    "fan-engagement": "first-1000",
+    "email-list": "first-1000",
+    "first-customers": "first-1000",
+    "first-fans": "first-1000",
+    "oversubscribed": "first-1000",
 }
 
 
@@ -1029,7 +1097,7 @@ def _build_blended_weights() -> dict[str, float]:
     for source_key, dirs in all_dirs.items():
         sizes = []
         for d in dirs:
-            for f in d.glob("*.md"):
+            for f in d.rglob("*.md"):
                 try:
                     sizes.append(f.stat().st_size / 1024)
                 except OSError:
@@ -1315,6 +1383,16 @@ SOURCE_DOMAINS = {
     "cdm": [
         "diy", "hardware", "controller", "eurorack", "music tech",
         "open source", "arduino", "raspberry pi",
+    ],
+    # ── First 1000 (Audience Building + PMF + Customer Acquisition) ──
+    "first-1000": [
+        "superfan", "fan", "fandom", "audience", "customer", "acquisition",
+        "funnel", "lead", "magnet", "email", "list", "waitlist", "pmf",
+        "product-market-fit", "conversion", "retention", "community",
+        "direct-to-fan", "membership", "patreon", "gumroad", "creator",
+        "1000", "true fans", "oversubscribed", "demand", "sales safari",
+        "first customers", "audience building", "lead magnet", "value ladder",
+        "tripwire", "opt-in", "launch", "pre-launch",
     ],
 }
 

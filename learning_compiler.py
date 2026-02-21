@@ -106,6 +106,7 @@ SKILL_KEYWORDS = {
     "today": ["today", "plan", "session", "start"],
     "session-close": ["close", "session", "end", "commit", "wrap"],
     "ship": ["ship", "build", "deploy", "implement", "create"],
+    "first-1000": ["first-1000", "first 1000", "superfans", "audience", "customer acquisition", "funnels", "pmf", "product-market-fit", "lead magnet", "fans", "waitlist"],
 }
 
 
