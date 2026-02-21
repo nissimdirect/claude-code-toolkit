@@ -686,7 +686,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 0,  # Updated after each scrape wave
+        "article_count": 2711,  # Wave 9.1: Andrew Chen 657, Pat Flynn 369, First Round 863, YC Library 387, Arvid Kahl 435
         "excerpt_lines": 60,
     },
 }
