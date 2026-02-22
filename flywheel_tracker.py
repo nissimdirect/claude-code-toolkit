@@ -495,11 +495,91 @@ def format_report(data: dict) -> str:
     return "\n".join(lines)
 
 
+def verify(loops: dict) -> list[str]:
+    """Sanity-check measurements against known data sources.
+
+    Returns list of warnings. If a data source exists but its measurement
+    returned 0, that's likely a measurement bug — not "loop not spinning."
+    """
+    warnings = []
+
+    # Data source existence checks — if the file/dir exists, measurement should be > 0
+    checks = [
+        (
+            "1",
+            Path.home()
+            / ".claude"
+            / "projects"
+            / "-Users-nissimagent"
+            / "memory"
+            / "learnings.md",
+            "learnings.md exists but _count_learnings() returned 0",
+        ),
+        (
+            "2",
+            OBSIDIAN / "ACTIVE-TASKS.md",
+            "ACTIVE-TASKS.md exists but shipped ratio is 0",
+        ),
+        (
+            "3",
+            Path.home() / "Development",
+            "~/Development/ exists but _kb_article_count() returned 0",
+        ),
+        (
+            "7",
+            STATE_DIR / "delegation-compliance.json",
+            "delegation-compliance.json exists but delegations = 0",
+        ),
+        (
+            "8",
+            Path.home() / "Development" / "entropic" / "docs" / "solutions",
+            "solutions/ dir exists but _compound_doc_count() returned 0",
+        ),
+    ]
+
+    for loop_num, source_path, msg in checks:
+        loop = loops.get(loop_num, {})
+        metric = loop.get("metric_value", 0)
+        if source_path.exists() and metric == 0:
+            warnings.append(f"WARNING Loop {loop_num}: {msg}")
+
+    # Regression checks — values that should never drop below known minimums
+    # These minimums are conservative (well below actual counts)
+    known_minimums = {
+        "1": (100, "learnings"),  # We have 150+
+        "3": (50000, "KB articles"),  # We have 87K+
+    }
+    for loop_num, (minimum, label) in known_minimums.items():
+        loop = loops.get(loop_num, {})
+        metric = loop.get("metric_value", 0)
+        if 0 < metric < minimum:
+            warnings.append(
+                f"WARNING Loop {loop_num}: {label} = {metric}, "
+                f"expected >= {minimum} (possible measurement error)"
+            )
+
+    return warnings
+
+
 def main():
     """Run flywheel measurement and output report."""
+    import sys
+
     loops = measure_all_loops()
     data = save_metrics(loops)
     print(format_report(data))
+
+    # Always run verify, print warnings if any
+    warns = verify(loops)
+    if warns:
+        print()
+        for w in warns:
+            print(f"  {w}")
+        if "--verify" in sys.argv:
+            sys.exit(1)
+
+    if "--verify" in sys.argv and not warns:
+        print("\n  VERIFY: All measurements pass sanity checks.")
 
 
 if __name__ == "__main__":
