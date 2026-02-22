@@ -435,19 +435,33 @@ _INJECTION_PATTERNS = [
     re.compile(r"you\s+are\s+now\s+(a|an)\s+", re.I),
     re.compile(r"system\s*prompt", re.I),
     re.compile(r"execute\s+(bash|shell|command|code)", re.I),
+    re.compile(r"disregard\s+(all\s+)?(prior|above|previous)", re.I),
+    re.compile(r"forget\s+(everything|all|your)\s+(you|instructions|rules)", re.I),
+    re.compile(r"new\s+instructions?\s*:", re.I),
+    re.compile(r"override\s+(all\s+)?(rules|instructions|constraints)", re.I),
+    re.compile(r"act\s+as\s+(if\s+)?(you\s+)?(are|were)\s+", re.I),
+    re.compile(r"pretend\s+(you\s+)?(are|were)\s+", re.I),
+    re.compile(r"(reveal|show|print|output)\s+(your\s+)?(system|hidden|secret)", re.I),
+    re.compile(r"jailbreak", re.I),
+    re.compile(r"do\s+not\s+follow\s+(any|your|the)\s+(rules|instructions)", re.I),
 ]
+# Also reject quotes with suspicious characters that could break JSON/markdown injection
+_SUSPICIOUS_CHARS = re.compile(r"[{}\[\]<>\\`]")
 
 
-def _char_offset_to_line(text: str, offset: int, _cache: dict = {}) -> int:
+_line_offset_cache: dict = {}
+
+
+def _char_offset_to_line(text: str, offset: int) -> int:
     """Convert character offset to 1-based line number."""
     cache_key = id(text)
-    if cache_key not in _cache:
+    if cache_key not in _line_offset_cache:
         line_starts = [0]
         for i, ch in enumerate(text):
             if ch == "\n":
                 line_starts.append(i + 1)
-        _cache[cache_key] = line_starts
-    line_starts = _cache[cache_key]
+        _line_offset_cache[cache_key] = line_starts
+    line_starts = _line_offset_cache[cache_key]
     lo, hi = 0, len(line_starts) - 1
     while lo < hi:
         mid = (lo + hi + 1) // 2
@@ -458,15 +472,18 @@ def _char_offset_to_line(text: str, offset: int, _cache: dict = {}) -> int:
     return lo + 1  # 1-based
 
 
-def _get_section_at(text: str, offset: int, _cache: dict = {}) -> str:
+_section_cache: dict = {}
+
+
+def _get_section_at(text: str, offset: int) -> str:
     """Determine which section a character offset falls in."""
     cache_key = id(text)
-    if cache_key not in _cache:
+    if cache_key not in _section_cache:
         headers = []
         for m in re.finditer(r"^(#{2,3})\s+(.+)", text, re.MULTILINE):
             headers.append((m.start(), m.group(2).strip()))
-        _cache[cache_key] = headers
-    headers = _cache[cache_key]
+        _section_cache[cache_key] = headers
+    headers = _section_cache[cache_key]
 
     current_section = "preamble"
     for hdr_offset, hdr_text in headers:
@@ -762,9 +779,10 @@ def parse_quotes(text: str) -> list[dict]:
     # Extract quotes: lines starting with > "..."
     for m in re.finditer(r'^>\s*"(.+?)"', section, re.MULTILINE):
         quote_text = m.group(1).strip()
-        # Sanitize against injection patterns
+        # Sanitize against injection patterns and suspicious chars
         is_injection = any(p.search(quote_text) for p in _INJECTION_PATTERNS)
-        if is_injection:
+        has_suspicious = _SUSPICIOUS_CHARS.search(quote_text)
+        if is_injection or has_suspicious:
             continue
         abs_offset = cf_start + m.start()
         quotes.append(
@@ -899,11 +917,13 @@ def build_index() -> dict:
         violation_count = prev.get("violation_count", 0)
         last_violated = prev.get("last_violated")
 
-        # Merge sidecar data (additive)
+        # Merge sidecar data (replace, not additive — sidecar holds absolute counts)
         sidecar_key = str(entry["id"])
         if sidecar_key in sidecar:
             sc = sidecar[sidecar_key]
-            violation_count += sc.get("count", 0)
+            sidecar_count = sc.get("count", 0)
+            # Take the max of preserved and sidecar to prevent double-counting
+            violation_count = max(violation_count, sidecar_count)
             sc_last = sc.get("last")
             if sc_last and (not last_violated or sc_last > last_violated):
                 last_violated = sc_last
@@ -951,7 +971,7 @@ def build_index() -> dict:
     # Step 5: Build final index
     from datetime import datetime, timezone
 
-    source_hash = hashlib.md5(text.encode()).hexdigest()
+    source_hash = hashlib.sha256(text.encode()).hexdigest()
 
     index = {
         "version": 2,
@@ -1009,7 +1029,7 @@ def verify_sources(index: dict) -> list[str]:
         return ["Source file not found"]
 
     text = LEARNINGS_FILE.read_text()
-    current_hash = hashlib.md5(text.encode()).hexdigest()
+    current_hash = hashlib.sha256(text.encode()).hexdigest()
 
     # Check file hash
     if index.get("source_file_hash") != current_hash:
@@ -1303,7 +1323,7 @@ def run_tests():
 
     # Test v2-11: Source file hash
     if LEARNINGS_FILE.exists():
-        expected_hash = hashlib.md5(LEARNINGS_FILE.read_text().encode()).hexdigest()
+        expected_hash = hashlib.sha256(LEARNINGS_FILE.read_text().encode()).hexdigest()
         check(
             "Source file hash matches",
             index.get("source_file_hash") == expected_hash,
@@ -1329,12 +1349,12 @@ def run_tests():
         )
         active = len([e for e in index["entries"] if e["status"] == "active"])
         check(
-            "Entry count invariant: 154 active",
-            active == 154,
+            "Entry count invariant: 152 active",
+            active == 152,
         )
         check(
-            "Entry count invariant: 27 graduated",
-            index["graduated_count"] == 27,
+            "Entry count invariant: 29 graduated",
+            index["graduated_count"] == 29,
         )
 
     # Test v2-15: All entries have v2 fields
