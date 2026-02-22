@@ -28,3 +28,5 @@ Thumbs.db
 # Claude Code worktrees
 .claude/worktrees/
 output/
+deleg_stderr.txt
+test_deleg_input.json
