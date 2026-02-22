@@ -40,7 +40,7 @@ QUALITY_GATE_PATH = Path.home() / "Development" / "tools" / "kb_quality_gate.py"
 
 # Rate limiting
 DEFAULT_DELAY = 1.0  # seconds between requests
-BATCH_PAUSE = 2.0    # seconds between batches of 10
+BATCH_PAUSE = 2.0  # seconds between batches of 10
 
 # HTML to markdown converter
 H2T = html2text.HTML2Text()
@@ -89,7 +89,11 @@ SOURCES = {
     "arvid-kahl": {
         "name": "Arvid Kahl (symlink from marketing-hacker)",
         "type": "symlink",
-        "source_dir": Path.home() / "Development" / "marketing-hacker" / "arvid-kahl" / "articles",
+        "source_dir": Path.home()
+        / "Development"
+        / "marketing-hacker"
+        / "arvid-kahl"
+        / "articles",
         "output_dir": KB_BASE / "arvid-kahl",
         "total_est": 435,
     },
@@ -98,16 +102,24 @@ SOURCES = {
 
 # ── Utility Functions ──────────────────────────────────────────────────────
 
+
 def slugify(text: str) -> str:
     """Convert text to a filesystem-safe slug."""
     text = text.lower().strip()
-    text = re.sub(r'[^\w\s-]', '', text)
-    text = re.sub(r'[-\s]+', '-', text)
+    text = re.sub(r"[^\w\s-]", "", text)
+    text = re.sub(r"[-\s]+", "-", text)
     return text[:120]
 
 
-def save_article(output_dir: Path, index: int, title: str, content: str,
-                 url: str, date: str = "", author: str = "") -> Path:
+def save_article(
+    output_dir: Path,
+    index: int,
+    title: str,
+    content: str,
+    url: str,
+    date: str = "",
+    author: str = "",
+) -> Path:
     """Save an article as markdown with frontmatter."""
     slug = slugify(title) if title else f"article-{index:04d}"
     filename = f"{index:04d}-{slug}.md"
@@ -143,6 +155,7 @@ def rate_limit(delay: float = DEFAULT_DELAY):
 
 # ── WP REST API Scraper ───────────────────────────────────────────────────
 
+
 def scrape_wp_api(source_key: str, resume_from: int = 0) -> dict:
     """Scrape all posts from a WordPress REST API endpoint."""
     source = SOURCES[source_key]
@@ -154,7 +167,9 @@ def scrape_wp_api(source_key: str, resume_from: int = 0) -> dict:
     existing = list(output_dir.glob("*.md"))
     if existing and resume_from == 0:
         resume_from = len(existing)
-        print(f"  Found {len(existing)} existing files. Resuming from page {resume_from // 100 + 1}...")
+        print(
+            f"  Found {len(existing)} existing files. Resuming from page {resume_from // 100 + 1}..."
+        )
 
     stats = {"attempted": 0, "success": 0, "failed": 0, "skipped": 0}
 
@@ -174,7 +189,12 @@ def scrape_wp_api(source_key: str, resume_from: int = 0) -> dict:
         try:
             resp = requests.get(
                 api_url,
-                params={"per_page": 100, "page": page, "orderby": "date", "order": "asc"},
+                params={
+                    "per_page": 100,
+                    "page": page,
+                    "orderby": "date",
+                    "order": "asc",
+                },
                 headers=HEADERS,
                 timeout=30,
             )
@@ -191,7 +211,9 @@ def scrape_wp_api(source_key: str, resume_from: int = 0) -> dict:
             article_index += 1
 
             try:
-                title = BeautifulSoup(post["title"]["rendered"], "html.parser").get_text()
+                title = BeautifulSoup(
+                    post["title"]["rendered"], "html.parser"
+                ).get_text()
                 html_content = post["content"]["rendered"]
                 md_content = html_to_markdown(html_content)
                 url = post.get("link", "")
@@ -203,8 +225,15 @@ def scrape_wp_api(source_key: str, resume_from: int = 0) -> dict:
                     stats["skipped"] += 1
                     continue
 
-                save_article(output_dir, article_index, title, md_content,
-                           url, date, str(author_id))
+                save_article(
+                    output_dir,
+                    article_index,
+                    title,
+                    md_content,
+                    url,
+                    date,
+                    str(author_id),
+                )
                 stats["success"] += 1
 
             except Exception as e:
@@ -223,13 +252,14 @@ def scrape_wp_api(source_key: str, resume_from: int = 0) -> dict:
 
 # ── Sitemap + HTML Scraper ─────────────────────────────────────────────────
 
+
 def get_sitemap_urls(sitemap_url: str) -> list[str]:
     """Extract article URLs from a sitemap XML."""
     resp = requests.get(sitemap_url, headers=HEADERS, timeout=30)
     resp.raise_for_status()
     xml = resp.text
 
-    urls = re.findall(r'<loc>([^<]+)</loc>', xml)
+    urls = re.findall(r"<loc>([^<]+)</loc>", xml)
     # Filter out non-article URLs
     article_urls = []
     for url in urls:
@@ -243,7 +273,13 @@ def get_sitemap_urls(sitemap_url: str) -> list[str]:
             if "/library/" in url and len(path.split("/")) >= 2:
                 # Skip meta pages like /library/bookmarks, /library/search etc
                 lib_path = path.replace("library/", "")
-                if lib_path and lib_path not in ("bookmarks", "continue-watching", "search", "founder_link", "sitemap.xml"):
+                if lib_path and lib_path not in (
+                    "bookmarks",
+                    "continue-watching",
+                    "search",
+                    "founder_link",
+                    "sitemap.xml",
+                ):
                     article_urls.append(url)
         else:
             article_urls.append(url)
@@ -268,11 +304,19 @@ def extract_first_round_article(html: str, url: str) -> tuple[str, str, str]:
     # Content - First Round uses article tags or main content areas
     content = ""
     # Try various content selectors
-    for selector in ["article", ".post-content", ".article-content", "main", ".content"]:
+    for selector in [
+        "article",
+        ".post-content",
+        ".article-content",
+        "main",
+        ".content",
+    ]:
         content_el = soup.select_one(selector)
         if content_el:
             # Remove nav, header, footer, sidebar elements
-            for tag in content_el.find_all(["nav", "header", "footer", "aside", "script", "style"]):
+            for tag in content_el.find_all(
+                ["nav", "header", "footer", "aside", "script", "style"]
+            ):
                 tag.decompose()
             content = html_to_markdown(str(content_el))
             break
@@ -281,7 +325,9 @@ def extract_first_round_article(html: str, url: str) -> tuple[str, str, str]:
         # Fallback: get the largest text block
         body = soup.find("body")
         if body:
-            for tag in body.find_all(["nav", "header", "footer", "aside", "script", "style"]):
+            for tag in body.find_all(
+                ["nav", "header", "footer", "aside", "script", "style"]
+            ):
                 tag.decompose()
             content = html_to_markdown(str(body))
 
@@ -309,7 +355,9 @@ def extract_yc_library_article(html: str, url: str) -> tuple[str, str, str]:
     for selector in ["article", ".ycdc-card", ".library-content", "main", ".content"]:
         content_el = soup.select_one(selector)
         if content_el:
-            for tag in content_el.find_all(["nav", "header", "footer", "aside", "script", "style"]):
+            for tag in content_el.find_all(
+                ["nav", "header", "footer", "aside", "script", "style"]
+            ):
                 tag.decompose()
             content = html_to_markdown(str(content_el))
             if len(content.split()) > 30:
@@ -318,7 +366,9 @@ def extract_yc_library_article(html: str, url: str) -> tuple[str, str, str]:
     if not content:
         body = soup.find("body")
         if body:
-            for tag in body.find_all(["nav", "header", "footer", "aside", "script", "style"]):
+            for tag in body.find_all(
+                ["nav", "header", "footer", "aside", "script", "style"]
+            ):
                 tag.decompose()
             content = html_to_markdown(str(body))
 
@@ -392,23 +442,26 @@ def scrape_sitemap_html(source_key: str, resume_from: int = 0) -> dict:
                 stats["skipped"] += 1
                 continue
 
-            save_article(output_dir, article_index, title, content,
-                       url, "", author)
+            save_article(output_dir, article_index, title, content, url, "", author)
             stats["success"] += 1
 
             if stats["success"] % 50 == 0:
-                print(f"    Progress: {stats['success']} articles saved ({i+1}/{len(urls)} URLs)")
+                print(
+                    f"    Progress: {stats['success']} articles saved ({i + 1}/{len(urls)} URLs)"
+                )
 
         except requests.exceptions.Timeout:
             print(f"    TIMEOUT: {url}")
             stats["failed"] += 1
         except requests.exceptions.HTTPError as e:
             if e.response and e.response.status_code == 429:
-                print(f"    RATE LIMITED. Pausing 30s...")
+                print("    RATE LIMITED. Pausing 30s...")
                 time.sleep(30)
                 stats["failed"] += 1
             else:
-                print(f"    HTTP ERROR {e.response.status_code if e.response else '?'}: {url}")
+                print(
+                    f"    HTTP ERROR {e.response.status_code if e.response else '?'}: {url}"
+                )
                 stats["failed"] += 1
         except Exception as e:
             print(f"    ERROR: {url} — {e}")
@@ -424,6 +477,7 @@ def scrape_sitemap_html(source_key: str, resume_from: int = 0) -> dict:
 
 
 # ── Symlink Handler ────────────────────────────────────────────────────────
+
 
 def setup_symlink(source_key: str) -> dict:
     """Create symlink from existing scraped content."""
@@ -445,7 +499,9 @@ def setup_symlink(source_key: str) -> dict:
         if not any(output_dir.iterdir()):
             output_dir.rmdir()
         else:
-            print(f"  Output dir already has content ({len(list(output_dir.iterdir()))} items). Skipping.")
+            print(
+                f"  Output dir already has content ({len(list(output_dir.iterdir()))} items). Skipping."
+            )
             return {"attempted": count, "success": count, "failed": 0, "skipped": 0}
 
     if output_dir.is_symlink():
@@ -462,14 +518,15 @@ def setup_symlink(source_key: str) -> dict:
 
 # ── Main Orchestrator ──────────────────────────────────────────────────────
 
+
 def scrape_source(source_key: str) -> dict:
     """Scrape a single source."""
     source = SOURCES[source_key]
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"Scraping: {source['name']}")
     print(f"Type: {source['type']}")
     print(f"Output: {source['output_dir']}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
 
     if source["type"] == "wp-api":
         return scrape_wp_api(source_key)
@@ -500,7 +557,9 @@ def print_summary():
                 existing = len(list(output_dir.glob("*.md")))
 
         status = "DONE" if existing > 0 else "PENDING"
-        print(f"  {source['name']:40s} | Est: {source['total_est']:>5d} | Existing: {existing:>5d} | {status}")
+        print(
+            f"  {source['name']:40s} | Est: {source['total_est']:>5d} | Existing: {existing:>5d} | {status}"
+        )
         total_est += source["total_est"]
         total_existing += existing
 
@@ -510,11 +569,17 @@ def print_summary():
 
 def main():
     parser = argparse.ArgumentParser(description="Wave 9.1 scraper for /first-1000 KB")
-    parser.add_argument("--source", choices=list(SOURCES.keys()), help="Scrape a specific source")
+    parser.add_argument(
+        "--source", choices=list(SOURCES.keys()), help="Scrape a specific source"
+    )
     parser.add_argument("--all", action="store_true", help="Scrape all sources")
     parser.add_argument("--summary", action="store_true", help="Show scraping summary")
-    parser.add_argument("--sanitize", action="store_true", help="Run content sanitizer after scraping")
-    parser.add_argument("--quality-gate", action="store_true", help="Run quality gate after scraping")
+    parser.add_argument(
+        "--sanitize", action="store_true", help="Run content sanitizer after scraping"
+    )
+    parser.add_argument(
+        "--quality-gate", action="store_true", help="Run quality gate after scraping"
+    )
     args = parser.parse_args()
 
     if args.summary:
@@ -535,10 +600,17 @@ def main():
         try:
             stats = scrape_source(source_key)
             all_stats[source_key] = stats
-            print(f"\n  Results: {stats['success']} saved, {stats['failed']} failed, {stats['skipped']} skipped")
+            print(
+                f"\n  Results: {stats['success']} saved, {stats['failed']} failed, {stats['skipped']} skipped"
+            )
         except Exception as e:
             print(f"\n  FATAL ERROR scraping {source_key}: {e}")
-            all_stats[source_key] = {"attempted": 0, "success": 0, "failed": 1, "skipped": 0}
+            all_stats[source_key] = {
+                "attempted": 0,
+                "success": 0,
+                "failed": 1,
+                "skipped": 0,
+            }
 
     elapsed = time.time() - start_time
 
@@ -551,36 +623,32 @@ def main():
     total_skipped = sum(s["skipped"] for s in all_stats.values())
 
     for key, stats in all_stats.items():
-        print(f"  {SOURCES[key]['name']:40s} | {stats['success']:>4d} saved | {stats['failed']:>3d} failed | {stats['skipped']:>3d} skipped")
+        print(
+            f"  {SOURCES[key]['name']:40s} | {stats['success']:>4d} saved | {stats['failed']:>3d} failed | {stats['skipped']:>3d} skipped"
+        )
 
-    print(f"\n  TOTAL: {total_success} articles saved, {total_failed} failed, {total_skipped} skipped")
-    print(f"  Time: {elapsed:.0f}s ({elapsed/60:.1f}m)")
+    print(
+        f"\n  TOTAL: {total_success} articles saved, {total_failed} failed, {total_skipped} skipped"
+    )
+    print(f"  Time: {elapsed:.0f}s ({elapsed / 60:.1f}m)")
 
-    # Post-scrape steps
-    if args.sanitize or args.all:
-        print("\n" + "=" * 60)
-        print("Running content sanitizer...")
-        print("=" * 60)
-        for source_key in sources_to_scrape:
-            output_dir = SOURCES[source_key]["output_dir"]
-            if output_dir.exists() and not output_dir.is_symlink():
-                print(f"  Sanitizing: {output_dir}")
-                os.system(f"python3 {SANITIZER_PATH} --dir {output_dir}")
+    # Auto-cleanup: sanitize + quality gate
+    from post_scrape_cleanup import cleanup
 
-    if args.quality_gate or args.all:
-        print("\n" + "=" * 60)
-        print("Running quality gate...")
-        print("=" * 60)
-        for source_key in sources_to_scrape:
-            output_dir = SOURCES[source_key]["output_dir"]
-            if output_dir.exists() and not output_dir.is_symlink():
-                print(f"  Quality gate: {output_dir}")
-                os.system(f"python3 {QUALITY_GATE_PATH} {output_dir} --fix")
+    scraped_dirs = [
+        SOURCES[k]["output_dir"]
+        for k in sources_to_scrape
+        if SOURCES[k]["output_dir"].exists()
+        and not SOURCES[k]["output_dir"].is_symlink()
+    ]
+    cleanup(scraped_dirs)
 
     print_summary()
 
     print("\nNext steps:")
-    print("  1. Verify: python3 ~/Development/tools/kb_loader.py context --advisor first-1000 --query 'how to get first customers'")
+    print(
+        "  1. Verify: python3 ~/Development/tools/kb_loader.py context --advisor first-1000 --query 'how to get first customers'"
+    )
     print("  2. Spot-check 3-5 articles from each source")
     print("  3. If quality is good, Wave 9.1 is complete")
 

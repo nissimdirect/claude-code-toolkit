@@ -485,6 +485,16 @@ def main():
 
     print_summary()
 
+    # Auto-cleanup: sanitize + quality gate
+    from post_scrape_cleanup import cleanup
+
+    scraped_dirs = [
+        SOURCES[k]["output_dir"]
+        for k in sources_to_scrape
+        if SOURCES[k]["output_dir"].exists()
+    ]
+    cleanup(scraped_dirs)
+
     print("\nSkipped sources (Wave 9.4):")
     print("  - Patreon Blog: Nuxt.js, no API or sitemap")
     print("  - Startup Grind: Forum threads, not blog articles")

@@ -515,6 +515,16 @@ def main():
 
     print_summary()
 
+    # Auto-cleanup: sanitize + quality gate
+    from post_scrape_cleanup import cleanup
+
+    scraped_dirs = [
+        SOURCES[k]["output_dir"]
+        for k in sources_to_scrape
+        if SOURCES[k]["output_dir"].exists()
+    ]
+    cleanup(scraped_dirs)
+
     print("\nBlocked sources (Wave 9.3):")
     print("  - Rob Walling: Squarespace robots.txt blocks ClaudeBot")
     print("  - MicroConf: Squarespace robots.txt blocks ClaudeBot")

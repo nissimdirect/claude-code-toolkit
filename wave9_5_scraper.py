@@ -665,6 +665,16 @@ def main():
 
     print_summary()
 
+    # Auto-cleanup: sanitize + quality gate
+    from post_scrape_cleanup import cleanup
+
+    scraped_dirs = [
+        SOURCES[k]["output_dir"]
+        for k in sources_to_scrape
+        if SOURCES[k]["output_dir"].exists()
+    ]
+    cleanup(scraped_dirs)
+
     print("\nSkipped sources (Wave 9.5):")
     print("  - Sahil Lavingia: Next.js, only ~6 essays")
     print("  - Sunny Lenarduzzi: Incapsula bot protection")
