@@ -1031,6 +1031,21 @@ function renderDelegation(del_data) {
     }
   }
 
+  // Acceptance tracking
+  if (del_data.acceptance && del_data.acceptance.total_delegated > 0) {
+    var acc = del_data.acceptance;
+    var rejPct = Math.round(acc.total_rejected * 100 / Math.max(acc.total_delegated, 1));
+    var unkPct = Math.round(acc.total_unknown * 100 / Math.max(acc.total_delegated, 1));
+    html += '<div style="font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-top:10px;margin-bottom:4px;color:var(--text-dim)">Acceptance</div>';
+    html += '<div class="stat-row"><span class="label">Sessions</span><span class="value">' + fmt(acc.sessions_with_delegation) + '</span></div>';
+    html += '<div class="stat-row"><span class="label">Total Delegated</span><span class="value">' + fmt(acc.total_delegated) + '</span></div>';
+    html += '<div class="stat-row"><span class="label">Rejected</span><span class="value">' + fmt(acc.total_rejected) + ' (' + rejPct + '%)</span></div>';
+    html += '<div class="stat-row"><span class="label">Unknown</span><span class="value">' + fmt(acc.total_unknown) + ' (' + unkPct + '%)</span></div>';
+    var phase = del_data.acceptance_phase || 1;
+    var phaseNames = {1: 'Core Signal', 2: 'Per-Template', 3: 'Self-Tuning'};
+    html += '<div class="stat-row"><span class="label">Phase</span><span class="value">' + phase + ' (' + (phaseNames[phase] || '?') + ')</span></div>';
+  }
+
   document.getElementById('body-delegation').innerHTML = html;
 }
 

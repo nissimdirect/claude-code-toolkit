@@ -12,15 +12,18 @@ AUDIT_LOG = Path.home() / ".claude" / ".locks" / "delegation-hook-audit.log"
 EVAL_LOG = Path.home() / ".claude" / ".locks" / "gemini-route-eval.jsonl"
 COMPLIANCE = Path.home() / ".claude" / ".locks" / "delegation-compliance.json"
 COUNTER = Path.home() / ".claude" / ".locks" / "gemini-daily-counter.json"
+ACC_FILE = Path.home() / ".claude" / ".locks" / "delegation-acceptance.json"
+
 
 def parse_audit_line(line):
     """Extract key=value pairs from audit log line."""
     parts = {}
     for token in line.split():
-        if '=' in token and not token.startswith('['):
-            k, v = token.split('=', 1)
+        if "=" in token and not token.startswith("["):
+            k, v = token.split("=", 1)
             parts[k] = v
     return parts
+
 
 def main():
     print("=" * 55)
@@ -29,22 +32,26 @@ def main():
 
     # --- Hook Audit ---
     if AUDIT_LOG.exists():
-        lines = [l.strip() for l in AUDIT_LOG.read_text().strip().split('\n') if l.strip()]
+        lines = [
+            l.strip() for l in AUDIT_LOG.read_text().strip().split("\n") if l.strip()
+        ]
         entries = [parse_audit_line(l) for l in lines]
 
-        actions = Counter(e.get('action', 'unknown') for e in entries)
-        models = Counter(e.get('exec', 'unknown') for e in entries)
-        prefetched = sum(1 for e in entries if e.get('prefetch') == 'OK')
-        latencies = [int(e['latency'].rstrip('ms')) for e in entries if 'latency' in e]
+        actions = Counter(e.get("action", "unknown") for e in entries)
+        models = Counter(e.get("exec", "unknown") for e in entries)
+        prefetched = sum(1 for e in entries if e.get("prefetch") == "OK")
+        latencies = [int(e["latency"].rstrip("ms")) for e in entries if "latency" in e]
         avg_lat = sum(latencies) // max(len(latencies), 1) if latencies else 0
 
         print(f"\n  Hook fires:       {len(entries)}")
-        print(f"  Pre-fetched OK:   {prefetched} ({prefetched*100//max(len(entries),1)}%)")
+        print(
+            f"  Pre-fetched OK:   {prefetched} ({prefetched * 100 // max(len(entries), 1)}%)"
+        )
         print(f"  Avg latency:      {avg_lat}ms")
-        print(f"\n  Actions:")
+        print("\n  Actions:")
         for action, count in actions.most_common():
             print(f"    {action:25s} {count:3d}")
-        print(f"\n  Models executed:")
+        print("\n  Models executed:")
         for model, count in models.most_common():
             print(f"    {model:25s} {count:3d}")
     else:
@@ -52,17 +59,19 @@ def main():
 
     # --- Gemini Route Eval ---
     if EVAL_LOG.exists():
-        route_lines = [l.strip() for l in EVAL_LOG.read_text().strip().split('\n') if l.strip()]
+        route_lines = [
+            l.strip() for l in EVAL_LOG.read_text().strip().split("\n") if l.strip()
+        ]
         route_entries = [json.loads(l) for l in route_lines]
-        cats = Counter(e['category'] for e in route_entries)
-        total_saved = sum(e.get('est_tokens_saved', 0) for e in route_entries)
-        ok = sum(1 for e in route_entries if e.get('success'))
+        cats = Counter(e["category"] for e in route_entries)
+        total_saved = sum(e.get("est_tokens_saved", 0) for e in route_entries)
+        ok = sum(1 for e in route_entries if e.get("success"))
 
-        print(f"\n  --- Gemini Route Templates ---")
+        print("\n  --- Gemini Route Templates ---")
         print(f"  Calls:            {len(route_entries)}")
         print(f"  Success:          {ok}/{len(route_entries)}")
         print(f"  Est tokens saved: ~{total_saved:,}")
-        print(f"\n  By category:")
+        print("\n  By category:")
         for cat, count in cats.most_common():
             print(f"    {cat:25s} {count:3d}")
     else:
@@ -72,9 +81,11 @@ def main():
     if COUNTER.exists():
         try:
             counter = json.loads(COUNTER.read_text())
-            print(f"\n  --- Gemini API Today ---")
+            print("\n  --- Gemini API Today ---")
             print(f"  Date:             {counter.get('date', '?')}")
-            print(f"  Requests:         {counter.get('count', 0)}/200 cap (250 free tier)")
+            print(
+                f"  Requests:         {counter.get('count', 0)}/200 cap (250 free tier)"
+            )
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -82,12 +93,70 @@ def main():
     if COMPLIANCE.exists():
         try:
             comp = json.loads(COMPLIANCE.read_text())
-            print(f"\n  --- Compliance ---")
+            print("\n  --- Compliance ---")
             print(f"  Total prompts:    {comp.get('total_prompts', 0)}")
             print(f"  Delegation rate:  {comp.get('delegation_rate', '0%')}")
             print(f"  Backend failures: {comp.get('backend_failures', 0)}")
         except (json.JSONDecodeError, OSError):
             pass
+
+    # --- Acceptance ---
+    if ACC_FILE.exists():
+        try:
+            acc = json.loads(ACC_FILE.read_text())
+            overall = acc.get("overall", {})
+            total = overall.get("total_delegated", 0)
+            rejected = overall.get("total_rejected", 0)
+            unknown = overall.get("total_unknown", 0)
+            sessions = overall.get("sessions_with_delegation", 0)
+
+            print("\n  --- Acceptance ---")
+            print(f"  Sessions:         {sessions}")
+            print(f"  Total delegated:  {total}")
+            if total > 0:
+                print(
+                    f"  Rejected:         {rejected} ({rejected * 100 // max(total, 1)}%)"
+                )
+                print(
+                    f"  Unknown:          {unknown} ({unknown * 100 // max(total, 1)}%)"
+                )
+                print("  Signal:           redundant subagent spawn detection")
+
+            # Phase status
+            current_phase = acc.get("current_phase", 1)
+            phase_names = {
+                1: "Core Signal + Honest Reporting",
+                2: "Per-Template Attribution + Dual Quality Gate",
+                3: "Adaptive Threshold Self-Tuning",
+            }
+            print("\n  --- Phase Status ---")
+            print(
+                f"  Current phase:    {current_phase} ({phase_names.get(current_phase, '?')})"
+            )
+            if current_phase == 1:
+                print(f"  Sessions:         {sessions} / 50 required for Phase 2")
+                if total > 0:
+                    rej_pct = rejected * 100 // max(total, 1)
+                    health = "GOOD" if rej_pct > 5 else "LOW (signal may be weak)"
+                    print(f"  Rejection rate:   {rej_pct}% (signal health: {health})")
+                if sessions >= 50:
+                    rej_rate_f = rejected / total if total else 0
+                    if rej_rate_f > 0.05:
+                        print(
+                            "  >>> PHASE 2 IS READY — implement per-template attribution + dual quality gate"
+                        )
+                    else:
+                        print(
+                            f"  Signal low ({rej_rate_f:.0%} rej) — revisit at 100 sessions"
+                        )
+                else:
+                    print(
+                        f"  Next milestone:   Phase 2 — {50 - sessions} sessions to go"
+                    )
+        except (json.JSONDecodeError, OSError):
+            pass
+    else:
+        print("\n  No acceptance data yet.")
 
     print(f"\n{'=' * 55}")
 
@@ -97,35 +166,40 @@ def json_summary():
     data = {}
 
     if AUDIT_LOG.exists():
-        lines = [l.strip() for l in AUDIT_LOG.read_text().strip().split('\n') if l.strip()]
+        lines = [
+            l.strip() for l in AUDIT_LOG.read_text().strip().split("\n") if l.strip()
+        ]
         entries = [parse_audit_line(l) for l in lines]
-        prefetched = sum(1 for e in entries if e.get('prefetch') == 'OK')
-        data['hook_fires'] = len(entries)
-        data['prefetched'] = prefetched
+        prefetched = sum(1 for e in entries if e.get("prefetch") == "OK")
+        data["hook_fires"] = len(entries)
+        data["prefetched"] = prefetched
 
     if EVAL_LOG.exists():
-        route_lines = [l.strip() for l in EVAL_LOG.read_text().strip().split('\n') if l.strip()]
+        route_lines = [
+            l.strip() for l in EVAL_LOG.read_text().strip().split("\n") if l.strip()
+        ]
         route_entries = [json.loads(l) for l in route_lines]
-        ok = sum(1 for e in route_entries if e.get('success'))
-        total_saved = sum(e.get('est_tokens_saved', 0) for e in route_entries)
-        data['route_calls'] = len(route_entries)
-        data['route_success'] = ok
-        data['est_tokens_saved'] = total_saved
+        ok = sum(1 for e in route_entries if e.get("success"))
+        total_saved = sum(e.get("est_tokens_saved", 0) for e in route_entries)
+        data["route_calls"] = len(route_entries)
+        data["route_success"] = ok
+        data["est_tokens_saved"] = total_saved
 
     if COUNTER.exists():
         try:
             counter = json.loads(COUNTER.read_text())
-            data['gemini_today'] = counter.get('count', 0)
-            data['gemini_date'] = counter.get('date', '?')
+            data["gemini_today"] = counter.get("count", 0)
+            data["gemini_date"] = counter.get("date", "?")
         except (json.JSONDecodeError, OSError):
             pass
 
     print(json.dumps(data))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     import sys
-    if '--json' in sys.argv:
+
+    if "--json" in sys.argv:
         json_summary()
     else:
         main()

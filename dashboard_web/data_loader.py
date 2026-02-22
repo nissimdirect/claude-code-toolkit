@@ -32,6 +32,7 @@ DELEGATION_EVAL_LOG = HOME / ".claude/.locks/gemini-route-eval.jsonl"
 DELEGATION_COUNTER = HOME / ".claude/.locks/gemini-daily-counter.json"
 DELEGATION_COMPLIANCE = HOME / ".claude/.locks/delegation-compliance.json"
 DELEGATION_DISABLED = HOME / ".claude/.locks/gemini-route-disabled.json"
+DELEGATION_ACCEPTANCE = HOME / ".claude/.locks/delegation-acceptance.json"
 
 SUBSCRIPTION_COST = 200.00
 FIVE_HOUR_TOKEN_BUDGET = 500_000
@@ -49,8 +50,8 @@ CACHE_TTL_SECONDS = {
     "active_tasks": 15,
     "error_summary": 30,
     "delegation_stats": 10,
-    "all_data": 0.5,   # 500ms for the combined API endpoint
-    "kb_data": 60,     # 60s for KB-only endpoint
+    "all_data": 0.5,  # 500ms for the combined API endpoint
+    "kb_data": 60,  # 60s for KB-only endpoint
 }
 
 
@@ -68,6 +69,7 @@ def cached(key, loader, ttl=None):
 
 
 # === SAFE GLOB WITH TIMEOUT ===
+
 
 class GlobTimeout(Exception):
     pass
@@ -89,13 +91,19 @@ def safe_glob(path, pattern, timeout_sec=5):
             future = executor.submit(_do_glob)
             return future.result(timeout=timeout_sec)
     except FuturesTimeout:
-        log_error("glob", f"{path}/{pattern}", "timeout", f"glob timed out after {timeout_sec}s")
+        log_error(
+            "glob",
+            f"{path}/{pattern}",
+            "timeout",
+            f"glob timed out after {timeout_sec}s",
+        )
         return []
     except OSError:
         return []
 
 
 # === ERROR LOGGING ===
+
 
 def log_error(panel, expected, actual, reason):
     """Log a data discrepancy to the error log for pattern analysis."""
@@ -106,19 +114,21 @@ def log_error(panel, expected, actual, reason):
         except (json.JSONDecodeError, OSError):
             errors = []
 
-    errors.append({
-        "timestamp": datetime.now().isoformat(),
-        "panel": panel,
-        "expected": expected,
-        "actual": actual,
-        "reason": reason,
-    })
+    errors.append(
+        {
+            "timestamp": datetime.now().isoformat(),
+            "panel": panel,
+            "expected": expected,
+            "actual": actual,
+            "reason": reason,
+        }
+    )
     errors = errors[-100:]
 
     try:
         ERROR_LOG.parent.mkdir(parents=True, exist_ok=True)
-        fd, tmp_path = tempfile.mkstemp(dir=ERROR_LOG.parent, suffix='.json')
-        with os.fdopen(fd, 'w') as f:
+        fd, tmp_path = tempfile.mkstemp(dir=ERROR_LOG.parent, suffix=".json")
+        with os.fdopen(fd, "w") as f:
             json.dump(errors, f, indent=2)
         os.replace(tmp_path, ERROR_LOG)
     except OSError:
@@ -234,10 +244,20 @@ DIR_TO_SKILL = {
 
 # Directories to skip (not KB content)
 SKIP_DIRS = {
-    "AI-Knowledge-Exchange", "claude-code-toolkit", "entropic",
-    "JUCE", "test-scrape-fixed", "fan-capture-mvp", "lyric-analyst",
-    "ghostwriter", "references", "shared-brain", "qwen", "gemini",
-    "cymatics", "dashboard_web",
+    "AI-Knowledge-Exchange",
+    "claude-code-toolkit",
+    "entropic",
+    "JUCE",
+    "test-scrape-fixed",
+    "fan-capture-mvp",
+    "lyric-analyst",
+    "ghostwriter",
+    "references",
+    "shared-brain",
+    "qwen",
+    "gemini",
+    "cymatics",
+    "dashboard_web",
 }
 
 
@@ -246,7 +266,9 @@ def _fast_count_md(path):
     try:
         result = subprocess.run(
             ["find", str(path), "-name", "*.md", "-type", "f"],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode == 0:
             lines = result.stdout.strip().split("\n")
@@ -337,7 +359,9 @@ def _load_knowledge_base_stats():
             total += obsidian_count
             if "system" not in by_skill:
                 by_skill["system"] = {"sources": [], "total": 0}
-            by_skill["system"]["sources"].append({"name": "Obsidian Vault", "count": obsidian_count})
+            by_skill["system"]["sources"].append(
+                {"name": "Obsidian Vault", "count": obsidian_count}
+            )
             by_skill["system"]["total"] += obsidian_count
 
     return stats, total, by_skill
@@ -348,6 +372,7 @@ def get_knowledge_base_stats():
 
 
 # === BUDGET / USAGE ===
+
 
 def _load_tracker_data():
     """Load budget state from .budget-state.json."""
@@ -366,12 +391,19 @@ def load_tracker_data():
 def get_usage_stats(data):
     """Extract 5-hour window, since-last-gap, and lifetime from budget state JSON."""
     empty_gap = {
-        "tokens_used": 0, "messages": 0, "gap_started": None,
-        "carbon_g": 0, "wh": 0,
+        "tokens_used": 0,
+        "messages": 0,
+        "gap_started": None,
+        "carbon_g": 0,
+        "wh": 0,
     }
     empty_lifetime = {
-        "total_tokens": 0, "total_messages": 0, "total_sessions": 0,
-        "first_session": None, "total_carbon_g": 0, "total_wh": 0,
+        "total_tokens": 0,
+        "total_messages": 0,
+        "total_sessions": 0,
+        "first_session": None,
+        "total_carbon_g": 0,
+        "total_wh": 0,
     }
 
     if data is None:
@@ -430,6 +462,7 @@ def get_budget_age_minutes():
 
 # === ENVIRONMENTAL IMPACT ===
 
+
 def co2_equivalence(co2_g):
     """Convert CO2 grams to a relatable real-world equivalent."""
     if co2_g < 1:
@@ -484,6 +517,7 @@ def get_environmental_impact(data):
 
 # === TASKS ===
 
+
 def _parse_active_tasks():
     """Parse top tasks from ACTIVE-TASKS.md."""
     tasks = []
@@ -503,7 +537,16 @@ def _parse_active_tasks():
     for raw_line in content.split("\n"):
         if raw_line.startswith("## "):
             section_lower = raw_line.lower()
-            if any(kw in section_lower for kw in ["current focus", "next up", "blocked", "research", "infrastructure"]):
+            if any(
+                kw in section_lower
+                for kw in [
+                    "current focus",
+                    "next up",
+                    "blocked",
+                    "research",
+                    "infrastructure",
+                ]
+            ):
                 in_relevant_section = True
             elif any(kw in section_lower for kw in stop_sections):
                 in_relevant_section = False
@@ -520,7 +563,7 @@ def _parse_active_tasks():
         if not line.startswith("- "):
             continue
 
-        match = re.search(r'\*\*(.+?)\*\*', line)
+        match = re.search(r"\*\*(.+?)\*\*", line)
         if not match:
             continue
         task_name = match.group(1)
@@ -538,10 +581,12 @@ def _parse_active_tasks():
         else:
             status = "NEXT"
 
-        tasks.append({
-            "name": task_name[:50],
-            "status": status,
-        })
+        tasks.append(
+            {
+                "name": task_name[:50],
+                "status": status,
+            }
+        )
 
     priority_order = {"BLOCKED": 0, "IN PROG": 1, "NEXT": 2, "DONE": 3}
     tasks.sort(key=lambda t: priority_order.get(t["status"], 4))
@@ -555,7 +600,10 @@ def parse_active_tasks():
 def get_next_action(tasks):
     """Determine the single most important next action (Teresa Torres OST)."""
     if not tasks:
-        return {"text": "Open ACTIVE-TASKS.md and add your current focus", "level": "warning"}
+        return {
+            "text": "Open ACTIVE-TASKS.md and add your current focus",
+            "level": "warning",
+        }
 
     blocked = [t for t in tasks if t["status"] == "BLOCKED"]
     wip = [t for t in tasks if t["status"] == "IN PROG"]
@@ -568,17 +616,23 @@ def get_next_action(tasks):
     elif next_up:
         return {"text": f"START: {next_up[0]['name']}", "level": "info"}
     else:
-        return {"text": "All tasks done - check MASTER-ROADMAP-RANKING.md", "level": "ok"}
+        return {
+            "text": "All tasks done - check MASTER-ROADMAP-RANKING.md",
+            "level": "ok",
+        }
 
 
 # === BACKGROUND SERVICES & JOBS ===
+
 
 def _load_background_services():
     """Check PopChaos launchd services."""
     try:
         result = subprocess.run(
             ["launchctl", "list"],
-            capture_output=True, text=True, timeout=2,
+            capture_output=True,
+            text=True,
+            timeout=2,
         )
         services = []
         for line in result.stdout.split("\n"):
@@ -596,10 +650,12 @@ def _load_background_services():
                     else:
                         status = "Stopped"
 
-                    services.append({
-                        "name": name.replace("-", " ").replace("_", " ").title(),
-                        "status": status,
-                    })
+                    services.append(
+                        {
+                            "name": name.replace("-", " ").replace("_", " ").title(),
+                            "status": status,
+                        }
+                    )
         return services
     except Exception:
         return []
@@ -616,7 +672,9 @@ def _load_active_scraping_jobs():
     try:
         result = subprocess.run(
             ["ps", "aux"],
-            capture_output=True, text=True, timeout=2,
+            capture_output=True,
+            text=True,
+            timeout=2,
         )
         scraper_keywords = [
             ("scrape_obsidian", "Obsidian Docs"),
@@ -658,19 +716,26 @@ def check_active_scraping_jobs():
 
 # === SYSTEM ===
 
+
 def _load_system_memory():
     """Get system disk stats."""
     stats = {}
     try:
         result = subprocess.run(
             ["du", "-sh", "/private/tmp/claude-501"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
-        stats["claude_temp"] = result.stdout.split()[0] if result.returncode == 0 else "N/A"
+        stats["claude_temp"] = (
+            result.stdout.split()[0] if result.returncode == 0 else "N/A"
+        )
 
         result = subprocess.run(
             ["df", "-h", "/"],
-            capture_output=True, text=True, timeout=5,
+            capture_output=True,
+            text=True,
+            timeout=5,
         )
         if result.returncode == 0:
             lines = result.stdout.split("\n")
@@ -693,6 +758,7 @@ def get_system_memory():
 
 # === VALIDATION ===
 
+
 def validate_data(usage, kb_stats):
     """Validate data and return warnings list."""
     warnings = []
@@ -703,12 +769,15 @@ def validate_data(usage, kb_stats):
         warnings.append(f"Budget data is {int(age)}m old")
 
     if usage["percentage"] > 200:
-        warnings.append(f"Window percentage suspiciously high: {usage['percentage']:.0f}%")
+        warnings.append(
+            f"Window percentage suspiciously high: {usage['percentage']:.0f}%"
+        )
 
     return warnings
 
 
 # === CURRENT SESSION ===
+
 
 def _find_current_session():
     """Find the most recently active JSONL session file.
@@ -745,15 +814,15 @@ def _find_current_session():
     tokens = 0
     messages = 0
     try:
-        with open(best, 'r') as fh:
+        with open(best, "r") as fh:
             for line in fh:
                 if not line.strip():
                     continue
                 try:
                     record = json.loads(line)
-                    usage = record.get('message', {}).get('usage', {})
-                    inp = usage.get('input_tokens', 0)
-                    out = usage.get('output_tokens', 0)
+                    usage = record.get("message", {}).get("usage", {})
+                    inp = usage.get("input_tokens", 0)
+                    out = usage.get("output_tokens", 0)
                     if inp > 0 or out > 0:
                         tokens += inp + out
                         messages += 1
@@ -776,6 +845,7 @@ def get_current_session_stats():
 
 # === REFRESH ===
 
+
 def refresh_budget_data():
     """Run track_resources.py in the background to update .budget-state.json."""
     if not TRACKER_SCRIPT.exists():
@@ -792,6 +862,7 @@ def refresh_budget_data():
 
 
 # === DELEGATION STATS ===
+
 
 def _load_delegation_stats():
     """Load Gemini template routing and delegation hook stats."""
@@ -830,39 +901,45 @@ def _load_delegation_stats():
     # Hook audit log
     if DELEGATION_AUDIT_LOG.exists():
         try:
-            lines = [l.strip() for l in DELEGATION_AUDIT_LOG.read_text().strip().split('\n') if l.strip()]
+            lines = [
+                l.strip()
+                for l in DELEGATION_AUDIT_LOG.read_text().strip().split("\n")
+                if l.strip()
+            ]
             actions = {}
-            model_picks = {}   # classifier suggestions (model= field)
-            exec_backends = {} # actual execution (exec= field)
+            model_picks = {}  # classifier suggestions (model= field)
+            exec_backends = {}  # actual execution (exec= field)
             latencies = []
             prefetched = 0
             for line in lines:
                 parts = {}
                 for token in line.split():
-                    if '=' in token and not token.startswith('['):
-                        k, v = token.split('=', 1)
+                    if "=" in token and not token.startswith("["):
+                        k, v = token.split("=", 1)
                         parts[k] = v
-                action = parts.get('action', 'unknown')
+                action = parts.get("action", "unknown")
                 actions[action] = actions.get(action, 0) + 1
                 # Track model classifier picks
-                model = parts.get('model')
+                model = parts.get("model")
                 if model:
                     model_picks[model] = model_picks.get(model, 0) + 1
                 # Track actual execution backend
-                exec_be = parts.get('exec')
+                exec_be = parts.get("exec")
                 if exec_be:
                     exec_backends[exec_be] = exec_backends.get(exec_be, 0) + 1
-                if parts.get('prefetch') == 'OK':
+                if parts.get("prefetch") == "OK":
                     prefetched += 1
-                if 'latency' in parts:
+                if "latency" in parts:
                     try:
-                        latencies.append(int(parts['latency'].rstrip('ms')))
+                        latencies.append(int(parts["latency"].rstrip("ms")))
                     except ValueError:
                         pass
 
             data["hook_fires"] = len(lines)
             data["prefetched"] = prefetched
-            data["avg_latency_ms"] = sum(latencies) // max(len(latencies), 1) if latencies else 0
+            data["avg_latency_ms"] = (
+                sum(latencies) // max(len(latencies), 1) if latencies else 0
+            )
             data["by_action"] = actions
             data["by_model"] = model_picks
             data["by_exec"] = exec_backends
@@ -872,12 +949,16 @@ def _load_delegation_stats():
     # Gemini route eval log — with session/daily/all-time breakdowns
     if DELEGATION_EVAL_LOG.exists():
         try:
-            route_lines = [l.strip() for l in DELEGATION_EVAL_LOG.read_text().strip().split('\n') if l.strip()]
+            route_lines = [
+                l.strip()
+                for l in DELEGATION_EVAL_LOG.read_text().strip().split("\n")
+                if l.strip()
+            ]
             cats = {}
             ok = 0
             total_saved = 0
             by_date = {}  # date_str -> {calls, success, tokens_saved}
-            today_str = datetime.now().strftime('%Y-%m-%d')
+            today_str = datetime.now().strftime("%Y-%m-%d")
 
             # Session boundary: find when the current burst started
             # Use budget state's since_last_gap.gap_started if available
@@ -886,15 +967,16 @@ def _load_delegation_stats():
             if BUDGET_STATE.exists():
                 try:
                     bs = json.loads(BUDGET_STATE.read_text())
-                    gap_started = bs.get('since_last_gap', {}).get('gap_started')
+                    gap_started = bs.get("since_last_gap", {}).get("gap_started")
                     if gap_started:
                         # Convert TZ-aware UTC to naive local time
                         from datetime import timezone
+
                         try:
                             dt = datetime.fromisoformat(gap_started)
                             if dt.tzinfo is not None:
                                 dt = dt.astimezone().replace(tzinfo=None)
-                            session_start = dt.strftime('%Y-%m-%dT%H:%M:%S')
+                            session_start = dt.strftime("%Y-%m-%dT%H:%M:%S")
                         except (ValueError, TypeError):
                             session_start = gap_started[:19]
                 except (json.JSONDecodeError, OSError):
@@ -905,10 +987,10 @@ def _load_delegation_stats():
 
             for line in route_lines:
                 entry = json.loads(line)
-                cat = entry.get('category', 'unknown')
-                ts = entry.get('ts', '')
-                saved = entry.get('est_tokens_saved', 0)
-                success = entry.get('success', False)
+                cat = entry.get("category", "unknown")
+                ts = entry.get("ts", "")
+                saved = entry.get("est_tokens_saved", 0)
+                success = entry.get("success", False)
 
                 cats[cat] = cats.get(cat, 0) + 1
                 if success:
@@ -916,7 +998,7 @@ def _load_delegation_stats():
                 total_saved += saved
 
                 # Daily aggregation
-                date_key = ts[:10] if len(ts) >= 10 else 'unknown'
+                date_key = ts[:10] if len(ts) >= 10 else "unknown"
                 if date_key not in by_date:
                     by_date[date_key] = {"calls": 0, "success": 0, "tokens_saved": 0}
                 by_date[date_key]["calls"] += 1
@@ -941,12 +1023,12 @@ def _load_delegation_stats():
 
             # Daily breakdown (sorted, last 7 days)
             sorted_dates = sorted(by_date.items(), reverse=True)[:7]
-            data["by_date"] = [
-                {"date": d, **stats} for d, stats in sorted_dates
-            ]
+            data["by_date"] = [{"date": d, **stats} for d, stats in sorted_dates]
 
             # Today's totals
-            today_data = by_date.get(today_str, {"calls": 0, "success": 0, "tokens_saved": 0})
+            today_data = by_date.get(
+                today_str, {"calls": 0, "success": 0, "tokens_saved": 0}
+            )
             data["today_tokens_saved"] = today_data["tokens_saved"]
             data["today_route_calls"] = today_data["calls"]
 
@@ -959,30 +1041,33 @@ def _load_delegation_stats():
     if BUDGET_STATE.exists():
         try:
             bs = json.loads(BUDGET_STATE.read_text())
-            gap = bs.get('since_last_gap', {})
-            lifetime = bs.get('lifetime', {})
+            gap = bs.get("since_last_gap", {})
+            lifetime = bs.get("lifetime", {})
 
-            session_claude = gap.get('tokens_used', 0)
-            session_saved = data.get('session_tokens_saved', 0)
+            session_claude = gap.get("tokens_used", 0)
+            session_saved = data.get("session_tokens_saved", 0)
             session_total = session_claude + session_saved
-            data["session_efficiency_pct"] = round(
-                session_saved * 100 / session_total) if session_total > 0 else 0
+            data["session_efficiency_pct"] = (
+                round(session_saved * 100 / session_total) if session_total > 0 else 0
+            )
             data["session_claude_tokens"] = session_claude
 
-            lifetime_claude = lifetime.get('total_tokens', 0)
-            alltime_saved = data.get('est_tokens_saved', 0)
+            lifetime_claude = lifetime.get("total_tokens", 0)
+            alltime_saved = data.get("est_tokens_saved", 0)
             alltime_total = lifetime_claude + alltime_saved
-            data["alltime_efficiency_pct"] = round(
-                alltime_saved * 100 / alltime_total) if alltime_total > 0 else 0
+            data["alltime_efficiency_pct"] = (
+                round(alltime_saved * 100 / alltime_total) if alltime_total > 0 else 0
+            )
             data["lifetime_claude_tokens"] = lifetime_claude
 
             # Today's efficiency: today_saved vs today's Claude usage
             # Use 5h window tokens as today's Claude proxy (most accurate)
-            window_tokens = bs.get('five_hour_window', {}).get('tokens_used', 0)
-            today_saved = data.get('today_tokens_saved', 0)
+            window_tokens = bs.get("five_hour_window", {}).get("tokens_used", 0)
+            today_saved = data.get("today_tokens_saved", 0)
             today_total = window_tokens + today_saved
-            data["today_efficiency_pct"] = round(
-                today_saved * 100 / today_total) if today_total > 0 else 0
+            data["today_efficiency_pct"] = (
+                round(today_saved * 100 / today_total) if today_total > 0 else 0
+            )
 
         except (json.JSONDecodeError, OSError):
             pass
@@ -991,8 +1076,8 @@ def _load_delegation_stats():
     if DELEGATION_COUNTER.exists():
         try:
             counter = json.loads(DELEGATION_COUNTER.read_text())
-            data["gemini_today"] = counter.get('count', 0)
-            data["gemini_date"] = counter.get('date', '')
+            data["gemini_today"] = counter.get("count", 0)
+            data["gemini_date"] = counter.get("date", "")
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -1000,8 +1085,17 @@ def _load_delegation_stats():
     if DELEGATION_COMPLIANCE.exists():
         try:
             comp = json.loads(DELEGATION_COMPLIANCE.read_text())
-            data["delegation_rate"] = comp.get('delegation_rate', '0%')
-            data["total_prompts"] = comp.get('total_prompts', 0)
+            data["delegation_rate"] = comp.get("delegation_rate", "0%")
+            data["total_prompts"] = comp.get("total_prompts", 0)
+        except (json.JSONDecodeError, OSError):
+            pass
+
+    # Acceptance tracking (Phase 1 observability flywheel)
+    if DELEGATION_ACCEPTANCE.exists():
+        try:
+            acc = json.loads(DELEGATION_ACCEPTANCE.read_text())
+            data["acceptance"] = acc.get("overall", {})
+            data["acceptance_phase"] = acc.get("current_phase", 1)
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -1009,8 +1103,8 @@ def _load_delegation_stats():
     if DELEGATION_DISABLED.exists():
         try:
             disabled_data = json.loads(DELEGATION_DISABLED.read_text())
-            data["disabled_templates"] = disabled_data.get('disabled', [])
-            data["warned_templates"] = disabled_data.get('warned', [])
+            data["disabled_templates"] = disabled_data.get("disabled", [])
+            data["warned_templates"] = disabled_data.get("warned", [])
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -1022,6 +1116,7 @@ def get_delegation_stats():
 
 
 # === AGGREGATE (for /api/data) ===
+
 
 def _smart_model_recommendation(usage):
     """Pick model recommendation using the gap window as primary signal.
