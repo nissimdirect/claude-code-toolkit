@@ -28,7 +28,7 @@ import json
 import os
 import re
 import sys
-from collections import Counter, defaultdict
+from collections import Counter
 from pathlib import Path
 
 # === PATHS ===
@@ -689,10 +689,10 @@ def classify_domain(entry: dict) -> str:
             scores[domain] = score
     if not scores:
         return "general"
-    return max(scores, key=scores.get)
+    return max(scores, key=lambda k: scores[k])
 
 
-def detect_graduation_candidates(entry: dict, entry_type: str = None) -> bool:
+def detect_graduation_candidates(entry: dict, entry_type: str | None = None) -> bool:
     """Flag entries that could potentially become hook rules."""
     etype = entry_type or entry.get("type", "")
     if etype != "mechanical":
@@ -1106,7 +1106,7 @@ def run_tests():
         "description": "Always test code before shipping to production",
         "full_text": "Shipping without testing: Always test code before shipping to production",
     }
-    exact, compound = extract_keywords(entry)
+    exact, _compound = extract_keywords(entry)
     check("Keywords: has 'ship'", "ship" in exact or "shipping" in exact)
     check("Keywords: has 'test'", "test" in exact or "testing" in exact)
 
@@ -1129,6 +1129,7 @@ def run_tests():
     check("Keep real mistakes", entries[0]["title"] == "Real mistake")
 
     # Test 6: Full pipeline on real file
+    index: dict = {}
     if LEARNINGS_FILE.exists():
         index = build_index()
         check("Full build succeeds", "entries" in index)
