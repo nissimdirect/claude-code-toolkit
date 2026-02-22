@@ -57,25 +57,42 @@ def main():
     else:
         print("\n  No audit log yet.")
 
-    # --- Gemini Route Eval ---
-    if EVAL_LOG.exists():
-        route_lines = [
-            l.strip() for l in EVAL_LOG.read_text().strip().split("\n") if l.strip()
+    # --- Template Routing (derived from audit log) ---
+    if AUDIT_LOG.exists():
+        lines = [
+            l.strip() for l in AUDIT_LOG.read_text().strip().split("\n") if l.strip()
         ]
-        route_entries = [json.loads(l) for l in route_lines]
-        cats = Counter(e["category"] for e in route_entries)
-        total_saved = sum(e.get("est_tokens_saved", 0) for e in route_entries)
-        ok = sum(1 for e in route_entries if e.get("success"))
+        # Extract template routing entries from audit log (action=prefetch_template:*)
+        template_entries = []
+        for l in lines:
+            parsed = parse_audit_line(l)
+            action = parsed.get("action", "")
+            if action.startswith("prefetch_template:"):
+                cat = action.split(":", 1)[1]
+                ok = parsed.get("prefetch") == "OK"
+                template_entries.append({"category": cat, "success": ok})
 
-        print("\n  --- Gemini Route Templates ---")
-        print(f"  Calls:            {len(route_entries)}")
-        print(f"  Success:          {ok}/{len(route_entries)}")
-        print(f"  Est tokens saved: ~{total_saved:,}")
-        print("\n  By category:")
-        for cat, count in cats.most_common():
-            print(f"    {cat:25s} {count:3d}")
-    else:
-        print("\n  No template routing data yet.")
+        # Count all successful prefetches (template + plain)
+        total_prefetch_ok = sum(
+            1 for l in lines if parse_audit_line(l).get("prefetch") == "OK"
+        )
+
+        if template_entries:
+            cats = Counter(e["category"] for e in template_entries)
+            ok = sum(1 for e in template_entries if e["success"])
+            # Estimate tokens saved: ~2,850 per successful template routing
+            est_saved = ok * 2850
+
+            print("\n  --- Template Routing (live from audit log) ---")
+            print(f"  Template calls:   {len(template_entries)}")
+            print(f"  Success:          {ok}/{len(template_entries)}")
+            print(f"  Plain prefetch:   {total_prefetch_ok - ok} additional")
+            print(f"  Est tokens saved: ~{est_saved:,}")
+            print("\n  By category:")
+            for cat, count in cats.most_common():
+                print(f"    {cat:25s} {count:3d}")
+        else:
+            print("\n  No template routing data yet.")
 
     # --- Gemini Daily Counter ---
     if COUNTER.exists():
@@ -225,16 +242,22 @@ def json_summary():
         data["hook_fires"] = len(entries)
         data["prefetched"] = prefetched
 
-    if EVAL_LOG.exists():
-        route_lines = [
-            l.strip() for l in EVAL_LOG.read_text().strip().split("\n") if l.strip()
+    # Derive routing stats from audit log (eval log is stale since v4.4)
+    if AUDIT_LOG.exists():
+        lines = [
+            l.strip() for l in AUDIT_LOG.read_text().strip().split("\n") if l.strip()
         ]
-        route_entries = [json.loads(l) for l in route_lines]
-        ok = sum(1 for e in route_entries if e.get("success"))
-        total_saved = sum(e.get("est_tokens_saved", 0) for e in route_entries)
-        data["route_calls"] = len(route_entries)
-        data["route_success"] = ok
-        data["est_tokens_saved"] = total_saved
+        template_entries = []
+        for l in lines:
+            parsed = parse_audit_line(l)
+            action = parsed.get("action", "")
+            if action.startswith("prefetch_template:"):
+                template_entries.append(parsed.get("prefetch") == "OK")
+        if template_entries:
+            ok = sum(1 for s in template_entries if s)
+            data["route_calls"] = len(template_entries)
+            data["route_success"] = ok
+            data["est_tokens_saved"] = ok * 2850
 
     if COUNTER.exists():
         try:
