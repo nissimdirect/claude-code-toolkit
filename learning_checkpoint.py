@@ -22,43 +22,50 @@ import os
 from datetime import datetime, timezone
 from pathlib import Path
 
-BUFFER_PATH = Path.home() / '.claude' / '.locks' / 'session-learnings.json'
-LEARNINGS_PATH = Path.home() / '.claude' / 'projects' / '-Users-nissimagent' / 'memory' / 'learnings.md'
+BUFFER_PATH = Path.home() / ".claude" / ".locks" / "session-learnings.json"
+LEARNINGS_PATH = (
+    Path.home()
+    / ".claude"
+    / "projects"
+    / "-Users-nissimagent"
+    / "memory"
+    / "learnings.md"
+)
 
 # Health check targets — systems that should be verified each session
 HEALTH_CHECKS = [
     {
-        'name': 'OpenClaw gateway',
-        'check_cmd': ['pgrep', '-f', 'openclaw.*gateway'],
-        'severity': 'HIGH',
-        'what': 'Entropy Bot, cron jobs, Telegram delivery',
+        "name": "OpenClaw gateway",
+        "check_cmd": ["pgrep", "-f", "openclaw.*gateway"],
+        "severity": "HIGH",
+        "what": "Entropy Bot, cron jobs, Telegram delivery",
     },
     {
-        'name': 'OpenClaw cron last run',
-        'check_pipeline': [
-            ['openclaw', 'cron', 'list'],
-            ['grep', '-c', 'ago'],
+        "name": "OpenClaw cron last run",
+        "check_pipeline": [
+            ["openclaw", "cron", "list"],
+            ["grep", "-c", "ago"],
         ],
-        'severity': 'HIGH',
-        'what': 'Daily routines, retrospectives, task check-ins',
+        "severity": "HIGH",
+        "what": "Daily routines, retrospectives, task check-ins",
     },
     {
-        'name': 'Dashboard process',
-        'check_cmd': ['pgrep', '-f', 'dashboard_v2.py'],
-        'severity': 'MEDIUM',
-        'what': 'Budget visibility, task tracking',
+        "name": "Dashboard process",
+        "check_cmd": ["pgrep", "-f", "dashboard_v2.py"],
+        "severity": "MEDIUM",
+        "what": "Budget visibility, task tracking",
     },
     {
-        'name': 'Budget state freshness',
-        'check_python': '_check_budget_freshness',
-        'severity': 'HIGH',
-        'what': 'Accurate token budget tracking',
+        "name": "Budget state freshness",
+        "check_python": "_check_budget_freshness",
+        "severity": "HIGH",
+        "what": "Accurate token budget tracking",
     },
     {
-        'name': 'Experiment tracker',
-        'check_python': '_check_experiments',
-        'severity': 'MEDIUM',
-        'what': 'Experiment observation, learning capture',
+        "name": "Experiment tracker",
+        "check_python": "_check_experiments",
+        "severity": "MEDIUM",
+        "what": "Experiment observation, learning capture",
     },
 ]
 
@@ -66,20 +73,21 @@ HEALTH_CHECKS = [
 def _load_buffer():
     """Load the learning buffer from disk."""
     if not BUFFER_PATH.exists():
-        return {'session_id': None, 'started': None, 'learnings': []}
+        return {"session_id": None, "started": None, "learnings": []}
     try:
         return json.loads(BUFFER_PATH.read_text())
     except (json.JSONDecodeError, OSError):
-        return {'session_id': None, 'started': None, 'learnings': []}
+        return {"session_id": None, "started": None, "learnings": []}
 
 
 def _save_buffer(buffer):
     """Save the learning buffer to disk (atomic write)."""
     import tempfile
+
     BUFFER_PATH.parent.mkdir(parents=True, exist_ok=True)
-    fd, tmp = tempfile.mkstemp(dir=BUFFER_PATH.parent, suffix='.json')
+    fd, tmp = tempfile.mkstemp(dir=BUFFER_PATH.parent, suffix=".json")
     try:
-        with os.fdopen(fd, 'w') as f:
+        with os.fdopen(fd, "w") as f:
             json.dump(buffer, f, indent=2)
         os.replace(tmp, BUFFER_PATH)
     except OSError:
@@ -89,17 +97,35 @@ def _save_buffer(buffer):
             pass
 
 
-def add_learning(text, category='general'):
-    """Add a learning to the buffer. Writes to disk immediately."""
-    buffer = _load_buffer()
-    if not buffer['started']:
-        buffer['started'] = datetime.now(timezone.utc).isoformat()
+MAX_BUFFER_SIZE = 100
 
-    buffer['learnings'].append({
-        'text': text,
-        'category': category,
-        'timestamp': datetime.now(timezone.utc).isoformat(),
-    })
+
+def add_learning(text, category="general"):
+    """Add a learning to the buffer. Writes to disk immediately.
+
+    Deduplicates by text content and caps at MAX_BUFFER_SIZE entries (FIFO).
+    """
+    buffer = _load_buffer()
+    if not buffer["started"]:
+        buffer["started"] = datetime.now(timezone.utc).isoformat()
+
+    # Deduplicate: skip if exact text already buffered
+    if any(l["text"] == text for l in buffer["learnings"]):
+        print(f"Skipped (duplicate): {text[:60]}...")
+        return
+
+    buffer["learnings"].append(
+        {
+            "text": text,
+            "category": category,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+
+    # Cap buffer size (FIFO eviction)
+    if len(buffer["learnings"]) > MAX_BUFFER_SIZE:
+        buffer["learnings"] = buffer["learnings"][-MAX_BUFFER_SIZE:]
+
     _save_buffer(buffer)
     print(f"Buffered learning #{len(buffer['learnings'])}: {text[:60]}...")
 
@@ -107,24 +133,24 @@ def add_learning(text, category='general'):
 def list_learnings():
     """List all buffered learnings."""
     buffer = _load_buffer()
-    if not buffer['learnings']:
+    if not buffer["learnings"]:
         print("No buffered learnings.")
         return
 
     print(f"Buffered learnings ({len(buffer['learnings'])}):")
     print(f"Session started: {buffer.get('started', '?')}")
     print()
-    for i, l in enumerate(buffer['learnings'], 1):
-        cat = l.get('category', 'general')
-        ts = l.get('timestamp', '?')[:16]
+    for i, l in enumerate(buffer["learnings"], 1):
+        cat = l.get("category", "general")
+        ts = l.get("timestamp", "?")[:16]
         print(f"  {i}. [{cat}] {l['text']} ({ts})")
 
 
 def count_learnings():
     """Return just the count (for hooks/dashboard integration)."""
     buffer = _load_buffer()
-    count = len(buffer.get('learnings', []))
-    print(json.dumps({'count': count, 'buffer_path': str(BUFFER_PATH)}))
+    count = len(buffer.get("learnings", []))
+    print(json.dumps({"count": count, "buffer_path": str(BUFFER_PATH)}))
 
 
 def flush_learnings():
@@ -134,7 +160,7 @@ def flush_learnings():
     to the appropriate session entry in learnings.md.
     """
     buffer = _load_buffer()
-    if not buffer['learnings']:
+    if not buffer["learnings"]:
         print("No learnings to flush.")
         return
 
@@ -142,24 +168,27 @@ def flush_learnings():
 
     # Format learnings for output
     lines = []
-    for l in buffer['learnings']:
-        cat = l.get('category', 'general')
+    for l in buffer["learnings"]:
+        cat = l.get("category", "general")
         lines.append(f"- **[{cat}]** {l['text']}")
 
-    output = '\n'.join(lines)
+    output = "\n".join(lines)
     print(f"\nLearnings to write:\n{output}")
     print(f"\nTarget file: {LEARNINGS_PATH}")
-    print("Note: Claude should append these to the current session entry in learnings.md")
+    print(
+        "Note: Claude should append these to the current session entry in learnings.md"
+    )
 
     # Clear buffer
-    _save_buffer({'session_id': None, 'started': None, 'learnings': []})
+    _save_buffer({"session_id": None, "started": None, "learnings": []})
     print("Buffer cleared.")
 
 
 def _check_budget_freshness():
     """Check if budget state file is stale."""
     import time
-    budget_path = Path.home() / '.claude' / '.locks' / '.budget-state.json'
+
+    budget_path = Path.home() / ".claude" / ".locks" / ".budget-state.json"
     if not budget_path.exists():
         return False, "Budget state file missing"
     age_min = (time.time() - budget_path.stat().st_mtime) / 60
@@ -170,21 +199,24 @@ def _check_budget_freshness():
 
 def _check_experiments():
     """Check if experiments are stale (running but never observed)."""
-    exp_path = Path.home() / '.claude' / '.locks' / 'experiments-state.json'
+    exp_path = Path.home() / ".claude" / ".locks" / "experiments-state.json"
     if not exp_path.exists():
         return True, "No experiment state file"
     try:
         data = json.loads(exp_path.read_text())
-        running = [e for e in data if e.get('status') == 'running']
+        running = [e for e in data if e.get("status") == "running"]
         stale = []
         for e in running:
-            created = e.get('created', '')
+            created = e.get("created", "")
             if created:
                 from datetime import datetime as dt
-                created_date = dt.strptime(created, '%Y-%m-%d')
+
+                created_date = dt.strptime(created, "%Y-%m-%d")
                 days = (dt.now() - created_date).days
                 if days > 5:
-                    stale.append(f"Experiment #{e['id']}: running {days} days, no observations")
+                    stale.append(
+                        f"Experiment #{e['id']}: running {days} days, no observations"
+                    )
         if stale:
             return False, "; ".join(stale)
         return True, f"{len(running)} running experiments (not stale)"
@@ -199,76 +231,87 @@ def health_check():
     Called by /today at session start.
     """
     import subprocess
+
     results = []
 
     for check in HEALTH_CHECKS:
-        name = check['name']
-        severity = check['severity']
+        name = check["name"]
+        severity = check["severity"]
 
-        if 'check_python' in check:
+        if "check_python" in check:
             # Python-based check
-            func = globals()[check['check_python']]
+            func = globals()[check["check_python"]]
             ok, detail = func()
-        elif 'check_pipeline' in check:
+        elif "check_pipeline" in check:
             # Pipeline check (safe: no shell=True, uses subprocess pipes)
             try:
-                cmds = check['check_pipeline']
+                cmds = check["check_pipeline"]
                 proc1 = subprocess.Popen(
-                    cmds[0], stdout=subprocess.PIPE,
-                    stderr=subprocess.DEVNULL, text=True
+                    cmds[0],
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.DEVNULL,
+                    text=True,
                 )
                 result = subprocess.run(
-                    cmds[1], stdin=proc1.stdout,
-                    capture_output=True, text=True, timeout=10
+                    cmds[1],
+                    stdin=proc1.stdout,
+                    capture_output=True,
+                    text=True,
+                    timeout=10,
                 )
                 proc1.wait(timeout=5)
-                ok = result.returncode == 0 and result.stdout.strip() not in ('', '0')
-                detail = result.stdout.strip()[:80] if ok else "Not running or not found"
+                ok = result.returncode == 0 and result.stdout.strip() not in ("", "0")
+                detail = (
+                    result.stdout.strip()[:80] if ok else "Not running or not found"
+                )
             except (subprocess.TimeoutExpired, OSError):
                 ok = False
                 detail = "Check timed out"
-        elif 'check_cmd' in check:
+        elif "check_cmd" in check:
             # Simple command check (safe: list-form, no shell)
             try:
                 result = subprocess.run(
-                    check['check_cmd'],
-                    capture_output=True, text=True, timeout=10
+                    check["check_cmd"], capture_output=True, text=True, timeout=10
                 )
-                ok = result.returncode == 0 and result.stdout.strip() not in ('', '0')
-                detail = result.stdout.strip()[:80] if ok else "Not running or not found"
+                ok = result.returncode == 0 and result.stdout.strip() not in ("", "0")
+                detail = (
+                    result.stdout.strip()[:80] if ok else "Not running or not found"
+                )
             except (subprocess.TimeoutExpired, OSError):
                 ok = False
                 detail = "Check timed out"
 
-        status = 'OK' if ok else 'FAIL'
-        results.append({
-            'name': name,
-            'status': status,
-            'severity': severity,
-            'detail': detail,
-            'blocks': check.get('what', ''),
-        })
+        status = "OK" if ok else "FAIL"
+        results.append(
+            {
+                "name": name,
+                "status": status,
+                "severity": severity,
+                "detail": detail,
+                "blocks": check.get("what", ""),
+            }
+        )
 
     # Output
-    failures = [r for r in results if r['status'] == 'FAIL']
+    failures = [r for r in results if r["status"] == "FAIL"]
     print(f"Health Check: {len(results) - len(failures)}/{len(results)} passing")
     print()
 
     for r in results:
-        icon = 'PASS' if r['status'] == 'OK' else 'FAIL'
-        sev = f"[{r['severity']}]" if r['status'] == 'FAIL' else ''
+        icon = "PASS" if r["status"] == "OK" else "FAIL"
+        sev = f"[{r['severity']}]" if r["status"] == "FAIL" else ""
         print(f"  {icon} {sev} {r['name']}: {r['detail']}")
-        if r['status'] == 'FAIL':
+        if r["status"] == "FAIL":
             print(f"       Blocks: {r['blocks']}")
 
     if failures:
         print(f"\n{len(failures)} FAILURES detected. Fix before starting work.")
         # Write failures to buffer as auto-learnings
         for f in failures:
-            if f['severity'] in ('HIGH', 'CRITICAL'):
+            if f["severity"] in ("HIGH", "CRITICAL"):
                 add_learning(
                     f"Health check FAIL: {f['name']} — {f['detail']}. Blocks: {f['blocks']}",
-                    category='health'
+                    category="health",
                 )
     else:
         print("\nAll systems healthy.")
@@ -283,28 +326,28 @@ def main():
 
     cmd = sys.argv[1]
 
-    if cmd == 'add':
+    if cmd == "add":
         if len(sys.argv) < 3:
             print("Usage: learning_checkpoint.py add <text> [--category <cat>]")
             sys.exit(1)
         text = sys.argv[2]
-        category = 'general'
-        if '--category' in sys.argv:
-            idx = sys.argv.index('--category')
+        category = "general"
+        if "--category" in sys.argv:
+            idx = sys.argv.index("--category")
             if idx + 1 < len(sys.argv):
                 category = sys.argv[idx + 1]
         add_learning(text, category)
 
-    elif cmd == 'list':
+    elif cmd == "list":
         list_learnings()
 
-    elif cmd == 'flush':
+    elif cmd == "flush":
         flush_learnings()
 
-    elif cmd == 'health':
+    elif cmd == "health":
         health_check()
 
-    elif cmd == 'count':
+    elif cmd == "count":
         count_learnings()
 
     else:
@@ -312,5 +355,5 @@ def main():
         sys.exit(1)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

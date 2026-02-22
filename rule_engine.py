@@ -530,7 +530,9 @@ def advance_day(days: int = None):
                 today = datetime.date.today()
                 elapsed = (today - last_date).days
                 # Cap to prevent mass dormancy from ancient/corrupt last_decay dates
-                days = max(1, min(elapsed, CALENDAR_DECAY_MAX_DAYS))
+                days = min(elapsed, CALENDAR_DECAY_MAX_DAYS)
+                if days <= 0:
+                    return False  # Already decayed today — don't over-decay
             except (ValueError, TypeError):
                 days = 1
         else:
@@ -575,6 +577,7 @@ def advance_day(days: int = None):
     updated["co_activation"] = co_act
     updated["last_decay"] = time.strftime("%Y-%m-%d")
     save_state(updated)
+    return True
 
 
 def detect_inactive() -> list[str]:
@@ -688,9 +691,11 @@ if __name__ == "__main__":
                     r = rules.get(rid)
                     name = r.name if r else "?"
                     pid = r.principle_id if r else "?"
+                    act = r.activation_count if r else 0
+                    days = r.days_since_activation if r else 0
                     print(
                         f"  {rid}|{pid} ({name}): spike={spike_val:.3f}, "
-                        f"activated {r.activation_count}x, {r.days_since_activation}d ago"
+                        f"activated {act}x, {days}d ago"
                     )
 
             # Top 5 most activated rules (what fires most)
@@ -739,8 +744,11 @@ if __name__ == "__main__":
                 print(f"\nSchema warnings: {report['schema_warnings']}")
 
         elif cmd == "advance":
-            advance_day()
-            print("Advanced (calendar-based decay applied)")
+            applied = advance_day()
+            if applied:
+                print("Advanced (calendar-based decay applied)")
+            else:
+                print("Skipped (already decayed today)")
 
         elif cmd == "validate":
             rules = load_rules()
