@@ -50,7 +50,9 @@ ADVISORS = {
             # Product Talk (Teresa Torres — product discovery, opportunity trees)
             Path("~/Development/lenny/product-talk/articles").expanduser(),
         ],
-        "index_dir": Path("~/Development/lennys-podcast-transcripts/index").expanduser(),
+        "index_dir": Path(
+            "~/Development/lennys-podcast-transcripts/index"
+        ).expanduser(),
         "pattern": "*.md",
         "article_count": 4491,  # 4006 + 46 (Leading Product) + 439 (Product Talk)
         "excerpt_lines": 80,  # Transcripts are huge, take more context
@@ -62,8 +64,12 @@ ADVISORS = {
             # music-biz exclusive: analytics, strategy, indie business
             Path("~/Development/cherie-hu/articles").expanduser(),
             Path("~/Development/music-marketing/ari-herstand/articles").expanduser(),
-            Path("~/Development/music-marketing/ari-herstand-dmn/articles").expanduser(),
-            Path("~/Development/music-marketing/ari-herstand-guest/articles").expanduser(),
+            Path(
+                "~/Development/music-marketing/ari-herstand-dmn/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/music-marketing/ari-herstand-guest/articles"
+            ).expanduser(),
             # Shared with label: tactics, direct-to-fan
             Path("~/Development/jesse-cannon/articles").expanduser(),
             Path("~/Development/music-marketing/bandzoogle-blog/articles").expanduser(),
@@ -123,7 +129,9 @@ ADVISORS = {
             Path("~/Development/cto-leaders/kent-beck/articles").expanduser(),
             Path("~/Development/cto-leaders/swyx/articles").expanduser(),
             # Security leaders
-            Path("~/Development/security-leaders/daniel-miessler/articles").expanduser(),
+            Path(
+                "~/Development/security-leaders/daniel-miessler/articles"
+            ).expanduser(),
             # Wave 6: Music technology
             Path("~/Development/cto/cdm/articles").expanduser(),
         ],
@@ -194,7 +202,9 @@ ADVISORS = {
     "lawsofux": {
         "name": "Jon Yablonski / Laws of UX",
         "source": "Laws of UX (Psychology-backed design principles)",
-        "article_dirs": [Path("~/Development/ux-design/lawsofux/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/ux-design/lawsofux/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 45,
@@ -212,7 +222,9 @@ ADVISORS = {
     "deceptive-design": {
         "name": "Deceptive Design (Harry Brignull)",
         "source": "Deceptive Design (Dark patterns taxonomy)",
-        "article_dirs": [Path("~/Development/ux-design/deceptive-design/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/ux-design/deceptive-design/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 18,
@@ -221,7 +233,9 @@ ADVISORS = {
     "alistapart": {
         "name": "A List Apart",
         "source": "A List Apart (Web design + UX essays)",
-        "article_dirs": [Path("~/Development/ux-design/alistapart/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/ux-design/alistapart/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 281,
@@ -230,7 +244,9 @@ ADVISORS = {
     "smashingmag": {
         "name": "Smashing Magazine",
         "source": "Smashing Magazine (UX Design category)",
-        "article_dirs": [Path("~/Development/ux-design/smashingmag/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/ux-design/smashingmag/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 114,
@@ -248,12 +264,16 @@ ADVISORS = {
             Path("~/Development/art-criticism/e-flux-journal/articles").expanduser(),
             # Brian Eno creative philosophy (generative systems, oblique strategies, ambient thinking)
             Path("~/Development/creative-interviews/brian-eno/articles").expanduser(),
-            Path("~/Development/creative-interviews/brian-eno-enoweb/articles").expanduser(),
+            Path(
+                "~/Development/creative-interviews/brian-eno-enoweb/articles"
+            ).expanduser(),
             # New art direction sources (scrapers in progress)
             Path("~/Development/art-direction/its-nice-that/articles").expanduser(),
             Path("~/Development/creative-boom/articles").expanduser(),
             Path("~/Development/fonts-in-use/articles").expanduser(),
-            Path("~/Development/art-direction/the-brand-identity/articles").expanduser(),
+            Path(
+                "~/Development/art-direction/the-brand-identity/articles"
+            ).expanduser(),
             Path("~/Development/tools/kb/accessibility").expanduser(),
             # Virgil Abloh portfolio (fashion, special projects, lectures)
             Path("~/Development/art-director/virgil-abloh/articles").expanduser(),
@@ -266,7 +286,9 @@ ADVISORS = {
     "brandnew": {
         "name": "Brand New / Under Consideration",
         "source": "Brand New (Brand identity critiques)",
-        "article_dirs": [Path("~/Development/art-direction/brandnew/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-direction/brandnew/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 4062,
@@ -275,7 +297,9 @@ ADVISORS = {
     "designobserver": {
         "name": "Design Observer",
         "source": "Design Observer (Design criticism + culture)",
-        "article_dirs": [Path("~/Development/art-direction/designobserver/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-direction/designobserver/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 12,
@@ -284,7 +308,9 @@ ADVISORS = {
     "creativereview": {
         "name": "Creative Review",
         "source": "Creative Review (Advertising + branding)",
-        "article_dirs": [Path("~/Development/art-direction/creativereview/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-direction/creativereview/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 12,
@@ -293,7 +319,9 @@ ADVISORS = {
     "valhalla": {
         "name": "Sean Costello / Valhalla DSP",
         "source": "Valhalla DSP Blog",
-        "article_dirs": [Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/plugin-devs/valhalla-dsp/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 214,
@@ -302,7 +330,9 @@ ADVISORS = {
     "airwindows": {
         "name": "Chris Johnson / Airwindows",
         "source": "Airwindows Blog",
-        "article_dirs": [Path("~/Development/plugin-devs/airwindows/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/plugin-devs/airwindows/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 400,
@@ -311,7 +341,9 @@ ADVISORS = {
     "fabfilter": {
         "name": "FabFilter",
         "source": "FabFilter Learn",
-        "article_dirs": [Path("~/Development/plugin-devs/fabfilter/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/plugin-devs/fabfilter/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 23,
@@ -320,7 +352,9 @@ ADVISORS = {
     "eflux": {
         "name": "e-flux Journal",
         "source": "e-flux Journal (Art Critical Theory)",
-        "article_dirs": [Path("~/Development/art-criticism/e-flux-journal/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/e-flux-journal/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 1559,
@@ -329,7 +363,9 @@ ADVISORS = {
     "hyperallergic": {
         "name": "Hyperallergic",
         "source": "Hyperallergic (Art Criticism & News)",
-        "article_dirs": [Path("~/Development/art-criticism/hyperallergic/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/hyperallergic/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 538,
@@ -338,7 +374,9 @@ ADVISORS = {
     "creative-capital": {
         "name": "Creative Capital",
         "source": "Creative Capital (Handbook + Retreat Transcripts + Project Docs + Winner Analysis)",
-        "article_dirs": [Path("~/Development/art-criticism/creative-capital/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/creative-capital/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 35,
@@ -347,7 +385,9 @@ ADVISORS = {
     "nyfa-source": {
         "name": "NYFA Source / Grant Writing Guides",
         "source": "NYFA Source + Format Magazine + ArtConnect + LearnGrantWriting + Winning Application Indices",
-        "article_dirs": [Path("~/Development/art-criticism/nyfa-source/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/nyfa-source/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 35,
@@ -356,7 +396,9 @@ ADVISORS = {
     "fractured-atlas": {
         "name": "Fractured Atlas",
         "source": "Fractured Atlas Blog (Fiscal Sponsorship + Grant Guides + Fundraising)",
-        "article_dirs": [Path("~/Development/art-criticism/fractured-atlas/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/fractured-atlas/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 27,
@@ -365,7 +407,11 @@ ADVISORS = {
     "creative-independent": {
         "name": "The Creative Independent",
         "source": "TCI Guides (Grant Writing + Artist Statements + Storytelling)",
-        "article_dirs": [Path("~/Development/art-criticism/creative-independent/articles").expanduser()],
+        "article_dirs": [
+            Path(
+                "~/Development/art-criticism/creative-independent/articles"
+            ).expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 4,
@@ -374,7 +420,9 @@ ADVISORS = {
     "ubuweb": {
         "name": "UbuWeb Papers",
         "source": "UbuWeb (Avant-Garde Theory)",
-        "article_dirs": [Path("~/Development/art-criticism/ubuweb-papers/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/ubuweb-papers/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 260,
@@ -383,7 +431,11 @@ ADVISORS = {
     "stanford-aesthetics": {
         "name": "Stanford Encyclopedia - Aesthetics",
         "source": "Stanford Encyclopedia of Philosophy",
-        "article_dirs": [Path("~/Development/art-criticism/stanford-aesthetics/articles").expanduser()],
+        "article_dirs": [
+            Path(
+                "~/Development/art-criticism/stanford-aesthetics/articles"
+            ).expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 33,
@@ -392,7 +444,11 @@ ADVISORS = {
     "marxists-aesthetics": {
         "name": "Marxists.org Art & Aesthetics",
         "source": "Marxists.org (Critical Theory)",
-        "article_dirs": [Path("~/Development/art-criticism/marxists-aesthetics/articles").expanduser()],
+        "article_dirs": [
+            Path(
+                "~/Development/art-criticism/marxists-aesthetics/articles"
+            ).expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 201,  # Verified 2026-02-14
@@ -401,7 +457,11 @@ ADVISORS = {
     "situationist": {
         "name": "Situationist International",
         "source": "Bureau of Public Secrets (SI Texts)",
-        "article_dirs": [Path("~/Development/art-criticism/situationist-international/articles").expanduser()],
+        "article_dirs": [
+            Path(
+                "~/Development/art-criticism/situationist-international/articles"
+            ).expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 88,
@@ -410,7 +470,11 @@ ADVISORS = {
     "creative-capital-awardees": {
         "name": "Creative Capital Awardees",
         "source": "Creative Capital (Grant Recipients)",
-        "article_dirs": [Path("~/Development/art-criticism/creative-capital-awardees/articles").expanduser()],
+        "article_dirs": [
+            Path(
+                "~/Development/art-criticism/creative-capital-awardees/articles"
+            ).expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 831,
@@ -419,7 +483,9 @@ ADVISORS = {
     "artadia": {
         "name": "Artadia Awardees",
         "source": "Artadia Awards (Grant Recipients)",
-        "article_dirs": [Path("~/Development/art-criticism/artadia-awardees/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/artadia-awardees/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 305,
@@ -428,7 +494,9 @@ ADVISORS = {
     "usa-fellows": {
         "name": "United States Artists Fellows",
         "source": "USA Fellows (Grant Recipients)",
-        "article_dirs": [Path("~/Development/art-criticism/usa-fellows/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/usa-fellows/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 1038,
@@ -437,7 +505,9 @@ ADVISORS = {
     "bomb-magazine": {
         "name": "BOMB Magazine",
         "source": "BOMB Magazine (Artist Interviews)",
-        "article_dirs": [Path("~/Development/art-criticism/bomb-magazine/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/bomb-magazine/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 1500,
@@ -446,7 +516,9 @@ ADVISORS = {
     "texte-zur-kunst": {
         "name": "Texte zur Kunst",
         "source": "Texte zur Kunst (Critical Theory Journal)",
-        "article_dirs": [Path("~/Development/art-criticism/texte-zur-kunst/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/texte-zur-kunst/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 801,
@@ -455,7 +527,9 @@ ADVISORS = {
     "momus": {
         "name": "Momus",
         "source": "Momus (Art Criticism)",
-        "article_dirs": [Path("~/Development/art-criticism/momus/articles").expanduser()],
+        "article_dirs": [
+            Path("~/Development/art-criticism/momus/articles").expanduser()
+        ],
         "index_dir": None,
         "pattern": "*.md",
         "article_count": 1076,
@@ -471,10 +545,16 @@ ADVISORS = {
             Path("~/Development/art-criticism/creative-capital/articles").expanduser(),
             # Critical theory
             Path("~/Development/art-criticism/ubuweb-papers/articles").expanduser(),
-            Path("~/Development/art-criticism/stanford-aesthetics/articles").expanduser(),
-            Path("~/Development/art-criticism/situationist-international/articles").expanduser(),
+            Path(
+                "~/Development/art-criticism/stanford-aesthetics/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/art-criticism/situationist-international/articles"
+            ).expanduser(),
             # Grant recipients
-            Path("~/Development/art-criticism/creative-capital-awardees/articles").expanduser(),
+            Path(
+                "~/Development/art-criticism/creative-capital-awardees/articles"
+            ).expanduser(),
             Path("~/Development/art-criticism/artadia-awardees/articles").expanduser(),
             Path("~/Development/art-criticism/usa-fellows/articles").expanduser(),
             # Publications
@@ -488,7 +568,9 @@ ADVISORS = {
             # Grant strategy knowledge (scraped 2026-02-15)
             Path("~/Development/art-criticism/nyfa-source/articles").expanduser(),
             Path("~/Development/art-criticism/fractured-atlas/articles").expanduser(),
-            Path("~/Development/art-criticism/creative-independent/articles").expanduser(),
+            Path(
+                "~/Development/art-criticism/creative-independent/articles"
+            ).expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
@@ -548,9 +630,13 @@ ADVISORS = {
             Path("~/Development/jesse-cannon/articles").expanduser(),
             # Wave 4: Music production (electronic, DnB, tutorials)
             Path("~/Development/music-production/splice/articles").expanduser(),
-            Path("~/Development/music-production/attack-magazine/articles").expanduser(),
+            Path(
+                "~/Development/music-production/attack-magazine/articles"
+            ).expanduser(),
             # Wave 5: Budget production, free plugins, tutorials
-            Path("~/Development/music-production/bedroom-producers-blog/articles").expanduser(),
+            Path(
+                "~/Development/music-production/bedroom-producers-blog/articles"
+            ).expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
@@ -566,7 +652,9 @@ ADVISORS = {
             Path("~/Development/music-marketing/bandzoogle-blog/articles").expanduser(),
             # Label exclusive: industry news, streaming economics, distribution
             Path("~/Development/music-business/hypebot/articles").expanduser(),
-            Path("~/Development/music-business/music-biz-worldwide/articles").expanduser(),
+            Path(
+                "~/Development/music-business/music-biz-worldwide/articles"
+            ).expanduser(),
             Path("~/Development/music-production/ditto-music/articles").expanduser(),
         ],
         "index_dir": None,
@@ -651,42 +739,48 @@ ADVISORS = {
     # ── First 1000 (Audience Building + PMF + Customer Acquisition) ──
     "first-1000": {
         "name": "First 1000 (Audience Building + PMF + Customer Acquisition)",
-        "source": "Hormozi, Arvid Kahl, Pat Flynn, Jay Clouse, Amy Hoy, First Round, YC, MIDiA, Sean Ellis, Kevin Kelly, Li Jin, Andrew Chen, Noah Kagan, Russell Brunson, Dan Martell, Daniel Priestley, Sahil Lavingia, Dickie Bush, Nathan Barry, Demand Curve, Circle.so, Mighty Networks, Patreon",
+        "source": "Andrew Chen, Arvid Kahl, Pat Flynn, First Round, YC Library, Kevin Kelly, Noah Kagan, Niche Pursuits, Copyblogger, Ramit Sethi, Marie Forleo, Hiten Shah, Ship 30 for 30, Codie Sanchez, Demand Curve, Newsletter Circle, Mixergy, Songtrust, FanCircles, GrowthHackers, Creator Science, Stacking the Bricks, Dent Global, Circle.so, Li Jin, Dan Martell, Nathan Barry, PMF Show",
         "article_dirs": [
-            Path("~/Development/knowledge-bases/first-1000/articles").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/hormozi").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/andrew-chen").expanduser(),
             Path("~/Development/knowledge-bases/first-1000/arvid-kahl").expanduser(),
             Path("~/Development/knowledge-bases/first-1000/pat-flynn").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/nathan-barry").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/jay-clouse").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/amy-hoy").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/russell-brunson").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/dan-martell").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/sahil-lavingia").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/daniel-priestley").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/dickie-bush").expanduser(),
             Path("~/Development/knowledge-bases/first-1000/first-round").expanduser(),
             Path("~/Development/knowledge-bases/first-1000/yc-library").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/pmf-show").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/indie-hackers").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/sean-ellis").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/andrew-chen").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/noah-kagan").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/midia-research").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/li-jin").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/circle-so").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/mighty-networks").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/patreon").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/startup-grind").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/mixergy").expanduser(),
             Path("~/Development/knowledge-bases/first-1000/kevin-kelly").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/noah-kagan").expanduser(),
+            Path(
+                "~/Development/knowledge-bases/first-1000/niche-pursuits"
+            ).expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/copyblogger").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/ramit-sethi").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/marie-forleo").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/hiten-shah").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/ship30for30").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/codie-sanchez").expanduser(),
             Path("~/Development/knowledge-bases/first-1000/demand-curve").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/youtube-transcripts").expanduser(),
-            Path("~/Development/knowledge-bases/first-1000/supplementary").expanduser(),
+            Path(
+                "~/Development/knowledge-bases/first-1000/newsletter-circle"
+            ).expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/mixergy").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/songtrust").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/fancircles").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/growthhackers").expanduser(),
+            Path(
+                "~/Development/knowledge-bases/first-1000/creator-science"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/first-1000/stacking-the-bricks"
+            ).expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/dent-global").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/circle-so").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/li-jin").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/dan-martell").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/nathan-barry").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/pmf-show").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 2711,  # Wave 9.1: Andrew Chen 657, Pat Flynn 369, First Round 863, YC Library 387, Arvid Kahl 435
+        "article_count": 15397,  # Wave 9 complete: 9.1 (2,711) + 9.2 (988) + 9.3 (936) + 9.4 (1,275) + 9.5 (9,487)
         "excerpt_lines": 60,
     },
 }
@@ -1018,25 +1112,57 @@ ALIASES = {
 # These capture intuitions that article length can't measure
 # (e.g., Valhalla DSP posts are short but extremely high-signal).
 _STATIC_WEIGHTS = {
-    "cherie-hu": 3.0, "creative-capital": 3.0,
-    "valhalla-dsp": 2.5, "attack-magazine": 2.5, "fabfilter": 2.5,
-    "brandnew": 2.5, "kent-beck": 2.5, "julia-evans": 2.5,
-    "don-norman": 2.5, "nngroup": 2.5, "lawsofux": 2.5,
-    "nyfa-source": 2.5, "creative-independent": 2.5,
-    "airwindows": 2.0, "daniel-miessler": 2.0, "jesse-cannon": 2.0,
-    "ari-herstand": 2.0, "splice": 2.0, "e-flux-journal": 2.0,
-    "bomb-magazine": 2.0, "simon-willison": 2.0, "ubuweb-papers": 2.0,
-    "backlinko": 2.0, "swyx": 2.0, "baymard": 2.0,
-    "stanford-aesthetics": 2.0, "brian-eno": 2.0, "tape-op": 2.0,
+    "cherie-hu": 3.0,
+    "creative-capital": 3.0,
+    "valhalla-dsp": 2.5,
+    "attack-magazine": 2.5,
+    "fabfilter": 2.5,
+    "brandnew": 2.5,
+    "kent-beck": 2.5,
+    "julia-evans": 2.5,
+    "don-norman": 2.5,
+    "nngroup": 2.5,
+    "lawsofux": 2.5,
+    "nyfa-source": 2.5,
+    "creative-independent": 2.5,
+    "airwindows": 2.0,
+    "daniel-miessler": 2.0,
+    "jesse-cannon": 2.0,
+    "ari-herstand": 2.0,
+    "splice": 2.0,
+    "e-flux-journal": 2.0,
+    "bomb-magazine": 2.0,
+    "simon-willison": 2.0,
+    "ubuweb-papers": 2.0,
+    "backlinko": 2.0,
+    "swyx": 2.0,
+    "baymard": 2.0,
+    "stanford-aesthetics": 2.0,
+    "brian-eno": 2.0,
+    "tape-op": 2.0,
     "fractured-atlas": 2.0,
-    "hyperallergic": 1.5, "the-brand-identity": 1.5, "its-nice-that": 1.5,
-    "creative-boom": 1.5, "hypebot": 1.5, "music-biz-worldwide": 1.5,
-    "bandzoogle-blog": 1.5, "sparktoro": 1.5, "kevin-indig": 1.5,
-    "arvid-kahl": 1.5, "lukew": 1.5, "the-quietus": 1.5, "cdm": 1.5,
-    "ditto-music": 1.2, "bedroom-producers-blog": 1.2,
-    "texte-zur-kunst": 0.8, "momus": 0.8, "situationist-international": 0.8,
+    "hyperallergic": 1.5,
+    "the-brand-identity": 1.5,
+    "its-nice-that": 1.5,
+    "creative-boom": 1.5,
+    "hypebot": 1.5,
+    "music-biz-worldwide": 1.5,
+    "bandzoogle-blog": 1.5,
+    "sparktoro": 1.5,
+    "kevin-indig": 1.5,
+    "arvid-kahl": 1.5,
+    "lukew": 1.5,
+    "the-quietus": 1.5,
+    "cdm": 1.5,
+    "ditto-music": 1.2,
+    "bedroom-producers-blog": 1.2,
+    "texte-zur-kunst": 0.8,
+    "momus": 0.8,
+    "situationist-international": 0.8,
     "marxists-aesthetics": 0.7,
-    "creative-capital-awardees": 0.5, "artadia-awardees": 0.5, "usa-fellows": 0.5,
+    "creative-capital-awardees": 0.5,
+    "artadia-awardees": 0.5,
+    "usa-fellows": 0.5,
     "fonts-in-use": 0.3,
 }
 
@@ -1125,14 +1251,19 @@ def _build_blended_weights() -> dict[str, float]:
     # Cache
     try:
         WEIGHT_INDEX_PATH.parent.mkdir(parents=True, exist_ok=True)
-        WEIGHT_INDEX_PATH.write_text(json.dumps({
-            "version": 3,
-            "computed_at": time.time(),
-            "compression": WEIGHT_COMPRESSION,
-            "blend": WEIGHT_BLEND,
-            "source_count": len(blended),
-            "weights": blended,
-        }, indent=2))
+        WEIGHT_INDEX_PATH.write_text(
+            json.dumps(
+                {
+                    "version": 3,
+                    "computed_at": time.time(),
+                    "compression": WEIGHT_COMPRESSION,
+                    "blend": WEIGHT_BLEND,
+                    "source_count": len(blended),
+                    "weights": blended,
+                },
+                indent=2,
+            )
+        )
     except OSError:
         pass
 
@@ -1146,260 +1277,619 @@ def _build_blended_weights() -> dict[str, float]:
 SOURCE_DOMAINS = {
     # ── Typography & Fonts ──
     "fonts-in-use": [
-        "font", "typeface", "typography", "lettering", "serif", "sans-serif",
-        "type design", "foundry", "specimen", "variable font", "grotesque",
-        "slab", "display type", "monospace", "italic", "glyph", "opentype",
-        "woff", "kerning", "ligature", "blackletter", "humanist", "geometric",
-        "grotesk", "didone", "transitional", "type specimen",
+        "font",
+        "typeface",
+        "typography",
+        "lettering",
+        "serif",
+        "sans-serif",
+        "type design",
+        "foundry",
+        "specimen",
+        "variable font",
+        "grotesque",
+        "slab",
+        "display type",
+        "monospace",
+        "italic",
+        "glyph",
+        "opentype",
+        "woff",
+        "kerning",
+        "ligature",
+        "blackletter",
+        "humanist",
+        "geometric",
+        "grotesk",
+        "didone",
+        "transitional",
+        "type specimen",
     ],
     # ── Grant Strategy ──
     "creative-capital": [
-        "grant", "application", "proposal", "funding", "awardee", "retreat",
-        "work sample", "budget", "panel review", "award", "creative capital",
-        "artist statement", "project description", "catalytic", "innovation",
+        "grant",
+        "application",
+        "proposal",
+        "funding",
+        "awardee",
+        "retreat",
+        "work sample",
+        "budget",
+        "panel review",
+        "award",
+        "creative capital",
+        "artist statement",
+        "project description",
+        "catalytic",
+        "innovation",
     ],
     "nyfa-source": [
-        "grant", "application", "funding", "proposal", "award", "nyfa",
-        "grant writing", "artist fellowship",
+        "grant",
+        "application",
+        "funding",
+        "proposal",
+        "award",
+        "nyfa",
+        "grant writing",
+        "artist fellowship",
     ],
     "fractured-atlas": [
-        "grant", "fiscal sponsor", "fundraising", "nonprofit", "fiscal sponsorship",
-        "crowdfunding", "donation",
+        "grant",
+        "fiscal sponsor",
+        "fundraising",
+        "nonprofit",
+        "fiscal sponsorship",
+        "crowdfunding",
+        "donation",
     ],
     "creative-independent": [
-        "grant", "artist statement", "application", "storytelling", "narrative",
+        "grant",
+        "artist statement",
+        "application",
+        "storytelling",
+        "narrative",
     ],
     "creative-capital-awardees": [
-        "grant", "awardee", "funded", "recipient", "winner", "portfolio",
+        "grant",
+        "awardee",
+        "funded",
+        "recipient",
+        "winner",
+        "portfolio",
     ],
     "artadia-awardees": [
-        "grant", "awardee", "funded", "visual arts", "painting", "sculpture",
+        "grant",
+        "awardee",
+        "funded",
+        "visual arts",
+        "painting",
+        "sculpture",
     ],
     "usa-fellows": [
-        "grant", "fellowship", "awardee", "national", "usa",
+        "grant",
+        "fellowship",
+        "awardee",
+        "national",
+        "usa",
     ],
     # ── Brand / Identity Design ──
     "brandnew": [
-        "brand", "logo", "identity", "rebrand", "wordmark", "monogram",
-        "visual identity", "brand refresh", "brand system",
+        "brand",
+        "logo",
+        "identity",
+        "rebrand",
+        "wordmark",
+        "monogram",
+        "visual identity",
+        "brand refresh",
+        "brand system",
     ],
     "the-brand-identity": [
-        "brand", "identity", "packaging", "label design", "studio",
-        "visual identity", "brand direction",
+        "brand",
+        "identity",
+        "packaging",
+        "label design",
+        "studio",
+        "visual identity",
+        "brand direction",
     ],
     "virgil-abloh": [
-        "streetwear", "fashion", "off-white", "virgil", "abloh", "quotation marks",
-        "3%", "freegame", "democratize",
+        "streetwear",
+        "fashion",
+        "off-white",
+        "virgil",
+        "abloh",
+        "quotation marks",
+        "3%",
+        "freegame",
+        "democratize",
     ],
     "designobserver": [
-        "design criticism", "graphic design", "design culture", "design writing",
+        "design criticism",
+        "graphic design",
+        "design culture",
+        "design writing",
     ],
     "creativereview": [
-        "advertising", "branding", "campaign", "commercial", "creative industry",
+        "advertising",
+        "branding",
+        "campaign",
+        "commercial",
+        "creative industry",
     ],
     # ── UX / Interaction Design ──
     "baymard": [
-        "ecommerce", "checkout", "cart", "product page", "mobile ux",
-        "usability", "conversion",
+        "ecommerce",
+        "checkout",
+        "cart",
+        "product page",
+        "mobile ux",
+        "usability",
+        "conversion",
     ],
     "lawsofux": [
-        "cognitive", "psychology", "heuristic", "principle", "fitts",
-        "hick", "jakob", "miller", "gestalt",
+        "cognitive",
+        "psychology",
+        "heuristic",
+        "principle",
+        "fitts",
+        "hick",
+        "jakob",
+        "miller",
+        "gestalt",
     ],
     "deceptive-design": [
-        "dark pattern", "deceptive", "manipulation", "trick", "confirmshaming",
+        "dark pattern",
+        "deceptive",
+        "manipulation",
+        "trick",
+        "confirmshaming",
     ],
     "don-norman": [
-        "affordance", "signifier", "conceptual model", "feedback", "mapping",
-        "constraint", "discoverability", "human error",
+        "affordance",
+        "signifier",
+        "conceptual model",
+        "feedback",
+        "mapping",
+        "constraint",
+        "discoverability",
+        "human error",
     ],
     "nngroup": [
-        "usability", "user research", "heuristic evaluation", "information architecture",
-        "navigation", "accessibility",
+        "usability",
+        "user research",
+        "heuristic evaluation",
+        "information architecture",
+        "navigation",
+        "accessibility",
     ],
     "lukew": [
-        "mobile first", "form design", "input", "touch", "responsive",
+        "mobile first",
+        "form design",
+        "input",
+        "touch",
+        "responsive",
     ],
     "alistapart": [
-        "web standards", "responsive", "progressive enhancement", "accessibility",
+        "web standards",
+        "responsive",
+        "progressive enhancement",
+        "accessibility",
         "content strategy",
     ],
     "smashingmag": [
-        "css", "web design", "front-end", "performance", "accessibility",
+        "css",
+        "web design",
+        "front-end",
+        "performance",
+        "accessibility",
     ],
     # ── Audio / DSP / Plugins ──
     "valhalla-dsp": [
-        "reverb", "delay", "dsp", "algorithm", "allpass", "diffusion",
-        "room", "plate", "shimmer",
+        "reverb",
+        "delay",
+        "dsp",
+        "algorithm",
+        "allpass",
+        "diffusion",
+        "room",
+        "plate",
+        "shimmer",
     ],
     "airwindows": [
-        "plugin", "saturation", "eq", "compressor", "console", "tape",
-        "analog modeling", "gain staging",
+        "plugin",
+        "saturation",
+        "eq",
+        "compressor",
+        "console",
+        "tape",
+        "analog modeling",
+        "gain staging",
     ],
     "fabfilter": [
-        "eq", "compressor", "limiter", "pro-q", "pro-l", "multiband",
-        "dynamics", "spectrum",
+        "eq",
+        "compressor",
+        "limiter",
+        "pro-q",
+        "pro-l",
+        "multiband",
+        "dynamics",
+        "spectrum",
     ],
     "attack-magazine": [
-        "synth", "synthesis", "tutorial", "production", "sound design",
-        "modular", "wavetable", "fm",
+        "synth",
+        "synthesis",
+        "tutorial",
+        "production",
+        "sound design",
+        "modular",
+        "wavetable",
+        "fm",
     ],
     "splice": [
-        "sample", "preset", "production", "tutorial", "sound design",
-        "workflow", "collaboration",
+        "sample",
+        "preset",
+        "production",
+        "tutorial",
+        "sound design",
+        "workflow",
+        "collaboration",
     ],
     "tape-op": [
-        "recording", "studio", "mixing", "analog", "console", "microphone",
-        "preamp", "tape",
+        "recording",
+        "studio",
+        "mixing",
+        "analog",
+        "console",
+        "microphone",
+        "preamp",
+        "tape",
     ],
     "bedroom-producers-blog": [
-        "free plugin", "budget", "tutorial", "beginner", "daw", "production tips",
+        "free plugin",
+        "budget",
+        "tutorial",
+        "beginner",
+        "daw",
+        "production tips",
     ],
     # ── Circuit Modeling ──
     "circuit-modeling": [
-        "circuit", "schematic", "transistor", "diode", "filter", "wdf",
-        "spice", "virtual analog", "waveshaper", "clipper", "tube",
-        "op-amp", "bjt", "mosfet", "nonlinear", "newton-raphson",
+        "circuit",
+        "schematic",
+        "transistor",
+        "diode",
+        "filter",
+        "wdf",
+        "spice",
+        "virtual analog",
+        "waveshaper",
+        "clipper",
+        "tube",
+        "op-amp",
+        "bjt",
+        "mosfet",
+        "nonlinear",
+        "newton-raphson",
     ],
     # ── Critical Theory / Art Criticism ──
     "e-flux-journal": [
-        "theory", "contemporary art", "biennial", "critique", "institutional",
-        "post-internet", "accelerationism",
+        "theory",
+        "contemporary art",
+        "biennial",
+        "critique",
+        "institutional",
+        "post-internet",
+        "accelerationism",
     ],
     "hyperallergic": [
-        "exhibition", "review", "gallery", "museum", "public art",
-        "censorship", "politics",
+        "exhibition",
+        "review",
+        "gallery",
+        "museum",
+        "public art",
+        "censorship",
+        "politics",
     ],
     "ubuweb-papers": [
-        "avant-garde", "fluxus", "concrete poetry", "experimental", "sound poetry",
-        "dada", "futurism",
+        "avant-garde",
+        "fluxus",
+        "concrete poetry",
+        "experimental",
+        "sound poetry",
+        "dada",
+        "futurism",
     ],
     "stanford-aesthetics": [
-        "philosophy", "aesthetics", "beauty", "sublime", "judgment", "taste",
-        "ontology", "phenomenology",
+        "philosophy",
+        "aesthetics",
+        "beauty",
+        "sublime",
+        "judgment",
+        "taste",
+        "ontology",
+        "phenomenology",
     ],
     "situationist-international": [
-        "spectacle", "détournement", "psychogeography", "debord", "derive",
+        "spectacle",
+        "détournement",
+        "psychogeography",
+        "debord",
+        "derive",
     ],
     "marxists-aesthetics": [
-        "dialectic", "materialism", "ideology", "class", "production",
-        "benjamin", "adorno", "lukacs",
+        "dialectic",
+        "materialism",
+        "ideology",
+        "class",
+        "production",
+        "benjamin",
+        "adorno",
+        "lukacs",
     ],
     "texte-zur-kunst": [
-        "institutional critique", "contemporary", "discourse", "curatorial",
+        "institutional critique",
+        "contemporary",
+        "discourse",
+        "curatorial",
     ],
     "momus": [
-        "art criticism", "review", "contemporary art", "culture",
+        "art criticism",
+        "review",
+        "contemporary art",
+        "culture",
     ],
     "bomb-magazine": [
-        "interview", "artist talk", "conversation", "studio visit",
+        "interview",
+        "artist talk",
+        "conversation",
+        "studio visit",
     ],
     # ── Music Business ──
     "cherie-hu": [
-        "streaming", "ai music", "web3", "music tech", "royalties",
-        "distribution", "analytics",
+        "streaming",
+        "ai music",
+        "web3",
+        "music tech",
+        "royalties",
+        "distribution",
+        "analytics",
     ],
     "jesse-cannon": [
-        "marketing", "social media", "promotion", "strategy", "tiktok",
-        "instagram", "youtube", "content",
+        "marketing",
+        "social media",
+        "promotion",
+        "strategy",
+        "tiktok",
+        "instagram",
+        "youtube",
+        "content",
     ],
     "ari-herstand": [
-        "touring", "booking", "revenue", "indie artist", "publishing",
-        "sync", "licensing", "live",
+        "touring",
+        "booking",
+        "revenue",
+        "indie artist",
+        "publishing",
+        "sync",
+        "licensing",
+        "live",
     ],
     "hypebot": [
-        "industry", "streaming", "deals", "news", "spotify", "label",
+        "industry",
+        "streaming",
+        "deals",
+        "news",
+        "spotify",
+        "label",
     ],
     "music-biz-worldwide": [
-        "major label", "deal", "acquisition", "streaming economics",
-        "market share", "revenue",
+        "major label",
+        "deal",
+        "acquisition",
+        "streaming economics",
+        "market share",
+        "revenue",
     ],
     "bandzoogle-blog": [
-        "artist website", "direct-to-fan", "email list", "fan engagement",
-        "merch", "crowdfunding",
+        "artist website",
+        "direct-to-fan",
+        "email list",
+        "fan engagement",
+        "merch",
+        "crowdfunding",
     ],
     "ditto-music": [
-        "distribution", "release", "indie", "upload", "stores",
+        "distribution",
+        "release",
+        "indie",
+        "upload",
+        "stores",
     ],
     "the-quietus": [
-        "review", "interview", "album", "underground", "experimental music",
+        "review",
+        "interview",
+        "album",
+        "underground",
+        "experimental music",
     ],
     "theneedledrop": [
-        "album review", "rating", "hip-hop", "indie", "experimental",
+        "album review",
+        "rating",
+        "hip-hop",
+        "indie",
+        "experimental",
     ],
     # ── SEO / Marketing ──
     "backlinko": [
-        "backlinks", "seo", "link building", "rankings", "on-page",
-        "google", "serp",
+        "backlinks",
+        "seo",
+        "link building",
+        "rankings",
+        "on-page",
+        "google",
+        "serp",
     ],
     "sparktoro": [
-        "audience", "research", "zero-click", "rand fishkin", "social",
+        "audience",
+        "research",
+        "zero-click",
+        "rand fishkin",
+        "social",
     ],
     "kevin-indig": [
-        "seo", "ai search", "programmatic", "growth", "technical seo",
+        "seo",
+        "ai search",
+        "programmatic",
+        "growth",
+        "technical seo",
     ],
     "arvid-kahl": [
-        "indie", "bootstrap", "audience", "building in public", "saas",
+        "indie",
+        "bootstrap",
+        "audience",
+        "building in public",
+        "saas",
     ],
     "zyppy": [
-        "technical seo", "ctr", "title tags", "schema",
+        "technical seo",
+        "ctr",
+        "title tags",
+        "schema",
     ],
     # ── Tech Leaders ──
     "julia-evans": [
-        "debugging", "networking", "linux", "systems", "zine", "learning",
+        "debugging",
+        "networking",
+        "linux",
+        "systems",
+        "zine",
+        "learning",
     ],
     "kent-beck": [
-        "tdd", "testing", "refactoring", "design", "xp", "agile",
+        "tdd",
+        "testing",
+        "refactoring",
+        "design",
+        "xp",
+        "agile",
     ],
     "simon-willison": [
-        "sqlite", "llm", "ai tools", "datasette", "prompt engineering",
+        "sqlite",
+        "llm",
+        "ai tools",
+        "datasette",
+        "prompt engineering",
     ],
     "swyx": [
-        "ai engineering", "agents", "llm", "latent space", "ai infra",
+        "ai engineering",
+        "agents",
+        "llm",
+        "latent space",
+        "ai infra",
     ],
     "daniel-miessler": [
-        "security", "ai", "red team", "fabric", "threat modeling",
+        "security",
+        "ai",
+        "red team",
+        "fabric",
+        "threat modeling",
     ],
     "patrick-mckenzie": [
-        "pricing", "saas", "stripe", "business", "salary negotiation",
+        "pricing",
+        "saas",
+        "stripe",
+        "business",
+        "salary negotiation",
     ],
     # ── Brian Eno / Creative Philosophy ──
     "brian-eno": [
-        "generative", "ambient", "oblique strategies", "scenius",
-        "systems", "process", "chance", "emergence",
+        "generative",
+        "ambient",
+        "oblique strategies",
+        "scenius",
+        "systems",
+        "process",
+        "chance",
+        "emergence",
     ],
     "brian-eno-enoweb": [
-        "generative", "ambient", "oblique strategies", "scenius",
-        "interview", "studio", "process",
+        "generative",
+        "ambient",
+        "oblique strategies",
+        "scenius",
+        "interview",
+        "studio",
+        "process",
     ],
     # ── Creative Boom / It's Nice That ──
     "creative-boom": [
-        "illustration", "design studio", "creative career", "portfolio",
+        "illustration",
+        "design studio",
+        "creative career",
+        "portfolio",
     ],
     "its-nice-that": [
-        "design", "illustration", "animation", "creative", "graduate",
+        "design",
+        "illustration",
+        "animation",
+        "creative",
+        "graduate",
     ],
     # ── CDM (Create Digital Music) ──
     "cdm": [
-        "diy", "hardware", "controller", "eurorack", "music tech",
-        "open source", "arduino", "raspberry pi",
+        "diy",
+        "hardware",
+        "controller",
+        "eurorack",
+        "music tech",
+        "open source",
+        "arduino",
+        "raspberry pi",
     ],
     # ── First 1000 (Audience Building + PMF + Customer Acquisition) ──
     "first-1000": [
-        "superfan", "fan", "fandom", "audience", "customer", "acquisition",
-        "funnel", "lead", "magnet", "email", "list", "waitlist", "pmf",
-        "product-market-fit", "conversion", "retention", "community",
-        "direct-to-fan", "membership", "patreon", "gumroad", "creator",
-        "1000", "true fans", "oversubscribed", "demand", "sales safari",
-        "first customers", "audience building", "lead magnet", "value ladder",
-        "tripwire", "opt-in", "launch", "pre-launch",
+        "superfan",
+        "fan",
+        "fandom",
+        "audience",
+        "customer",
+        "acquisition",
+        "funnel",
+        "lead",
+        "magnet",
+        "email",
+        "list",
+        "waitlist",
+        "pmf",
+        "product-market-fit",
+        "conversion",
+        "retention",
+        "community",
+        "direct-to-fan",
+        "membership",
+        "patreon",
+        "gumroad",
+        "creator",
+        "1000",
+        "true fans",
+        "oversubscribed",
+        "demand",
+        "sales safari",
+        "first customers",
+        "audience building",
+        "lead magnet",
+        "value ladder",
+        "tripwire",
+        "opt-in",
+        "launch",
+        "pre-launch",
     ],
 }
 
 # Domain boost multiplier: how much to amplify when query matches domain
 DOMAIN_BOOST_PER_HIT = 2.0
 DOMAIN_BOOST_CAP = 6.0  # Max total multiplier from domain relevance
-
 
 
 # ── Query Expansion ────────────────────────────────────────────
@@ -1513,34 +2003,43 @@ class KBLoader:
                 continue
 
             import re as _re
+
             for term, weight in expanded_terms:
                 safe_term = _re.escape(term)
                 try:
                     result = subprocess.run(
                         ["rg", "-l", "-i", safe_term, str(article_dir)],
-                        capture_output=True, text=True, timeout=10
+                        capture_output=True,
+                        text=True,
+                        timeout=10,
                     )
                     if result.returncode == 0:
                         for path in result.stdout.strip().split("\n"):
                             if path and path.endswith(".md"):
-                                weighted_matches[path] = weighted_matches.get(path, 0) + weight
+                                weighted_matches[path] = (
+                                    weighted_matches.get(path, 0) + weight
+                                )
                 except (FileNotFoundError, subprocess.TimeoutExpired):
                     try:
                         result = subprocess.run(
                             ["grep", "-rl", "-i", safe_term, str(article_dir)],
-                            capture_output=True, text=True, timeout=10
+                            capture_output=True,
+                            text=True,
+                            timeout=10,
                         )
                         if result.returncode == 0:
                             for path in result.stdout.strip().split("\n"):
                                 if path and path.endswith(".md"):
-                                    weighted_matches[path] = weighted_matches.get(path, 0) + weight
+                                    weighted_matches[path] = (
+                                        weighted_matches.get(path, 0) + weight
+                                    )
                     except subprocess.TimeoutExpired:
                         pass
 
         # Score by weighted frequency * dynamic weight (quality × domain relevance)
         scored = sorted(
             weighted_matches.items(),
-            key=lambda x: -(x[1] * self._compute_dynamic_weight(x[0], raw_terms))
+            key=lambda x: -(x[1] * self._compute_dynamic_weight(x[0], raw_terms)),
         )
 
         # Apply recency boost to top 20 pre-scored results only (minimize I/O)
@@ -1604,7 +2103,11 @@ class KBLoader:
             for qt in query_lower:
                 for dk in domain_keywords:
                     # Exact match, or substring match for terms > 3 chars
-                    if qt == dk or (len(qt) > 3 and qt in dk) or (len(dk) > 3 and dk in qt):
+                    if (
+                        qt == dk
+                        or (len(qt) > 3 and qt in dk)
+                        or (len(dk) > 3 and dk in qt)
+                    ):
                         hits += 1
                         break  # One match per query term is enough
             if hits > 0:
@@ -1631,9 +2134,9 @@ class KBLoader:
                         body_start = i + 1
                         break
                     # Simple YAML parsing (key: value)
-                    m = re.match(r'^(\w[\w_-]*)\s*:\s*(.+)', line)
+                    m = re.match(r"^(\w[\w_-]*)\s*:\s*(.+)", line)
                     if m:
-                        metadata[m.group(1)] = m.group(2).strip().strip('"\'')
+                        metadata[m.group(1)] = m.group(2).strip().strip("\"'")
             elif lines[0].strip().startswith("# "):
                 # Markdown-header format (from new scrapers)
                 for i, line in enumerate(lines):
@@ -1645,7 +2148,9 @@ class KBLoader:
                     elif stripped.startswith("**Date:**"):
                         metadata["date"] = stripped.replace("**Date:**", "").strip()
                     elif stripped.startswith("**URL:**"):
-                        metadata["source_url"] = stripped.replace("**URL:**", "").strip()
+                        metadata["source_url"] = stripped.replace(
+                            "**URL:**", ""
+                        ).strip()
                     elif stripped == "---" and i > 0:
                         body_start = i + 1
                         break
@@ -1662,15 +2167,20 @@ class KBLoader:
             excerpt = "\n".join(body_lines[:excerpt_lines]).strip()
 
             # Clean up markdown images and links that add noise
-            excerpt = re.sub(r'!\[.*?\]\(.*?\)', '', excerpt)  # Remove images
-            excerpt = re.sub(r'\[([^\]]*)\]\([^\)]*\)', r'\1', excerpt)  # Simplify links
-            excerpt = re.sub(r'\n{3,}', '\n\n', excerpt)  # Collapse blank lines
+            excerpt = re.sub(r"!\[.*?\]\(.*?\)", "", excerpt)  # Remove images
+            excerpt = re.sub(
+                r"\[([^\]]*)\]\([^\)]*\)", r"\1", excerpt
+            )  # Simplify links
+            excerpt = re.sub(r"\n{3,}", "\n\n", excerpt)  # Collapse blank lines
 
             return {
                 "path": path,
                 "title": metadata.get("title", metadata.get("guest", p.stem)),
                 "author": metadata.get("author", metadata.get("guest", "Unknown")),
-                "date": metadata.get("date", metadata.get("publish_date", metadata.get("date_published", ""))),
+                "date": metadata.get(
+                    "date",
+                    metadata.get("publish_date", metadata.get("date_published", "")),
+                ),
                 "source": metadata.get("source", ""),
                 "excerpt": excerpt,
             }
@@ -1692,7 +2202,11 @@ class KBLoader:
             for line in lines:
                 stripped = line.strip()
                 # YAML frontmatter: date: 2024-01-15 or date: "January 2024"
-                if stripped.startswith("date:") or stripped.startswith("publish_date:") or stripped.startswith("date_published:"):
+                if (
+                    stripped.startswith("date:")
+                    or stripped.startswith("publish_date:")
+                    or stripped.startswith("date_published:")
+                ):
                     date_str = stripped.split(":", 1)[1].strip().strip("\"'")
                     break
                 # Markdown format: **Date:** 2024-01-15
@@ -1704,7 +2218,7 @@ class KBLoader:
                 return 1.0
 
             # Parse year from various date formats
-            year_match = re.search(r'20[12]\d', date_str)
+            year_match = re.search(r"20[12]\d", date_str)
             if not year_match:
                 return 1.0
 
@@ -1741,8 +2255,9 @@ class KBLoader:
                             break
         return suggestions[:3]
 
-    def get_context(self, advisor: str, query: str,
-                    max_tokens: int = 4000, max_results: int = 5) -> str:
+    def get_context(
+        self, advisor: str, query: str, max_tokens: int = 4000, max_results: int = 5
+    ) -> str:
         """Get formatted context block ready for prompt injection.
 
         Returns a string like:
@@ -1777,7 +2292,11 @@ class KBLoader:
         # Sprint 2.2: Confidence gating
         if len(results) < MIN_HITS_FOR_CONFIDENCE:
             alternates = self._suggest_alternates(query, key)
-            alt_str = ", ".join(f"`/skill {a}`" for a in alternates) if alternates else "none found"
+            alt_str = (
+                ", ".join(f"`/skill {a}`" for a in alternates)
+                if alternates
+                else "none found"
+            )
             warnings.append(
                 f"**WARNING: LOW CONFIDENCE** — Only {len(results)} article(s) matched. "
                 f"This query may be outside {config['name']}'s domain. "
@@ -1786,7 +2305,10 @@ class KBLoader:
 
         if not results and not index_context:
             prefix = "\n".join(warnings) + "\n\n" if warnings else ""
-            return prefix + f"[No relevant articles found in {config['name']}'s knowledge base for: {query}]"
+            return (
+                prefix
+                + f"[No relevant articles found in {config['name']}'s knowledge base for: {query}]"
+            )
 
         # Build context block
         lines = []
@@ -1794,12 +2316,14 @@ class KBLoader:
             lines.extend(warnings)
             lines.append("")
 
-        lines.extend([
-            f"## Knowledge Base Context: {config['name']} ({config['source']})",
-            f"Query: \"{query}\"",
-            f"Matched: {len(results)} articles from {config['article_count']} total",
-            "",
-        ])
+        lines.extend(
+            [
+                f"## Knowledge Base Context: {config['name']} ({config['source']})",
+                f'Query: "{query}"',
+                f"Matched: {len(results)} articles from {config['article_count']} total",
+                "",
+            ]
+        )
 
         if index_context:
             lines.append("### Topic Index Matches")
@@ -1811,7 +2335,7 @@ class KBLoader:
         current_chars = sum(len(l) for l in lines)
 
         for i, result in enumerate(results, 1):
-            header = f"### [{i}] \"{result['title']}\" by {result['author']}"
+            header = f'### [{i}] "{result["title"]}" by {result["author"]}'
             if result["date"]:
                 header += f" ({result['date']})"
 
@@ -1873,7 +2397,9 @@ class KBLoader:
                         actual += sum(1 for _ in d.rglob("*.md"))
 
             status = f"OK ({actual} files)" if exists else "MISSING"
-            lines.append(f"{key:<20} {config['source']:<30} {config['article_count']:<10} {status}")
+            lines.append(
+                f"{key:<20} {config['source']:<30} {config['article_count']:<10} {status}"
+            )
 
         return "\n".join(lines)
 
@@ -1881,12 +2407,16 @@ class KBLoader:
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="Knowledge Base Loader for advisor agents")
+    parser = argparse.ArgumentParser(
+        description="Knowledge Base Loader for advisor agents"
+    )
     sub = parser.add_subparsers(dest="command")
 
     # search
     sp = sub.add_parser("search", help="Search an advisor's KB")
-    sp.add_argument("--advisor", required=True, help="Advisor name (lenny, cherie, etc.)")
+    sp.add_argument(
+        "--advisor", required=True, help="Advisor name (lenny, cherie, etc.)"
+    )
     sp.add_argument("--query", required=True, help="Search query")
     sp.add_argument("--max", type=int, default=5, help="Max results")
 
@@ -1904,14 +2434,20 @@ def main():
 
     if args.command == "search":
         results = loader.search(args.advisor, args.query, max_results=args.max)
-        print(f"\nFound {len(results)} results for '{args.query}' in {args.advisor}'s KB:\n")
+        print(
+            f"\nFound {len(results)} results for '{args.query}' in {args.advisor}'s KB:\n"
+        )
         for r in results:
-            print(f"  [{r['relevance_score']}] {r['title']} - {r['author']} ({r['date']})")
+            print(
+                f"  [{r['relevance_score']}] {r['title']} - {r['author']} ({r['date']})"
+            )
             print(f"      {r['path']}")
             print()
 
     elif args.command == "context":
-        context = loader.get_context(args.advisor, args.query, max_tokens=args.max_tokens)
+        context = loader.get_context(
+            args.advisor, args.query, max_tokens=args.max_tokens
+        )
         print(context)
 
     elif args.command == "list":
