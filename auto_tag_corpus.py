@@ -12,6 +12,7 @@ from pathlib import Path
 from collections import Counter, defaultdict
 import math
 
+
 class TFIDFTagger:
     def __init__(self, corpus_dirs):
         """
@@ -32,36 +33,27 @@ class TFIDFTagger:
             loaded = 0
 
             # Pattern 1: articles/*.md (most sources)
-            articles_dir = corpus_dir / 'articles'
+            articles_dir = corpus_dir / "articles"
             if articles_dir.exists():
-                for md_file in articles_dir.glob('*.md'):
-                    content = md_file.read_text(encoding='utf-8')
-                    self.documents.append({
-                        'path': md_file,
-                        'content': content
-                    })
+                for md_file in articles_dir.glob("*.md"):
+                    content = md_file.read_text(encoding="utf-8")
+                    self.documents.append({"path": md_file, "content": content})
                     loaded += 1
 
             # Pattern 2: episodes/*/transcript.md (Lenny's Podcast)
-            episodes_dir = corpus_dir / 'episodes'
+            episodes_dir = corpus_dir / "episodes"
             if episodes_dir.exists():
-                for md_file in episodes_dir.glob('*/transcript.md'):
-                    content = md_file.read_text(encoding='utf-8')
-                    self.documents.append({
-                        'path': md_file,
-                        'content': content
-                    })
+                for md_file in episodes_dir.glob("*/transcript.md"):
+                    content = md_file.read_text(encoding="utf-8")
+                    self.documents.append({"path": md_file, "content": content})
                     loaded += 1
 
             # Pattern 3: how-i-ai/*.md (ChatPRD deep dives)
-            howiai_dir = corpus_dir / 'how-i-ai'
+            howiai_dir = corpus_dir / "how-i-ai"
             if howiai_dir.exists():
-                for md_file in howiai_dir.glob('*.md'):
-                    content = md_file.read_text(encoding='utf-8')
-                    self.documents.append({
-                        'path': md_file,
-                        'content': content
-                    })
+                for md_file in howiai_dir.glob("*.md"):
+                    content = md_file.read_text(encoding="utf-8")
+                    self.documents.append({"path": md_file, "content": content})
                     loaded += 1
 
             if loaded == 0:
@@ -75,66 +67,265 @@ class TFIDFTagger:
     # Comprehensive stop words + web/markdown noise
     STOP_WORDS = {
         # Standard English stop words
-        'the', 'and', 'for', 'that', 'this', 'with', 'from', 'are', 'was',
-        'were', 'been', 'have', 'has', 'had', 'will', 'would', 'could',
-        'should', 'can', 'may', 'might', 'must', 'about', 'into', 'through',
-        'during', 'before', 'after', 'above', 'below', 'between', 'under',
-        'again', 'further', 'then', 'once', 'here', 'there', 'when', 'where',
-        'why', 'how', 'all', 'both', 'each', 'few', 'more', 'most', 'other',
-        'some', 'such', 'only', 'own', 'same', 'than', 'too', 'very',
-        'also', 'just', 'like', 'know', 'think', 'want', 'going', 'really',
-        'make', 'made', 'much', 'many', 'well', 'back', 'even', 'still',
-        'way', 'take', 'come', 'came', 'went', 'look', 'see', 'seen',
-        'over', 'down', 'part', 'long', 'what', 'which', 'their', 'them',
-        'they', 'your', 'you', 'our', 'his', 'her', 'its', 'does', 'did',
-        'doing', 'done', 'being', 'those', 'these', 'because', 'while',
-        'until', 'since', 'though', 'actually', 'around', 'never', 'always',
-        'right', 'thing', 'things', 'something', 'anything', 'everything',
-        'nothing', 'someone', 'anyone', 'everyone', 'people', 'need',
-        'first', 'last', 'next', 'every', 'another', 'without', 'within',
-        'along', 'across', 'behind', 'beside', 'toward', 'whether',
-        'already', 'enough', 'rather', 'maybe', 'often', 'quite',
-        'especially', 'simply', 'however', 'although', 'getting',
-        'start', 'started', 'says', 'said', 'tell', 'told', 'keep',
-        'goes', 'gone', 'give', 'gave', 'given', 'feel', 'felt',
-        'trying', 'tried', 'able', 'sure', 'okay',
+        "the",
+        "and",
+        "for",
+        "that",
+        "this",
+        "with",
+        "from",
+        "are",
+        "was",
+        "were",
+        "been",
+        "have",
+        "has",
+        "had",
+        "will",
+        "would",
+        "could",
+        "should",
+        "can",
+        "may",
+        "might",
+        "must",
+        "about",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "between",
+        "under",
+        "again",
+        "further",
+        "then",
+        "once",
+        "here",
+        "there",
+        "when",
+        "where",
+        "why",
+        "how",
+        "all",
+        "both",
+        "each",
+        "few",
+        "more",
+        "most",
+        "other",
+        "some",
+        "such",
+        "only",
+        "own",
+        "same",
+        "than",
+        "too",
+        "very",
+        "also",
+        "just",
+        "like",
+        "know",
+        "think",
+        "want",
+        "going",
+        "really",
+        "make",
+        "made",
+        "much",
+        "many",
+        "well",
+        "back",
+        "even",
+        "still",
+        "way",
+        "take",
+        "come",
+        "came",
+        "went",
+        "look",
+        "see",
+        "seen",
+        "over",
+        "down",
+        "part",
+        "long",
+        "what",
+        "which",
+        "their",
+        "them",
+        "they",
+        "your",
+        "you",
+        "our",
+        "his",
+        "her",
+        "its",
+        "does",
+        "did",
+        "doing",
+        "done",
+        "being",
+        "those",
+        "these",
+        "because",
+        "while",
+        "until",
+        "since",
+        "though",
+        "actually",
+        "around",
+        "never",
+        "always",
+        "right",
+        "thing",
+        "things",
+        "something",
+        "anything",
+        "everything",
+        "nothing",
+        "someone",
+        "anyone",
+        "everyone",
+        "people",
+        "need",
+        "first",
+        "last",
+        "next",
+        "every",
+        "another",
+        "without",
+        "within",
+        "along",
+        "across",
+        "behind",
+        "beside",
+        "toward",
+        "whether",
+        "already",
+        "enough",
+        "rather",
+        "maybe",
+        "often",
+        "quite",
+        "especially",
+        "simply",
+        "however",
+        "although",
+        "getting",
+        "start",
+        "started",
+        "says",
+        "said",
+        "tell",
+        "told",
+        "keep",
+        "goes",
+        "gone",
+        "give",
+        "gave",
+        "given",
+        "feel",
+        "felt",
+        "trying",
+        "tried",
+        "able",
+        "sure",
+        "okay",
         # Web/markdown/HTML noise
-        'http', 'https', 'www', 'html', 'href', 'image', 'file', 'link',
-        'click', 'read', 'subscribe', 'email', 'newsletter', 'sign',
-        'free', 'download', 'upload', 'post', 'blog', 'website', 'page',
-        'content', 'format', 'auto', 'scale', 'redirect', 'quality',
-        'width', 'height', 'display', 'none', 'block', 'inline',
-        'media', 'source', 'type', 'text', 'data', 'info', 'update',
-        'updates', 'live', 'news', 'list', 'public', 'share', 'view',
-        'open', 'close', 'help', 'using', 'used', 'uses',
-        'beehiiv', 'utm', 'campaign', 'medium', 'referral',
+        "http",
+        "https",
+        "www",
+        "html",
+        "href",
+        "image",
+        "file",
+        "link",
+        "click",
+        "read",
+        "subscribe",
+        "email",
+        "newsletter",
+        "sign",
+        "free",
+        "download",
+        "upload",
+        "post",
+        "blog",
+        "website",
+        "page",
+        "content",
+        "format",
+        "auto",
+        "scale",
+        "redirect",
+        "quality",
+        "width",
+        "height",
+        "display",
+        "none",
+        "block",
+        "inline",
+        "media",
+        "source",
+        "type",
+        "text",
+        "data",
+        "info",
+        "update",
+        "updates",
+        "live",
+        "news",
+        "list",
+        "public",
+        "share",
+        "view",
+        "open",
+        "close",
+        "help",
+        "using",
+        "used",
+        "uses",
+        "beehiiv",
+        "utm",
+        "campaign",
+        "medium",
+        "referral",
         # Podcast/transcript noise
-        'yeah', 'okay', 'sort', 'kind', 'mean', 'guess', 'stuff',
+        "yeah",
+        "okay",
+        "sort",
+        "kind",
+        "mean",
+        "guess",
+        "stuff",
     }
 
     def tokenize(self, text):
         """Extract meaningful terms (multi-word phrases preferred over singles)"""
         # Remove existing [[wiki-links]] to avoid re-tagging
-        text = re.sub(r'\[\[(.*?)\]\]', r'\1', text)
+        text = re.sub(r"\[\[(.*?)\]\]", r"\1", text)
         # Remove URLs
-        text = re.sub(r'https?://\S+', '', text)
+        text = re.sub(r"https?://\S+", "", text)
         # Remove markdown image/link syntax
-        text = re.sub(r'!\[.*?\]\(.*?\)', '', text)
-        text = re.sub(r'\[.*?\]\(.*?\)', '', text)
+        text = re.sub(r"!\[.*?\]\(.*?\)", "", text)
+        text = re.sub(r"\[.*?\]\(.*?\)", "", text)
 
         text = text.lower()
 
         # Extract multi-word phrases (2-3 words, all 4+ char words)
-        phrases = re.findall(r'\b([a-z]{4,}(?:\s+[a-z]{4,}){1,2})\b', text)
+        phrases = re.findall(r"\b([a-z]{4,}(?:\s+[a-z]{4,}){1,2})\b", text)
         # Filter phrases containing stop words
         phrases = [
-            p for p in phrases
-            if not any(w in self.STOP_WORDS for w in p.split())
+            p for p in phrases if not any(w in self.STOP_WORDS for w in p.split())
         ]
 
         # Single words: 5+ chars, not stop words
         words = [
-            word for word in re.findall(r'\b[a-z]{5,}\b', text)
+            word
+            for word in re.findall(r"\b[a-z]{5,}\b", text)
             if word not in self.STOP_WORDS
         ]
 
@@ -146,7 +337,7 @@ class TFIDFTagger:
 
         # Calculate term frequencies and document frequencies
         for doc_id, doc in enumerate(self.documents):
-            tokens = self.tokenize(doc['content'])
+            tokens = self.tokenize(doc["content"])
             self.term_freq[doc_id] = Counter(tokens)
 
             # Document frequency (how many docs contain this term)
@@ -173,8 +364,9 @@ class TFIDFTagger:
         print(f"   Computed scores for {len(self.doc_freq)} unique terms")
         return tfidf_scores
 
-    def extract_top_concepts(self, min_tfidf=0.01, min_doc_freq=10,
-                             max_doc_ratio=0.4, max_concepts=200):
+    def extract_top_concepts(
+        self, min_tfidf=0.01, min_doc_freq=10, max_doc_ratio=0.4, max_concepts=200
+    ):
         """Extract top concepts across entire corpus
 
         Args:
@@ -200,13 +392,16 @@ class TFIDFTagger:
 
         # Get top concepts
         top_concepts = [
-            term for term, score in concept_scores.most_common(max_concepts)
+            term
+            for term, score in concept_scores.most_common(max_concepts)
             if score >= min_tfidf
         ]
 
-        print(f"   Found {len(top_concepts)} concepts "
-              f"(doc_freq: {min_doc_freq}-{max_doc_count}, "
-              f"max_doc_ratio: {max_doc_ratio})")
+        print(
+            f"   Found {len(top_concepts)} concepts "
+            f"(doc_freq: {min_doc_freq}-{max_doc_count}, "
+            f"max_doc_ratio: {max_doc_ratio})"
+        )
         return top_concepts
 
     def tag_document(self, content, concepts):
@@ -216,7 +411,7 @@ class TFIDFTagger:
         concepts = sorted(concepts, key=len, reverse=True)
 
         for concept in concepts:
-            pattern = re.compile(r'\b(' + re.escape(concept) + r')\b', re.IGNORECASE)
+            pattern = re.compile(r"\b(" + re.escape(concept) + r")\b", re.IGNORECASE)
 
             # Tag only first occurrence (count=1) to keep articles readable
             def make_replacer(full_content):
@@ -224,9 +419,10 @@ class TFIDFTagger:
                     start = max(0, match.start() - 3)
                     end = min(len(full_content), match.end() + 3)
                     context = full_content[start:end]
-                    if '[[' in context or ']]' in context:
+                    if "[[" in context or "]]" in context:
                         return match.group(0)
                     return f"[[{match.group(0)}]]"
+
                 return replace_if_not_tagged
 
             content = pattern.sub(make_replacer(content), content, count=1)
@@ -240,13 +436,13 @@ class TFIDFTagger:
         tagged_count = 0
 
         for doc in self.documents:
-            tagged_content = self.tag_document(doc['content'], concepts)
+            tagged_content = self.tag_document(doc["content"], concepts)
 
-            if tagged_content != doc['content']:
+            if tagged_content != doc["content"]:
                 tagged_count += 1
 
                 if not dry_run:
-                    doc['path'].write_text(tagged_content, encoding='utf-8')
+                    doc["path"].write_text(tagged_content, encoding="utf-8")
 
         print(f"   Tagged {tagged_count}/{self.num_docs} documents")
         return tagged_count
@@ -259,7 +455,7 @@ class TFIDFTagger:
         concept_counts = Counter()
 
         for doc in self.documents:
-            content = doc['content'].lower()
+            content = doc["content"].lower()
             for concept in concepts:
                 if concept in content:
                     concept_counts[concept] += 1
@@ -279,7 +475,7 @@ class TFIDFTagger:
         for concept, count in concept_counts.most_common():
             index_content += f"- [[{concept}]] ({count} articles)\n"
 
-        Path(output_path).write_text(index_content, encoding='utf-8')
+        Path(output_path).write_text(index_content, encoding="utf-8")
         print(f"   Saved to {output_path}")
 
 
@@ -287,13 +483,13 @@ def main():
     """Run TF-IDF tagging on all advisor knowledge bases"""
     # Corpus directories
     corpora = [
-        '~/Development/jesse-cannon',
-        '~/Development/cherie-hu',
-        '~/Development/chatprd-blog',
-        '~/Development/lennys-podcast-transcripts',
-        '~/Development/indie-hackers/pieter-levels',
-        '~/Development/indie-hackers/justin-welsh',
-        '~/Development/indie-hackers/daniel-vassallo'
+        "~/Development/jesse-cannon",
+        "~/Development/cherie-hu",
+        "~/Development/chatprd-blog",
+        "~/Development/lennys-podcast-transcripts",
+        "~/Development/indie-hackers/pieter-levels",
+        "~/Development/indie-hackers/justin-welsh",
+        "~/Development/indie-hackers/daniel-vassallo",
     ]
 
     # Expand home directory
@@ -309,13 +505,13 @@ def main():
 
     # Extract concepts with band-pass filter
     concepts = tagger.extract_top_concepts(
-        min_tfidf=0.01,       # Minimum TF-IDF score
-        min_doc_freq=10,      # Must appear in at least 10 articles
-        max_doc_ratio=0.4,    # Skip terms in >40% of docs (too common)
-        max_concepts=200      # Top 200 concepts max
+        min_tfidf=0.01,  # Minimum TF-IDF score
+        min_doc_freq=10,  # Must appear in at least 10 articles
+        max_doc_ratio=0.4,  # Skip terms in >40% of docs (too common)
+        max_concepts=200,  # Top 200 concepts max
     )
 
-    print(f"\n📊 Top 20 Concepts:")
+    print("\n📊 Top 20 Concepts:")
     for i, concept in enumerate(concepts[:20], 1):
         print(f"   {i}. {concept}")
 
@@ -324,16 +520,18 @@ def main():
     tagger.tag_corpus(concepts, dry_run=True)
 
     # Confirm before actually tagging
-    if '--auto-confirm' in sys.argv:
-        response = 'yes'
+    if "--auto-confirm" in sys.argv:
+        response = "yes"
     else:
         response = input("\n⚠️  Tag corpus for real? This will modify files. (yes/no): ")
 
-    if response.lower() == 'yes':
+    if response.lower() == "yes":
         tagger.tag_corpus(concepts, dry_run=False)
 
         # Generate concept index
-        index_path = os.path.expanduser('~/Documents/Obsidian/KNOWLEDGE-GRAPH-CONCEPTS.md')
+        index_path = os.path.expanduser(
+            "~/Development/tools/output/KNOWLEDGE-GRAPH-CONCEPTS.md"
+        )
         tagger.generate_concept_index(concepts, index_path)
 
         print("\n✅ Complete!")
@@ -341,5 +539,5 @@ def main():
         print("\n❌ Cancelled")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
