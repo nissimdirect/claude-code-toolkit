@@ -24,7 +24,7 @@ rules:
     domains: [code, writing]
     consequence: 0.3
     tool_triggers: [edit, write]
-    antigens: ["Mistake #4", "Mistake #29", "Mistake #31"]
+    antigens: ["Mistake #4", "Mistake #29", "Mistake #31", "Mistake #134", "Mistake #188"]
     connections: {R9: 0.6, R86: 0.5, R14: 0.5}
     reminder: "Read before editing. After editing, cross-reference and propagate to related files."
 
@@ -48,7 +48,7 @@ rules:
     domains: [all]
     consequence: 0.3
     tool_triggers: [bash]
-    antigens: ["Mistake #41"]
+    antigens: ["Mistake #41", "Mistake #174", "Mistake #175", "Mistake #181", "Mistake #187"]
     connections: {R4: 0.6, R30: 0.4}
     reminder: "Verify with tool output or evidence. Claims without proof don't count."
 
@@ -218,7 +218,7 @@ rules:
     domains: [code, git]
     consequence: 0.3
     tool_triggers: [bash, write]
-    antigens: ["Mistake #50"]
+    antigens: ["Mistake #50", "Mistake #176"]
     connections: {R9: 0.4}
     reminder: "No secrets in code. Red team everything. Never bypass safety checks."
 

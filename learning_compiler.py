@@ -18,38 +18,179 @@ from collections import Counter, defaultdict
 from pathlib import Path
 
 # === PATHS ===
-LEARNINGS_FILE = (
-    Path.home()
-    / ".claude/projects/-Users-nissimagent/memory/learnings.md"
-)
+LEARNINGS_FILE = Path.home() / ".claude/projects/-Users-nissimagent/memory/learnings.md"
 PRINCIPLES_FILE = (
-    Path.home()
-    / ".claude/projects/-Users-nissimagent/memory/behavioral-principles.md"
+    Path.home() / ".claude/projects/-Users-nissimagent/memory/behavioral-principles.md"
 )
 INDEX_OUTPUT = Path.home() / ".claude/.locks/learning-index.json"
 
 # === STOP WORDS (excluded from keyword extraction) ===
 STOP_WORDS = {
-    "a", "an", "the", "is", "it", "in", "on", "at", "to", "for", "of",
-    "and", "or", "but", "not", "with", "from", "by", "as", "be", "was",
-    "were", "been", "being", "have", "has", "had", "do", "does", "did",
-    "will", "would", "could", "should", "may", "might", "must", "shall",
-    "can", "need", "dare", "ought", "used", "that", "this", "these",
-    "those", "i", "you", "he", "she", "we", "they", "me", "him", "her",
-    "us", "them", "my", "your", "his", "its", "our", "their", "what",
-    "which", "who", "whom", "when", "where", "why", "how", "all", "each",
-    "every", "both", "few", "more", "most", "other", "some", "such", "no",
-    "nor", "only", "own", "same", "so", "than", "too", "very", "just",
-    "because", "if", "then", "else", "while", "about", "up", "out",
-    "into", "through", "during", "before", "after", "above", "below",
-    "between", "under", "again", "further", "once", "here", "there",
-    "also", "don", "didn", "doesn", "isn", "wasn", "weren", "won",
-    "shouldn", "couldn", "wouldn", "aren", "hasn", "haven", "hadn",
-    "thing", "things", "way", "even", "still", "already", "always",
-    "never", "ever", "something", "anything", "nothing", "everything",
-    "make", "made", "like", "well", "back", "much", "many", "going",
-    "want", "get", "got", "sure", "said", "one", "two", "first",
-    "new", "now", "know", "see", "use", "using", "used",
+    "a",
+    "an",
+    "the",
+    "is",
+    "it",
+    "in",
+    "on",
+    "at",
+    "to",
+    "for",
+    "of",
+    "and",
+    "or",
+    "but",
+    "not",
+    "with",
+    "from",
+    "by",
+    "as",
+    "be",
+    "was",
+    "were",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "must",
+    "shall",
+    "can",
+    "need",
+    "dare",
+    "ought",
+    "used",
+    "that",
+    "this",
+    "these",
+    "those",
+    "i",
+    "you",
+    "he",
+    "she",
+    "we",
+    "they",
+    "me",
+    "him",
+    "her",
+    "us",
+    "them",
+    "my",
+    "your",
+    "his",
+    "its",
+    "our",
+    "their",
+    "what",
+    "which",
+    "who",
+    "whom",
+    "when",
+    "where",
+    "why",
+    "how",
+    "all",
+    "each",
+    "every",
+    "both",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "nor",
+    "only",
+    "own",
+    "same",
+    "so",
+    "than",
+    "too",
+    "very",
+    "just",
+    "because",
+    "if",
+    "then",
+    "else",
+    "while",
+    "about",
+    "up",
+    "out",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "between",
+    "under",
+    "again",
+    "further",
+    "once",
+    "here",
+    "there",
+    "also",
+    "don",
+    "didn",
+    "doesn",
+    "isn",
+    "wasn",
+    "weren",
+    "won",
+    "shouldn",
+    "couldn",
+    "wouldn",
+    "aren",
+    "hasn",
+    "haven",
+    "hadn",
+    "thing",
+    "things",
+    "way",
+    "even",
+    "still",
+    "already",
+    "always",
+    "never",
+    "ever",
+    "something",
+    "anything",
+    "nothing",
+    "everything",
+    "make",
+    "made",
+    "like",
+    "well",
+    "back",
+    "much",
+    "many",
+    "going",
+    "want",
+    "get",
+    "got",
+    "sure",
+    "said",
+    "one",
+    "two",
+    "first",
+    "new",
+    "now",
+    "know",
+    "see",
+    "use",
+    "using",
+    "used",
 }
 
 # === MANUAL KEYWORD OVERRIDES ===
@@ -62,28 +203,87 @@ MANUAL_OVERRIDES = {
     "shipping without testing": ["ship", "test", "deploy", "launch", "done"],
     "over-engineering": ["build", "simple", "complex", "feature", "scope"],
     "scaling before testing": ["scrape", "batch", "scale", "test", "curl"],
-    "not invoking actual skills": ["skill", "invoke", "lenny", "cto", "cherie", "jesse", "don-norman"],
-    "delegating skill reviews": ["skill", "task", "agent", "delegate", "review", "advisor"],
-    "config files as ground truth": ["config", "json", "filesystem", "scan", "data-sources"],
+    "not invoking actual skills": [
+        "skill",
+        "invoke",
+        "lenny",
+        "cto",
+        "cherie",
+        "jesse",
+        "don-norman",
+    ],
+    "delegating skill reviews": [
+        "skill",
+        "task",
+        "agent",
+        "delegate",
+        "review",
+        "advisor",
+    ],
+    "config files as ground truth": [
+        "config",
+        "json",
+        "filesystem",
+        "scan",
+        "data-sources",
+    ],
     "patching symptoms": ["fix", "patch", "root", "cause", "premise", "partial"],
     "stale skill name": ["skill", "rename", "merge", "propagate", "reference"],
-    "documenting but not implementing": ["document", "implement", "code", "skill", "behavior"],
-    "building before user testing": ["build", "test", "user", "feedback", "example", "prototype"],
+    "documenting but not implementing": [
+        "document",
+        "implement",
+        "code",
+        "skill",
+        "behavior",
+    ],
+    "building before user testing": [
+        "build",
+        "test",
+        "user",
+        "feedback",
+        "example",
+        "prototype",
+    ],
     "not ending with actionable steps": ["action", "next", "step", "unblock", "end"],
     "adding ideas to prds": ["prd", "scope", "feature", "stakeholder", "idea"],
     "recursive logging": ["recursion", "memory", "log", "error", "handler", "loop"],
-    "not communicating failures": ["fail", "error", "success", "report", "count", "metric"],
+    "not communicating failures": [
+        "fail",
+        "error",
+        "success",
+        "report",
+        "count",
+        "metric",
+    ],
     "not self-documenting mistakes": ["mistake", "learning", "log", "proactive"],
     "background agent timeouts": ["agent", "background", "timeout", "web", "research"],
     "sub-agents proposing": ["agent", "sub-agent", "rebuild", "existing", "inventory"],
-    "not searching all doc versions": ["search", "document", "version", "obsidian", "find"],
+    "not searching all doc versions": [
+        "search",
+        "document",
+        "version",
+        "obsidian",
+        "find",
+    ],
     "artifact types must have skill": ["artifact", "prd", "owner", "skill", "review"],
     "project indexes save": ["index", "project", "document", "read", "token"],
-    "not recognizing the table signal": ["feedback", "iterate", "table", "stop", "satisfaction"],
+    "not recognizing the table signal": [
+        "feedback",
+        "iterate",
+        "table",
+        "stop",
+        "satisfaction",
+    ],
     "solution size must match": ["engineer", "complex", "simple", "size", "approach"],
     "question your premises": ["premise", "assumption", "root", "cause", "why"],
     "losing terminal aesthetic": ["ui", "gui", "terminal", "design", "aesthetic"],
-    "security audits need systematic": ["security", "audit", "enumerate", "ls", "directory"],
+    "security audits need systematic": [
+        "security",
+        "audit",
+        "enumerate",
+        "ls",
+        "directory",
+    ],
     "verify kills": ["kill", "process", "port", "lsof", "verify"],
     "check what the server serves": ["server", "curl", "endpoint", "verify", "live"],
     "feature freeze before deadlines": ["deadline", "freeze", "feature", "ship", "bug"],
@@ -106,7 +306,19 @@ SKILL_KEYWORDS = {
     "today": ["today", "plan", "session", "start"],
     "session-close": ["close", "session", "end", "commit", "wrap"],
     "ship": ["ship", "build", "deploy", "implement", "create"],
-    "first-1000": ["first-1000", "first 1000", "superfans", "audience", "customer acquisition", "funnels", "pmf", "product-market-fit", "lead magnet", "fans", "waitlist"],
+    "first-1000": [
+        "first-1000",
+        "first 1000",
+        "superfans",
+        "audience",
+        "customer acquisition",
+        "funnels",
+        "pmf",
+        "product-market-fit",
+        "lead magnet",
+        "fans",
+        "waitlist",
+    ],
 }
 
 
@@ -122,7 +334,7 @@ def parse_learnings(text: str) -> list[dict]:
     # Match: N. **Title** - Description (possibly multi-line until next numbered entry)
     # The pattern captures: number, title (bold), and the rest of the line
     pattern = re.compile(
-        r'^(\d+)\.\s+\*\*(.+?)\*\*\s*[-—–:]\s*(.+)',
+        r"^(\d+)\.\s+\*\*(.+?)\*\*\s*[-—–:]\s*(.+)",
         re.MULTILINE,
     )
 
@@ -133,31 +345,45 @@ def parse_learnings(text: str) -> list[dict]:
 
         # Skip non-mistake numbered items (like "1. Actually Do the Work")
         # These are in the work verification checklist, not mistakes
-        if title in ("Actually Do the Work", "Test It", "Validate Results",
-                      "Present to User", "Get User Sign-Off"):
+        if title in (
+            "Actually Do the Work",
+            "Test It",
+            "Validate Results",
+            "Present to User",
+            "Get User Sign-Off",
+        ):
             continue
 
         # Skip session-specific composition feedback (numbered 1-10 in Session 36)
         # These are user quotes about music quality, not system mistakes
         line_start = match.start()
-        preceding = text[max(0, line_start - 500):line_start]
+        preceding = text[max(0, line_start - 500) : line_start]
         if "CRITICAL USER FEEDBACK" in preceding or "composition quality" in preceding:
             continue
         # Also skip by title pattern — composition feedback titles are distinctive
         composition_titles = {
-            "vangelis", "tigran", "thundercat", "reese", "one-patch",
-            "snippets", "bad voice leading", "tempo/key", "no space",
+            "vangelis",
+            "tigran",
+            "thundercat",
+            "reese",
+            "one-patch",
+            "snippets",
+            "bad voice leading",
+            "tempo/key",
+            "no space",
             "too non-diatonic",
         }
         if any(ct in title.lower() for ct in composition_titles):
             continue
 
-        entries.append({
-            "original_num": num,
-            "title": title,
-            "description": description,
-            "full_text": f"{title}: {description}",
-        })
+        entries.append(
+            {
+                "original_num": num,
+                "title": title,
+                "description": description,
+                "full_text": f"{title}: {description}",
+            }
+        )
 
     return entries
 
@@ -198,11 +424,8 @@ def extract_keywords(entry: dict) -> tuple[list[str], list[list[str]]]:
 
     # === Auto-extraction: significant words from title + first 100 chars of desc ===
     sample = (entry["title"] + " " + entry["description"][:150]).lower()
-    words = re.findall(r'[a-z][a-z_-]+', sample)
-    auto_words = [
-        w for w in words
-        if w not in STOP_WORDS and len(w) > 2
-    ]
+    words = re.findall(r"[a-z][a-z_-]+", sample)
+    auto_words = [w for w in words if w not in STOP_WORDS and len(w) > 2]
 
     # Frequency-based: keep words that appear or are domain-significant
     word_freq = Counter(auto_words)
@@ -213,7 +436,7 @@ def extract_keywords(entry: dict) -> tuple[list[str], list[list[str]]]:
     exact = list(dict.fromkeys(exact_from_manual + top_auto))  # dedup, preserve order
 
     # === Compound keywords: extract 2-word patterns from title ===
-    title_words = re.findall(r'[a-z][a-z_-]+', title_lower)
+    title_words = re.findall(r"[a-z][a-z_-]+", title_lower)
     title_words = [w for w in title_words if w not in STOP_WORDS and len(w) > 2]
     compounds = []
     for i in range(len(title_words) - 1):
@@ -235,20 +458,49 @@ def classify_type(entry: dict) -> str:
 
     # Mechanical indicators: specific tool actions, file operations, commands
     mechanical_signals = [
-        "read before", "edit without", "invoke skill", "task agent",
-        "git commit", "git add", "test before", "curl", "lsof",
-        "verify", "check output", "run test", "enumerate",
-        "signal.sigalrm", "recursion limit", ".env", "api key",
-        "hook", "permission", "register", "config",
+        "read before",
+        "edit without",
+        "invoke skill",
+        "task agent",
+        "git commit",
+        "git add",
+        "test before",
+        "curl",
+        "lsof",
+        "verify",
+        "check output",
+        "run test",
+        "enumerate",
+        "signal.sigalrm",
+        "recursion limit",
+        ".env",
+        "api key",
+        "hook",
+        "permission",
+        "register",
+        "config",
     ]
 
     # Judgment indicators: abstract reasoning, user interaction
     judgment_signals = [
-        "over-engineer", "scope", "premise", "assumption",
-        "user satisfaction", "read between", "table signal",
-        "aesthetic", "ritual", "feedback", "creative",
-        "simple", "complex", "approach", "strategy",
-        "not recognizing", "not communicating", "opportunity cost",
+        "over-engineer",
+        "scope",
+        "premise",
+        "assumption",
+        "user satisfaction",
+        "read between",
+        "table signal",
+        "aesthetic",
+        "ritual",
+        "feedback",
+        "creative",
+        "simple",
+        "complex",
+        "approach",
+        "strategy",
+        "not recognizing",
+        "not communicating",
+        "opportunity cost",
     ]
 
     mech_score = sum(1 for s in mechanical_signals if s in text)
@@ -293,7 +545,7 @@ def load_cross_references() -> dict[int, list[str]]:
 
     text = PRINCIPLES_FILE.read_text()
     # Parse: | N | Description | P1, P2 |
-    pattern = re.compile(r'\|\s*(\d+)\s*\|[^|]+\|\s*([^|]+)\|')
+    pattern = re.compile(r"\|\s*(\d+)\s*\|[^|]+\|\s*([^|]+)\|")
     for match in pattern.finditer(text):
         num = int(match.group(1))
         principles = match.group(2).strip()
@@ -348,6 +600,13 @@ def build_index() -> dict:
 
         index_entries.append(index_entry)
 
+    # Step 4b: Count graduated entries from source file (excluded from active index by regex)
+    graduated_pattern = re.compile(
+        r"^(\d+)\.\s+~~\*\*(.+?)\*\*~~\s*GRADUATED",
+        re.MULTILINE,
+    )
+    graduated_ids = {int(m.group(1)) for m in graduated_pattern.finditer(text)}
+
     # Step 5: Build final index
     from datetime import datetime, timezone
 
@@ -355,19 +614,13 @@ def build_index() -> dict:
         "version": 1,
         "generated": datetime.now(timezone.utc).isoformat(),
         "source_file": str(LEARNINGS_FILE),
-        "total_learnings": len(index_entries),
-        "graduated_count": sum(
-            1 for e in index_entries if e["status"] == "graduated"
-        ),
+        "total_learnings": len(index_entries) + len(graduated_ids),
+        "graduated_count": len(graduated_ids),
         "graduation_candidates": sum(
             1 for e in index_entries if e["graduation_candidate"]
         ),
-        "mechanical_count": sum(
-            1 for e in index_entries if e["type"] == "mechanical"
-        ),
-        "judgment_count": sum(
-            1 for e in index_entries if e["type"] == "judgment"
-        ),
+        "mechanical_count": sum(1 for e in index_entries if e["type"] == "mechanical"),
+        "judgment_count": sum(1 for e in index_entries if e["type"] == "judgment"),
         "entries": index_entries,
     }
 
@@ -424,14 +677,14 @@ def run_tests():
     print()
 
     # Test 1: Parse basic format
-    sample = '1. **Test mistake** - Description here\n2. **Another one** - More desc'
+    sample = "1. **Test mistake** - Description here\n2. **Another one** - More desc"
     entries = parse_learnings(sample)
     check("Parse basic format", len(entries) == 2)
     check("Parse extracts title", entries[0]["title"] == "Test mistake")
     check("Parse extracts description", entries[0]["description"] == "Description here")
 
     # Test 2: Duplicate detection
-    sample = '1. **First** - Desc1\n1. **Second** - Desc2\n2. **Third** - Desc3'
+    sample = "1. **First** - Desc1\n1. **Second** - Desc2\n2. **Third** - Desc3"
     entries = parse_learnings(sample)
     entries = deduplicate_and_renumber(entries)
     ids = [e["id"] for e in entries]
@@ -460,7 +713,9 @@ def run_tests():
     check("Classify judgment", classify_type(judg_entry) == "judgment")
 
     # Test 5: Skip non-mistakes
-    sample = '1. **Actually Do the Work** - Create files\n2. **Real mistake** - Bad stuff'
+    sample = (
+        "1. **Actually Do the Work** - Create files\n2. **Real mistake** - Bad stuff"
+    )
     entries = parse_learnings(sample)
     check("Skip non-mistakes", len(entries) == 1)
     check("Keep real mistakes", entries[0]["title"] == "Real mistake")
@@ -470,9 +725,18 @@ def run_tests():
         index = build_index()
         check("Full build succeeds", "entries" in index)
         check("Has entries", index["total_learnings"] > 50)
-        check("No duplicate IDs", len(set(e["id"] for e in index["entries"])) == len(index["entries"]))
-        check("All have keywords", all(len(e["keywords_exact"]) > 0 for e in index["entries"]))
-        check("Classification works", index["mechanical_count"] > 0 and index["judgment_count"] > 0)
+        check(
+            "No duplicate IDs",
+            len(set(e["id"] for e in index["entries"])) == len(index["entries"]),
+        )
+        check(
+            "All have keywords",
+            all(len(e["keywords_exact"]) > 0 for e in index["entries"]),
+        )
+        check(
+            "Classification works",
+            index["mechanical_count"] > 0 and index["judgment_count"] > 0,
+        )
     else:
         print(f"  SKIP  Full pipeline (file not found: {LEARNINGS_FILE})")
 
@@ -499,7 +763,9 @@ def main():
     else:
         print(f"Index built: {path}")
         print(f"  {index['total_learnings']} learnings indexed")
-        print(f"  {index['mechanical_count']} mechanical, {index['judgment_count']} judgment")
+        print(
+            f"  {index['mechanical_count']} mechanical, {index['judgment_count']} judgment"
+        )
         print(f"  {index['graduation_candidates']} graduation candidates")
 
 

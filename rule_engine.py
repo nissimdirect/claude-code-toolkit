@@ -35,7 +35,7 @@ STATE_PATH = Path.home() / ".claude/.locks/rule-engine-state.json"
 
 THRESHOLD = 0.5
 BUDGET = 5
-INJECTION_LIMIT = 3          # Max principles to inject per prompt
+INJECTION_LIMIT = 3  # Max principles to inject per prompt
 DOMAIN_SCORE_EXPLICIT = 0.4
 DOMAIN_SCORE_UNIVERSAL = 0.3
 SPIKE_CAP = 0.15
@@ -46,11 +46,22 @@ UNMERGE_COOLDOWN_DAYS = 30
 CO_ACTIVATION_MERGE_THRESHOLD = 0.90
 SPREAD_BONUS_FACTOR = 0.2
 CO_ACTIVATION_MAX_PAIRS = 500
-CO_ACTIVATION_MIN_EITHER = 5   # Prune pairs below this in advance_day
-CALENDAR_DECAY_MAX_DAYS = 365  # Cap calendar-based decay to prevent mass dormancy from stale dates
+CO_ACTIVATION_MIN_EITHER = 5  # Prune pairs below this in advance_day
+CALENDAR_DECAY_MAX_DAYS = (
+    365  # Cap calendar-based decay to prevent mass dormancy from stale dates
+)
 
 VALID_TIERS = {"value", "principle", "practice"}
-VALID_DOMAINS = {"code", "audio", "writing", "git", "advisory", "budget", "scraping", "all"}
+VALID_DOMAINS = {
+    "code",
+    "audio",
+    "writing",
+    "git",
+    "advisory",
+    "budget",
+    "scraping",
+    "all",
+}
 CONSEQUENCE_MIN = 0.1
 CONSEQUENCE_MAX = 0.3
 
@@ -59,11 +70,13 @@ SPIKE_AMOUNT = {
     "self_check": 0.08,
     "user": 0.15,
     "audit": 0.06,
+    "graduation": 0.10,
 }
 
 # ============================================================
 # DATA MODEL
 # ============================================================
+
 
 @dataclass
 class Rule:
@@ -107,16 +120,24 @@ def validate_rules(rules: dict[str, Rule]) -> list[str]:
         if r.tier not in VALID_TIERS:
             warnings.append(f"{rid}: invalid tier '{r.tier}' (expected {VALID_TIERS})")
         if r.consequence < CONSEQUENCE_MIN or r.consequence > CONSEQUENCE_MAX:
-            warnings.append(f"{rid}: consequence {r.consequence} outside [{CONSEQUENCE_MIN}, {CONSEQUENCE_MAX}]")
+            warnings.append(
+                f"{rid}: consequence {r.consequence} outside [{CONSEQUENCE_MIN}, {CONSEQUENCE_MAX}]"
+            )
         for d in r.domains:
             if d not in VALID_DOMAINS:
-                warnings.append(f"{rid}: invalid domain '{d}' (expected {VALID_DOMAINS})")
+                warnings.append(
+                    f"{rid}: invalid domain '{d}' (expected {VALID_DOMAINS})"
+                )
         for conn_id in r.connections:
             if conn_id not in rules:
-                warnings.append(f"{rid}: connection target '{conn_id}' not found in rules")
+                warnings.append(
+                    f"{rid}: connection target '{conn_id}' not found in rules"
+                )
         for conn_id, weight in r.connections.items():
             if weight < 0 or weight > 1:
-                warnings.append(f"{rid}: connection weight {weight} to {conn_id} outside [0, 1]")
+                warnings.append(
+                    f"{rid}: connection weight {weight} to {conn_id} outside [0, 1]"
+                )
     return warnings
 
 
@@ -271,7 +292,7 @@ def classify_prompt(text: str) -> tuple[str, str]:
     """
     _load_classification_keywords()
 
-    words = set(re.findall(r'[a-z][a-z_/-]+', text.lower()))
+    words = set(re.findall(r"[a-z][a-z_/-]+", text.lower()))
     text_lower = text.lower()
 
     # Score each domain — check both exact word match and substring in text
@@ -309,6 +330,7 @@ def classify_prompt(text: str) -> tuple[str, str]:
 # ============================================================
 # SCORING ENGINE
 # ============================================================
+
 
 def score_rule(rule: Rule, domain: str, tool: str) -> float:
     """Score a rule against a classified prompt. Must match sim exactly."""
@@ -403,10 +425,12 @@ def get_relevant_rules(prompt_text: str) -> list[dict]:
 
     # Track co-activations (exclude "all"-domain rules)
     co_act = state.get("co_activation", {})
-    non_universal = sorted(r.id for r, _ in activated if "all" not in rules[r.id].domains)
+    non_universal = sorted(
+        r.id for r, _ in activated if "all" not in rules[r.id].domains
+    )
     activated_id_set = {r.id for r, _ in activated}
     for i, r1 in enumerate(non_universal):
-        for r2 in non_universal[i+1:]:
+        for r2 in non_universal[i + 1 :]:
             key = f"{r1}:{r2}"
             if key not in co_act:
                 co_act[key] = {"both": 0, "either": 0}
@@ -414,7 +438,11 @@ def get_relevant_rules(prompt_text: str) -> list[dict]:
             co_act[key]["either"] += 1
     for r_id in non_universal:
         for other_id in rules:
-            if other_id != r_id and other_id not in activated_id_set and "all" not in rules[other_id].domains:
+            if (
+                other_id != r_id
+                and other_id not in activated_id_set
+                and "all" not in rules[other_id].domains
+            ):
                 key = ":".join(sorted([r_id, other_id]))
                 if key in co_act:
                     co_act[key]["either"] += 1
@@ -428,16 +456,18 @@ def get_relevant_rules(prompt_text: str) -> list[dict]:
     result = []
     for rule, s in activated[:INJECTION_LIMIT]:
         if rule.reminder:
-            result.append({
-                "id": rule.id,
-                "principle_id": rule.principle_id,
-                "name": rule.name,
-                "reminder": rule.reminder,
-                "score": round(s, 3),
-                "domain": domain,
-                "tool": tool,
-                "reason": _build_reason(rule, domain, tool),
-            })
+            result.append(
+                {
+                    "id": rule.id,
+                    "principle_id": rule.principle_id,
+                    "name": rule.name,
+                    "reminder": rule.reminder,
+                    "score": round(s, 3),
+                    "domain": domain,
+                    "tool": tool,
+                    "reason": _build_reason(rule, domain, tool),
+                }
+            )
 
     return result
 
@@ -445,6 +475,7 @@ def get_relevant_rules(prompt_text: str) -> list[dict]:
 # ============================================================
 # LIFECYCLE (called from session-close, not from hook)
 # ============================================================
+
 
 def record_violation(rule_id: str, source: str = "hook") -> str | None:
     """Record a violation/omission. Returns message if immune reactivation."""
@@ -499,7 +530,9 @@ def advance_day(days: int = None):
     # Decay spikes (apply N days of decay)
     for rule in rules.values():
         if rule.adaptive_spike > 0:
-            rule.adaptive_spike = max(0, rule.adaptive_spike - SPIKE_DECAY_PER_DAY * days)
+            rule.adaptive_spike = max(
+                0, rule.adaptive_spike - SPIKE_DECAY_PER_DAY * days
+            )
             if rule.adaptive_spike <= 0.001:
                 rule.adaptive_spike = 0.0
         rule.days_since_activation += days
@@ -516,11 +549,16 @@ def advance_day(days: int = None):
     co_act = state.get("co_activation", {})
     if len(co_act) > CO_ACTIVATION_MAX_PAIRS:
         # Remove pairs with either < threshold
-        co_act = {k: v for k, v in co_act.items()
-                  if v.get("either", 0) >= CO_ACTIVATION_MIN_EITHER}
+        co_act = {
+            k: v
+            for k, v in co_act.items()
+            if v.get("either", 0) >= CO_ACTIVATION_MIN_EITHER
+        }
         # If still over limit, keep top pairs by 'either' count
         if len(co_act) > CO_ACTIVATION_MAX_PAIRS:
-            sorted_pairs = sorted(co_act.items(), key=lambda x: x[1]["either"], reverse=True)
+            sorted_pairs = sorted(
+                co_act.items(), key=lambda x: x[1]["either"], reverse=True
+            )
             co_act = dict(sorted_pairs[:CO_ACTIVATION_MAX_PAIRS])
 
     updated = extract_state(rules, state)
@@ -536,9 +574,13 @@ def detect_inactive() -> list[str]:
     state = load_state()
     apply_state(rules, state)
 
-    return [r.id for r in rules.values()
-            if r.days_since_activation >= INACTIVE_THRESHOLD_DAYS
-            and not r.dormant and not r.pinned]
+    return [
+        r.id
+        for r in rules.values()
+        if r.days_since_activation >= INACTIVE_THRESHOLD_DAYS
+        and not r.dormant
+        and not r.pinned
+    ]
 
 
 def detect_merge_candidates() -> list[tuple[str, str, float]]:
@@ -604,7 +646,9 @@ if __name__ == "__main__":
             print(f"Domain: {domain}, Tool: {tool}")
             results = get_relevant_rules(prompt)
             for r in results:
-                print(f"  [{r['id']}] {r['name']} (score={r['score']}, reason={r['reason']}) — {r['reminder']}")
+                print(
+                    f"  [{r['id']}] {r['name']} (score={r['score']}, reason={r['reason']}) — {r['reminder']}"
+                )
             if not results:
                 print("  (no rules above threshold)")
 
@@ -632,7 +676,9 @@ if __name__ == "__main__":
             print(msg or f"Spike recorded for {rule_id}")
 
         else:
-            print(f"Usage: {sys.argv[0]} [test <prompt>|lifecycle|advance|validate|violation <rule_id> <source>]")
+            print(
+                f"Usage: {sys.argv[0]} [test <prompt>|lifecycle|advance|validate|violation <rule_id> <source>]"
+            )
     else:
         # Default: show lifecycle report
         report = get_lifecycle_report()
