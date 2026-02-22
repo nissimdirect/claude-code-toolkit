@@ -360,7 +360,10 @@ def measure_all_loops() -> dict:
     # delegation-compliance.json uses "total_delegated" and "total_prefetched"
     delegations = ds.get("total_delegated", ds.get("total_delegations", 0))
     prefetched = ds.get("total_prefetched", 0)
+    skill_delegated = ds.get("total_skill_delegated", 0)
     prev_l7 = prev_loops.get("7", {}).get("metric_value", 0)
+    # v4.4: skill delegation health — is the slash command path active?
+    skill_detail = f", {skill_delegated} from skills" if skill_delegated > 0 else ""
     loops["7"] = {
         "name": "Cross-Model Validation",
         "spinning": delegations > 0,
@@ -368,7 +371,7 @@ def measure_all_loops() -> dict:
         "metric_name": "total_delegated",
         "metric_value": delegations,
         "trend": _trend(delegations, prev_l7),
-        "detail": f"{delegations} delegated ({prefetched} prefetched)",
+        "detail": f"{delegations} delegated ({prefetched} prefetched{skill_detail})",
         "last_activity": now,
     }
 

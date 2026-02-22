@@ -100,6 +100,57 @@ def main():
         except (json.JSONDecodeError, OSError):
             pass
 
+    # --- Skill Delegation (v4.4) ---
+    if AUDIT_LOG.exists():
+        lines = [
+            l.strip() for l in AUDIT_LOG.read_text().strip().split("\n") if l.strip()
+        ]
+        entries = [parse_audit_line(l) for l in lines]
+        skill_entries = [e for e in entries if e.get("source", "").startswith("skill:")]
+        natural_entries = [
+            e for e in entries if e.get("source", "natural") == "natural"
+        ]
+        skill_prefetched = sum(1 for e in skill_entries if e.get("prefetch") == "OK")
+        natural_prefetched = sum(
+            1 for e in natural_entries if e.get("prefetch") == "OK"
+        )
+
+        # Count by skill name
+        skill_names = Counter(
+            e.get("source", "").split(":", 1)[1]
+            for e in skill_entries
+            if ":" in e.get("source", "")
+        )
+
+        print("\n  --- Skill Delegation (v4.4) ---")
+        if skill_entries:
+            print(
+                f"  Skill-sourced:    {len(skill_entries)} ({skill_prefetched} prefetched)"
+            )
+            print(
+                f"  Natural-sourced:  {len(natural_entries)} ({natural_prefetched} prefetched)"
+            )
+            if skill_names:
+                print("  By skill:")
+                for name, count in skill_names.most_common(10):
+                    print(f"    {name:25s} {count:3d}")
+        else:
+            print("  No skill delegation data yet (v4.4 entries have source= field)")
+
+    # --- Today's skill breakdown ---
+    if COMPLIANCE.exists():
+        try:
+            comp = json.loads(COMPLIANCE.read_text())
+            today_skill = comp.get("today_skill_delegated", 0)
+            today_total = comp.get("today_delegated", 0)
+            today_natural = today_total - today_skill
+            if today_total > 0:
+                print(
+                    f"\n  Today: {today_skill} skill + {today_natural} natural = {today_total} delegated"
+                )
+        except (json.JSONDecodeError, OSError):
+            pass
+
     # --- Acceptance ---
     if ACC_FILE.exists():
         try:
