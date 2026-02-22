@@ -59,7 +59,7 @@ ADVISORS = {
     },
     "music-biz": {
         "name": "Music Business (Cherie Hu + Jesse Cannon + Ari Herstand + Bandzoogle Blog)",
-        "source": "Water & Music + Music Marketing Trends + Ari's Take + DMN + Bandzoogle Blog + Guest Articles",
+        "source": "Water & Music + Music Marketing Trends + Ari's Take + DMN + Bandzoogle Blog + Guest Articles + Songtrust + FanCircles",
         "article_dirs": [
             # music-biz exclusive: analytics, strategy, indie business
             Path("~/Development/cherie-hu/articles").expanduser(),
@@ -73,10 +73,13 @@ ADVISORS = {
             # Shared with label: tactics, direct-to-fan
             Path("~/Development/jesse-cannon/articles").expanduser(),
             Path("~/Development/music-marketing/bandzoogle-blog/articles").expanduser(),
+            # Cross-routed from first-1000 (music publishing + fan engagement)
+            Path("~/Development/knowledge-bases/first-1000/songtrust").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/fancircles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 3628,  # Removed ditto-music (232) from music-biz
+        "article_count": 4165,  # 3628 + 421 (songtrust) + 116 (fancircles)
         "excerpt_lines": 40,
     },
     "chatprd": {
@@ -645,7 +648,7 @@ ADVISORS = {
     },
     "label": {
         "name": "Record Label (Hypebot + MBW + Ditto + Jesse + Bandzoogle)",
-        "source": "Hypebot + Music Business Worldwide + Ditto Music + Jesse Cannon + Bandzoogle Blog",
+        "source": "Hypebot + Music Business Worldwide + Ditto Music + Jesse Cannon + Bandzoogle Blog + Songtrust + FanCircles",
         "article_dirs": [
             # Shared with music-biz: tactics, direct-to-fan
             Path("~/Development/jesse-cannon/articles").expanduser(),
@@ -656,10 +659,13 @@ ADVISORS = {
                 "~/Development/music-business/music-biz-worldwide/articles"
             ).expanduser(),
             Path("~/Development/music-production/ditto-music/articles").expanduser(),
+            # Cross-routed from first-1000 (publishing + fan engagement)
+            Path("~/Development/knowledge-bases/first-1000/songtrust").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/fancircles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 5406,  # Removed cherie (1710) + ari (744) from label
+        "article_count": 5943,  # 5406 + 421 (songtrust) + 116 (fancircles)
         "excerpt_lines": 40,
     },
     "audio-production": {
@@ -710,7 +716,7 @@ ADVISORS = {
     # ── Marketing Hacker (SEO, GEO, Growth) ──
     "marketing-hacker": {
         "name": "Marketing Hacker (SEO + AI SEO/GEO + Growth Hacking)",
-        "source": "Kevin Indig, SparkToro, Arvid Kahl, Backlinko, Zyppy, Eli Schwartz, GEO Research",
+        "source": "Kevin Indig, SparkToro, Arvid Kahl, Backlinko, Zyppy, Eli Schwartz, GEO Research, Copyblogger, Niche Pursuits, Noah Kagan, GrowthHackers, Demand Curve, Newsletter Circle",
         "article_dirs": [
             Path("~/Development/marketing-hacker/articles").expanduser(),
             Path("~/Development/marketing-hacker/zyppy/articles").expanduser(),
@@ -718,10 +724,21 @@ ADVISORS = {
             Path("~/Development/marketing-hacker/sparktoro/articles").expanduser(),
             Path("~/Development/marketing-hacker/kevin-indig/articles").expanduser(),
             Path("~/Development/marketing-hacker/backlinko/articles").expanduser(),
+            # Cross-routed from first-1000 (content marketing + growth)
+            Path("~/Development/knowledge-bases/first-1000/copyblogger").expanduser(),
+            Path(
+                "~/Development/knowledge-bases/first-1000/niche-pursuits"
+            ).expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/noah-kagan").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/growthhackers").expanduser(),
+            Path("~/Development/knowledge-bases/first-1000/demand-curve").expanduser(),
+            Path(
+                "~/Development/knowledge-bases/first-1000/newsletter-circle"
+            ).expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 1775,  # Verified 2026-02-14
+        "article_count": 8531,  # 1775 + 2383 + 3533 + 618 + 23 + 38 + 159 (cross-routed)
         "excerpt_lines": 50,
     },
     # ── Fonts In Use (Dedicated Catalog Advisor) ──
