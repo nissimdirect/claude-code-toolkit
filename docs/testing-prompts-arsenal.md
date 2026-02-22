@@ -479,6 +479,53 @@ Current baseline metrics:
 <paste if available>
 ```
 
+### PF-16: Electron Desktop App E2E Test Suite
+```
+Design a complete E2E test suite for this Electron desktop application using
+Playwright's _electron API. Cover:
+1. App launch and window creation (electron.launch → firstWindow)
+2. Main process API access (electronApp.evaluate for app.getAppPath, etc.)
+3. Renderer DOM interactions (click, type, assert on UI elements)
+4. IPC communication between main and renderer processes
+5. Multi-window scenarios (dialog boxes, settings panels, secondary windows)
+6. Menu bar and system tray interactions
+7. File system operations (open/save dialogs, drag-and-drop)
+8. Application lifecycle (minimize, maximize, close, force quit)
+9. Security context (nodeIntegration, contextIsolation, CSP compliance)
+10. Platform-specific behavior (macOS menu bar, Windows taskbar)
+Include test.setTimeout configuration, console routing to Node terminal,
+screenshot capture for visual regression, and video recording setup.
+Target: Electron v12+, Playwright experimental _electron API.
+
+Application code/structure:
+<paste Electron app code or package.json + main process file>
+```
+
+### PF-17: Python Sidecar + ZMQ IPC Communication Test
+```
+Design a test suite for an Electron app with a Python sidecar communicating
+over ZeroMQ. Cover:
+1. Sidecar startup: Python process launches, binds ZMQ socket, responds to PING
+2. Command protocol: REQ/REP message format validation, JSON schema compliance
+3. Heartbeat/watchdog: miss counting, restart trigger after N misses, state recovery
+4. Shared memory (mmap): ring buffer read/write, zero-copy frame transport,
+   latency measurement (target: <0.1ms for mmap, <16ms for full pipeline)
+5. Effect processing: pure function contract, deterministic output with seed,
+   no global state mutation, parameter boundary testing (min/max/zero)
+6. Error handling: malformed commands, Python exception propagation to frontend,
+   graceful degradation on sidecar crash
+7. Compiled binary parity: Nuitka-compiled binary produces identical output
+   to Python source (hash frame output for comparison)
+8. Concurrent processing: multiple effect requests queued, ordering preserved
+9. Memory stability: process 1000 frames, verify no memory growth (RSS tracking)
+10. Graceful shutdown: SHUTDOWN command → cleanup → process exit code 0
+Include pytest fixtures for ZMQ socket setup/teardown, frame generation helpers,
+and timing measurement decorators.
+
+Sidecar code:
+<paste Python sidecar + ZMQ server code>
+```
+
 ---
 
 ## Usage Guide
@@ -497,6 +544,14 @@ Current baseline metrics:
 - PF-02 (bottleneck analysis) during pre-ship review
 - PF-15 (regression suite) for CI/CD setup
 - PF-10 (audio/video benchmark) for Entropic/Cymatics
+- PF-16 (Electron E2E) for Entropic v2 Challenger desktop app
+- PF-17 (Python sidecar/ZMQ) for Entropic v2 Challenger IPC testing
+
+### For /test-electron command:
+- PF-16 (Electron E2E) — primary prompt for desktop app testing
+- PF-17 (Python sidecar/ZMQ) — IPC and sidecar communication testing
+- PF-10 (audio/video benchmark) — frame processing latency validation
+- PF-12 (startup optimization) — Electron cold start profiling
 
 ### For /ship skill:
 - PF-07 (frontend audit) before deploying web apps

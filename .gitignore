@@ -24,3 +24,6 @@ Thumbs.db
 .session-tracker*
 .resource-tracker*
 .debounce-*
+
+# Claude Code worktrees
+.claude/worktrees/
