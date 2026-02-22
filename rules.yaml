@@ -50,7 +50,7 @@ rules:
     tool_triggers: [bash]
     antigens: ["Mistake #41", "Mistake #174", "Mistake #175", "Mistake #181", "Mistake #187"]
     connections: {R4: 0.6, R30: 0.4}
-    reminder: "Verify with tool output or evidence. Claims without proof don't count."
+    reminder: "Verify with tool output or evidence. Check: can user SEE it? Does it serve actual workflow? Is success logged (not just failures)? Verify the HOW, not just the WHAT."
 
   - id: R14
     principle_id: P14

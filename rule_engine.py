@@ -11,6 +11,7 @@ Must complete scoring in <100ms (called from learning_hook.py on every prompt).
 """
 
 import datetime
+import fcntl
 import json
 import os
 import re
@@ -178,6 +179,9 @@ def load_rules() -> dict[str, Rule]:
     return rules
 
 
+_state_lock_fd = None  # held during locked_state() context
+
+
 def load_state() -> dict:
     """Load persistent state from JSON."""
     if not STATE_PATH.exists():
@@ -189,25 +193,30 @@ def load_state() -> dict:
 
 
 def save_state(state: dict):
-    """Save state to JSON atomically (write tmp + rename)."""
+    """Save state to JSON atomically (write tmp + rename, flock-protected).
+
+    Learning #192: concurrent sessions must not lose increments.
+    """
     try:
         STATE_PATH.parent.mkdir(parents=True, exist_ok=True)
-        fd, tmp_path = tempfile.mkstemp(
-            dir=str(STATE_PATH.parent),
-            prefix=".rule-engine-state-",
-            suffix=".tmp",
-        )
-        try:
-            with os.fdopen(fd, "w") as f:
-                json.dump(state, f, indent=2)
-            os.rename(tmp_path, str(STATE_PATH))
-        except Exception:
-            # Clean up temp file on failure
+        lock_path = STATE_PATH.parent / ".rule-engine-state.lock"
+        with open(lock_path, "w") as lock_f:
+            fcntl.flock(lock_f, fcntl.LOCK_EX)
+            fd, tmp_path = tempfile.mkstemp(
+                dir=str(STATE_PATH.parent),
+                prefix=".rule-engine-state-",
+                suffix=".tmp",
+            )
             try:
-                os.unlink(tmp_path)
-            except OSError:
-                pass
-            raise
+                with os.fdopen(fd, "w") as f:
+                    json.dump(state, f, indent=2)
+                os.rename(tmp_path, str(STATE_PATH))
+            except Exception:
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+                raise
     except OSError:
         pass
 
