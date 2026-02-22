@@ -46,6 +46,11 @@ KB_ROOTS = [
     Path("~/Development/audio-production").expanduser(),
     Path("~/Development/art-director/virgil-abloh/articles").expanduser(),
     Path("~/Development/creative-boom/articles").expanduser(),
+    # Wave 4-9 first-1000 sources (42 subdirs)
+    Path("~/Development/knowledge-bases/first-1000").expanduser(),
+    # Additional sources referenced in kb_loader.py
+    Path("~/Development/lyric-analyst").expanduser(),
+    Path("~/Development/ghostwriter").expanduser(),
 ]
 
 
@@ -78,10 +83,10 @@ def extract_body_words(filepath: Path) -> int:
     body = "\n".join(lines[body_start:])
 
     # Strip markdown formatting noise
-    body = re.sub(r'!\[.*?\]\(.*?\)', '', body)  # images
-    body = re.sub(r'\[([^\]]*)\]\([^\)]*\)', r'\1', body)  # links → text
-    body = re.sub(r'[#*_`~>|]', '', body)  # formatting chars
-    body = re.sub(r'\s+', ' ', body).strip()
+    body = re.sub(r"!\[.*?\]\(.*?\)", "", body)  # images
+    body = re.sub(r"\[([^\]]*)\]\([^\)]*\)", r"\1", body)  # links → text
+    body = re.sub(r"[#*_`~>|]", "", body)  # formatting chars
+    body = re.sub(r"\s+", " ", body).strip()
 
     return len(body.split()) if body else 0
 
@@ -121,14 +126,20 @@ def get_source_name(filepath: Path) -> str:
 
 def main():
     parser = argparse.ArgumentParser(description="Detect thin/empty KB articles")
-    parser.add_argument("--threshold", type=int, default=50,
-                        help="Minimum body words (default: 50)")
-    parser.add_argument("--delete", action="store_true",
-                        help="Delete thin articles permanently")
-    parser.add_argument("--quarantine", action="store_true",
-                        help="Move thin articles to a quarantine directory")
-    parser.add_argument("--verbose", action="store_true",
-                        help="Show individual file paths")
+    parser.add_argument(
+        "--threshold", type=int, default=50, help="Minimum body words (default: 50)"
+    )
+    parser.add_argument(
+        "--delete", action="store_true", help="Delete thin articles permanently"
+    )
+    parser.add_argument(
+        "--quarantine",
+        action="store_true",
+        help="Move thin articles to a quarantine directory",
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Show individual file paths"
+    )
     args = parser.parse_args()
 
     print(f"\nScanning KB for articles with < {args.threshold} body words...\n")
@@ -168,7 +179,11 @@ def main():
     print("-" * 80)
     print(f"Total scanned: {total_scanned}")
     print(f"Total thin (<{args.threshold} words): {total_thin}")
-    print(f"Percentage: {total_thin / total_scanned * 100:.1f}%" if total_scanned else "N/A")
+    print(
+        f"Percentage: {total_thin / total_scanned * 100:.1f}%"
+        if total_scanned
+        else "N/A"
+    )
 
     if args.delete and total_thin > 0:
         deleted = 0

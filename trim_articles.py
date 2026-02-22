@@ -45,52 +45,96 @@ KB_ROOTS = [
     Path("~/Development/audio-production").expanduser(),
     Path("~/Development/art-director/virgil-abloh/articles").expanduser(),
     Path("~/Development/creative-boom/articles").expanduser(),
+    # Wave 4-9 first-1000 sources (42 subdirs)
+    Path("~/Development/knowledge-bases/first-1000").expanduser(),
+    # Additional sources referenced in kb_loader.py
+    Path("~/Development/lyric-analyst").expanduser(),
+    Path("~/Development/ghostwriter").expanduser(),
 ]
 
 # ── Boilerplate Patterns ──────────────────────────────────────────
 
 # Lines that are pure navigation/UI artifacts
 NAV_PATTERNS = [
-    re.compile(r'^\s*\[?(Home|About|Contact|Menu|Navigation|Search|Subscribe|Login|Sign [Uu]p|Register)\]?\s*$', re.IGNORECASE),
-    re.compile(r'^\s*\[?(Previous|Next|Prev|Back|Forward|Read [Mm]ore|Continue [Rr]eading|Show [Mm]ore)\]?\s*$', re.IGNORECASE),
-    re.compile(r'^\s*\[?(Skip to .*|Jump to .*|Go to .*)\]?\s*$', re.IGNORECASE),
-    re.compile(r'^\s*(Share|Tweet|Pin|Email|Print|Copy [Ll]ink|SHARE:?)\s*$', re.IGNORECASE),
-    re.compile(r'^\s*\[?(Facebook|Twitter|LinkedIn|Instagram|YouTube|TikTok|Pinterest|Reddit|WhatsApp)\]?\s*$', re.IGNORECASE),
+    re.compile(
+        r"^\s*\[?(Home|About|Contact|Menu|Navigation|Search|Subscribe|Login|Sign [Uu]p|Register)\]?\s*$",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*\[?(Previous|Next|Prev|Back|Forward|Read [Mm]ore|Continue [Rr]eading|Show [Mm]ore)\]?\s*$",
+        re.IGNORECASE,
+    ),
+    re.compile(r"^\s*\[?(Skip to .*|Jump to .*|Go to .*)\]?\s*$", re.IGNORECASE),
+    re.compile(
+        r"^\s*(Share|Tweet|Pin|Email|Print|Copy [Ll]ink|SHARE:?)\s*$", re.IGNORECASE
+    ),
+    re.compile(
+        r"^\s*\[?(Facebook|Twitter|LinkedIn|Instagram|YouTube|TikTok|Pinterest|Reddit|WhatsApp)\]?\s*$",
+        re.IGNORECASE,
+    ),
 ]
 
 # Block patterns - if a line matches, remove it AND subsequent lines until a blank line
 BLOCK_START_PATTERNS = [
-    re.compile(r'^\s*#{1,3}\s*(Related (?:Articles?|Posts?|Stories?|Content)|You (?:May|Might) Also (?:Like|Enjoy)|More (?:From|Like This|Stories)|Recommended|Popular (?:Posts?|Articles?)|Trending|Also (?:Read|See)|Further Reading)', re.IGNORECASE),
-    re.compile(r'^\s*\*{0,2}(Related (?:Articles?|Posts?)|You (?:May|Might) Also)', re.IGNORECASE),
-    re.compile(r'^\s*#{1,3}\s*(Comments?|Leave a (?:Reply|Comment)|Discussion|Responses?)\s*$', re.IGNORECASE),
-    re.compile(r'^\s*#{1,3}\s*(Newsletter|Subscribe|Get (?:Our|The) Newsletter|Sign [Uu]p|Join (?:Our|The))\s*$', re.IGNORECASE),
-    re.compile(r'^\s*#{1,3}\s*(About [Tt]he [Aa]uthor|Author [Bb]io|Written [Bb]y)\s*$', re.IGNORECASE),
-    re.compile(r'^\s*#{1,3}\s*(Tags?|Categories?|Topics?|Filed [Uu]nder)\s*$', re.IGNORECASE),
-    re.compile(r'^\s*#{1,3}\s*(Footer|Copyright|All [Rr]ights [Rr]eserved)\s*$', re.IGNORECASE),
+    re.compile(
+        r"^\s*#{1,3}\s*(Related (?:Articles?|Posts?|Stories?|Content)|You (?:May|Might) Also (?:Like|Enjoy)|More (?:From|Like This|Stories)|Recommended|Popular (?:Posts?|Articles?)|Trending|Also (?:Read|See)|Further Reading)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*\*{0,2}(Related (?:Articles?|Posts?)|You (?:May|Might) Also)",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*#{1,3}\s*(Comments?|Leave a (?:Reply|Comment)|Discussion|Responses?)\s*$",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*#{1,3}\s*(Newsletter|Subscribe|Get (?:Our|The) Newsletter|Sign [Uu]p|Join (?:Our|The))\s*$",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*#{1,3}\s*(About [Tt]he [Aa]uthor|Author [Bb]io|Written [Bb]y)\s*$",
+        re.IGNORECASE,
+    ),
+    re.compile(
+        r"^\s*#{1,3}\s*(Tags?|Categories?|Topics?|Filed [Uu]nder)\s*$", re.IGNORECASE
+    ),
+    re.compile(
+        r"^\s*#{1,3}\s*(Footer|Copyright|All [Rr]ights [Rr]eserved)\s*$", re.IGNORECASE
+    ),
 ]
 
 # Single-line removal patterns
 REMOVE_LINE_PATTERNS = [
-    re.compile(r'^\s*!\[.*?\]\(.*?\)\s*$'),  # Standalone image markdown
-    re.compile(r'^\s*\[!\[.*?\]\(.*?\)\]\(.*?\)\s*$'),  # Linked images
-    re.compile(r'^\s*<img\b[^>]*/?>\s*$', re.IGNORECASE),  # HTML images
-    re.compile(r'^\s*<iframe\b[^>]*>.*?</iframe>\s*$', re.IGNORECASE),  # Iframes
-    re.compile(r'^\s*Cookie', re.IGNORECASE),  # Cookie notices
-    re.compile(r'^\s*We use cookies', re.IGNORECASE),
-    re.compile(r'^\s*This (?:website|site) uses cookies', re.IGNORECASE),
-    re.compile(r'^\s*Accept (?:All )?Cookies?\s*$', re.IGNORECASE),
-    re.compile(r'^\s*\d+ comments?\s*$', re.IGNORECASE),  # Comment counts
-    re.compile(r'^\s*Loading\.{0,3}\s*$', re.IGNORECASE),  # Loading indicators
-    re.compile(r'^\s*Advertisement\s*$', re.IGNORECASE),  # Ad markers
-    re.compile(r'^\s*Sponsored\s*$', re.IGNORECASE),
-    re.compile(r'^\s*Photo:?\s*$', re.IGNORECASE),  # Orphaned photo captions
-    re.compile(r'^\s*Image:?\s*$', re.IGNORECASE),
-    re.compile(r'^\s*Credit:?\s*$', re.IGNORECASE),
-    re.compile(r'^\s*\| \|', re.IGNORECASE),  # Empty table cells
-    re.compile(r'^\s*\[\s*\]\s*$'),  # Empty links
-    re.compile(r'^\s*\*\s*\*\s*\*\s*$'),  # Decorative separators (*** alone)
-    re.compile(r'^\s*---+\s*$'),  # Horizontal rules (except frontmatter)
-    re.compile(r'^\s*\u200c+\s*$'),  # Zero-width non-joiner chars (e-flux artifact)
+    re.compile(r"^\s*!\[.*?\]\(.*?\)\s*$"),  # Standalone image markdown
+    re.compile(r"^\s*\[!\[.*?\]\(.*?\)\]\(.*?\)\s*$"),  # Linked images
+    re.compile(r"^\s*<img\b[^>]*/?>\s*$", re.IGNORECASE),  # HTML images
+    re.compile(r"^\s*<iframe\b[^>]*>.*?</iframe>\s*$", re.IGNORECASE),  # Iframes
+    re.compile(r"^\s*Cookie", re.IGNORECASE),  # Cookie notices
+    re.compile(r"^\s*We use cookies", re.IGNORECASE),
+    re.compile(r"^\s*This (?:website|site) uses cookies", re.IGNORECASE),
+    re.compile(r"^\s*Accept (?:All )?Cookies?\s*$", re.IGNORECASE),
+    re.compile(r"^\s*\d+ comments?\s*$", re.IGNORECASE),  # Comment counts
+    re.compile(r"^\s*Loading\.{0,3}\s*$", re.IGNORECASE),  # Loading indicators
+    re.compile(r"^\s*Advertisement\s*$", re.IGNORECASE),  # Ad markers
+    re.compile(r"^\s*Sponsored\s*$", re.IGNORECASE),
+    re.compile(r"^\s*Photo:?\s*$", re.IGNORECASE),  # Orphaned photo captions
+    re.compile(r"^\s*Image:?\s*$", re.IGNORECASE),
+    re.compile(r"^\s*Credit:?\s*$", re.IGNORECASE),
+    re.compile(r"^\s*\| \|", re.IGNORECASE),  # Empty table cells
+    re.compile(r"^\s*\[\s*\]\s*$"),  # Empty links
+    re.compile(r"^\s*\*\s*\*\s*\*\s*$"),  # Decorative separators (*** alone)
+    re.compile(r"^\s*---+\s*$"),  # Horizontal rules (except frontmatter)
+    re.compile(r"^\s*\u200c+\s*$"),  # Zero-width non-joiner chars (e-flux artifact)
+]
+
+# Tail-cut patterns: when matched, remove this line AND everything after it (to EOF)
+# Used for source-specific boilerplate that always appears at the end of articles
+TAIL_CUT_PATTERNS = [
+    # Attack Magazine: "Follow Attack Magazine" footer + "Attack Store" product listings
+    # These appear at the end of all 7,638 attack-magazine articles (~4-5KB each)
+    re.compile(r"^\s*#{1,3}\s*Follow Attack Magazine\s*$", re.IGNORECASE),
+    re.compile(r"^\s*#{1,3}\s*Attack Store\s*$", re.IGNORECASE),
 ]
 
 
@@ -133,6 +177,10 @@ def trim_article(content: str) -> str:
             if stripped.startswith("# "):
                 result.append(line)
                 continue
+
+        # Tail-cut: if this line matches, discard everything from here to EOF
+        if any(p.match(stripped) for p in TAIL_CUT_PATTERNS):
+            break
 
         # Check for block-level boilerplate (remove until blank line)
         if any(p.match(stripped) for p in BLOCK_START_PATTERNS):
@@ -198,21 +246,27 @@ def process_file(filepath: Path, apply: bool = False) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="Trim boilerplate from KB articles")
-    parser.add_argument("--apply", action="store_true",
-                        help="Apply trimming in-place (default: dry run)")
-    parser.add_argument("--verbose", action="store_true",
-                        help="Show per-file trimming details")
-    parser.add_argument("--sample", type=int, default=0,
-                        help="Show before/after for N random articles")
+    parser.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply trimming in-place (default: dry run)",
+    )
+    parser.add_argument(
+        "--verbose", action="store_true", help="Show per-file trimming details"
+    )
+    parser.add_argument(
+        "--sample", type=int, default=0, help="Show before/after for N random articles"
+    )
     args = parser.parse_args()
 
     mode = "APPLYING" if args.apply else "DRY RUN"
     print(f"\n[{mode}] Trimming boilerplate from KB articles...\n")
 
     from collections import defaultdict
-    stats_by_source: dict[str, dict] = defaultdict(lambda: {
-        "files": 0, "original_bytes": 0, "trimmed_bytes": 0, "errors": 0
-    })
+
+    stats_by_source: dict[str, dict] = defaultdict(
+        lambda: {"files": 0, "original_bytes": 0, "trimmed_bytes": 0, "errors": 0}
+    )
     total_files = 0
     total_saved = 0
 
@@ -252,37 +306,46 @@ def main():
                 sample_files.append(md_file)
 
     # Report
-    print(f"\n{'Source':<35} {'Files':<8} {'Original':<12} {'Trimmed':<12} {'Saved':<10} {'%'}")
+    print(
+        f"\n{'Source':<35} {'Files':<8} {'Original':<12} {'Trimmed':<12} {'Saved':<10} {'%'}"
+    )
     print("-" * 85)
 
-    sorted_sources = sorted(stats_by_source.items(),
-                            key=lambda x: x[1]["original_bytes"] - x[1]["trimmed_bytes"],
-                            reverse=True)
+    sorted_sources = sorted(
+        stats_by_source.items(),
+        key=lambda x: x[1]["original_bytes"] - x[1]["trimmed_bytes"],
+        reverse=True,
+    )
 
     for source, s in sorted_sources:
         saved = s["original_bytes"] - s["trimmed_bytes"]
         pct = (saved / s["original_bytes"] * 100) if s["original_bytes"] > 0 else 0
         if saved > 0 or args.verbose:
-            print(f"{source:<35} {s['files']:<8} {s['original_bytes']:>10,}  {s['trimmed_bytes']:>10,}  {saved:>8,}  {pct:5.1f}%")
+            print(
+                f"{source:<35} {s['files']:<8} {s['original_bytes']:>10,}  {s['trimmed_bytes']:>10,}  {saved:>8,}  {pct:5.1f}%"
+            )
 
     total_original = sum(s["original_bytes"] for s in stats_by_source.values())
     total_trimmed = sum(s["trimmed_bytes"] for s in stats_by_source.values())
     total_pct = (total_saved / total_original * 100) if total_original > 0 else 0
 
     print("-" * 85)
-    print(f"{'TOTAL':<35} {total_files:<8} {total_original:>10,}  {total_trimmed:>10,}  {total_saved:>8,}  {total_pct:5.1f}%")
+    print(
+        f"{'TOTAL':<35} {total_files:<8} {total_original:>10,}  {total_trimmed:>10,}  {total_saved:>8,}  {total_pct:5.1f}%"
+    )
     print(f"\nTotal saved: {total_saved:,} bytes ({total_saved / 1024 / 1024:.1f} MB)")
 
     if args.sample > 0 and sample_files:
         import random
+
         samples = random.sample(sample_files, min(args.sample, len(sample_files)))
         for fp in samples:
             original = fp.read_text(encoding="utf-8", errors="replace")
             trimmed = trim_article(original)
-            print(f"\n{'='*60}")
+            print(f"\n{'=' * 60}")
             print(f"FILE: {fp.name}")
             print(f"BEFORE: {len(original)} bytes | AFTER: {len(trimmed)} bytes")
-            print(f"{'='*60}")
+            print(f"{'=' * 60}")
             print("FIRST 20 LINES (TRIMMED):")
             for line in trimmed.split("\n")[:20]:
                 print(f"  {line}")
