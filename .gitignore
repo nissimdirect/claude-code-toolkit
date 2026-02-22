@@ -27,3 +27,4 @@ Thumbs.db
 
 # Claude Code worktrees
 .claude/worktrees/
+output/
