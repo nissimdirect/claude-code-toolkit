@@ -665,6 +665,79 @@ if __name__ == "__main__":
             report = get_lifecycle_report()
             print(json.dumps(report, indent=2))
 
+        elif cmd == "lifecycle-verbose":
+            report = get_lifecycle_report()
+            rules = load_rules()
+            state = load_state()
+            apply_state(rules, state)
+
+            print(
+                f"Rule Engine: {report['active']} active, {report['dormant']} dormant, "
+                f"{report['spiked']} spiked, {len(report['inactive_candidates'])} inactive candidates"
+            )
+            print(
+                f"Last decay: {report['last_decay']} | Co-activation pairs: {report['co_activation_pairs']}"
+            )
+
+            # Spiked rules (what's hot)
+            if report["spiked_rules"]:
+                print("\nSpiked rules (recently violated — boosted in injection):")
+                for rid, spike_val in sorted(
+                    report["spiked_rules"].items(), key=lambda x: -x[1]
+                ):
+                    r = rules.get(rid)
+                    name = r.name if r else "?"
+                    pid = r.principle_id if r else "?"
+                    print(
+                        f"  {rid}|{pid} ({name}): spike={spike_val:.3f}, "
+                        f"activated {r.activation_count}x, {r.days_since_activation}d ago"
+                    )
+
+            # Top 5 most activated rules (what fires most)
+            top_active = sorted(
+                rules.values(), key=lambda r: r.activation_count, reverse=True
+            )[:5]
+            print("\nTop 5 most activated rules (lifetime):")
+            for r in top_active:
+                status = (
+                    "SPIKED"
+                    if r.adaptive_spike > 0
+                    else ("DORMANT" if r.dormant else "active")
+                )
+                print(
+                    f"  {r.id}|{r.principle_id} ({r.name}): {r.activation_count}x, "
+                    f"{r.days_since_activation}d since last, {status}"
+                )
+
+            # Inactive candidates (rules that haven't fired in 60+ days)
+            if report["inactive_candidates"]:
+                print(
+                    f"\nInactive candidates (>{INACTIVE_THRESHOLD_DAYS}d without activation):"
+                )
+                for rid in report["inactive_candidates"]:
+                    r = rules.get(rid)
+                    if r:
+                        print(
+                            f"  {rid}|{r.principle_id} ({r.name}): {r.days_since_activation}d idle, "
+                            f"{r.activation_count} lifetime activations"
+                        )
+
+            # Merge candidates
+            if report["merge_candidates"]:
+                print("\nMerge candidates (co-activate >90%):")
+                for r1, r2, ratio in report["merge_candidates"]:
+                    n1 = rules[r1].name if r1 in rules else "?"
+                    n2 = rules[r2].name if r2 in rules else "?"
+                    print(f"  {r1}+{r2} at {ratio * 100:.0f}% — {n1} + {n2}")
+
+            # Dormant rules
+            if report["dormant_ids"]:
+                print(f"\nDormant: {', '.join(report['dormant_ids'])}")
+
+            # Schema warnings
+            if report["schema_warnings"]:
+                print(f"\nSchema warnings: {report['schema_warnings']}")
+
         elif cmd == "advance":
             advance_day()
             print("Advanced (calendar-based decay applied)")
