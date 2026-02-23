@@ -713,6 +713,41 @@ ADVISORS = {
         "article_count": 15,  # 3 education + 12 lyrics (growing via free_lyrics_scraper.py)
         "excerpt_lines": 80,  # Lyrics need more lines to capture full song
     },
+    # ── Literary Analyst (Criticism, Theory, Editorial Craft) ──
+    "literary-analyst": {
+        "name": "Literary Analyst (Criticism + Theory + Editorial Craft)",
+        "source": "Literary Hub + JSTOR Daily + The Marginalian + Electric Lit + The Believer + The Millions + LARB + Paris Review + Poetry Foundation + Public Books + n+1",
+        "article_dirs": [
+            Path("~/Development/literary-criticism/lithub/articles").expanduser(),
+            Path("~/Development/literary-criticism/jstor-daily/articles").expanduser(),
+            Path(
+                "~/Development/literary-criticism/the-marginalian/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/literary-criticism/electric-literature/articles"
+            ).expanduser(),
+            Path("~/Development/literary-criticism/the-believer/articles").expanduser(),
+            Path("~/Development/literary-criticism/the-millions/articles").expanduser(),
+            Path("~/Development/literary-criticism/larb/articles").expanduser(),
+            Path("~/Development/literary-criticism/paris-review/articles").expanduser(),
+            Path(
+                "~/Development/literary-criticism/poetry-foundation/articles"
+            ).expanduser(),
+            Path("~/Development/literary-criticism/public-books/articles").expanduser(),
+            Path("~/Development/literary-criticism/n-plus-one/articles").expanduser(),
+            # Cross-routed from atrium (literary theory overlap)
+            Path("~/Development/art-criticism/e-flux-journal/articles").expanduser(),
+            Path("~/Development/art-criticism/ubuweb-papers/articles").expanduser(),
+            Path(
+                "~/Development/art-criticism/stanford-aesthetics/articles"
+            ).expanduser(),
+            Path("~/Development/art-criticism/bomb-magazine/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 16000,  # Growing — 4 active scrapers + 2 new launched
+        "excerpt_lines": 60,
+    },
     # ── Marketing Hacker (SEO, GEO, Growth) ──
     "marketing-hacker": {
         "name": "Marketing Hacker (SEO + AI SEO/GEO + Growth Hacking)",
@@ -1045,6 +1080,16 @@ ALIASES = {
     "songwriting": "ghostwriter",
     "rap-lyrics": "ghostwriter",
     "verse-writing": "ghostwriter",
+    # Literary Analyst
+    "literary-analyst": "literary-analyst",
+    "lit-critic": "literary-analyst",
+    "literary-criticism": "literary-analyst",
+    "close-reading": "literary-analyst",
+    "literary-theory": "literary-analyst",
+    "literary-history": "literary-analyst",
+    "literary": "literary-analyst",
+    "lit-analysis": "literary-analyst",
+    "prose-critique": "literary-analyst",
     # Marketing Hacker
     "marketing-hacker": "marketing-hacker",
     "marketing": "marketing-hacker",
