@@ -37,6 +37,7 @@ PRINCIPLES_FILE = (
     Path.home() / ".claude/projects/-Users-nissimagent/memory/behavioral-principles.md"
 )
 INDEX_OUTPUT = Path.home() / ".claude/.locks/learning-index.json"
+INDEX_SLIM_OUTPUT = Path.home() / ".claude/.locks/learning-index-slim.json"
 VIOLATION_SIDECAR = Path.home() / ".claude/.locks/violation_counts.json"
 
 # === STOP WORDS (excluded from keyword extraction) ===
@@ -1015,7 +1016,73 @@ def write_index(index: dict) -> Path:
             VIOLATION_SIDECAR.unlink()
         except OSError:
             pass
+    # Generate slim view for LLM consumption
+    write_slim_index(index)
     return INDEX_OUTPUT
+
+
+def write_slim_index(index: dict) -> Path:
+    """Write a slim, LLM-readable projection of the index.
+
+    Strips search metadata (keywords, text_full) that only programmatic tools need.
+    Keeps: id, title, text, type, status, source_principles, domain.
+    Target: ~15K tokens vs ~63K for the full index (76% reduction).
+
+    READ-ONLY projection. Canonical source: learnings.md → learning-index.json.
+    """
+    slim_fields = {
+        "id",
+        "title",
+        "text",
+        "type",
+        "status",
+        "source_principles",
+        "domain",
+    }
+    slim_entries = []
+    for entry in index.get("entries", []):
+        slim_entries.append({k: entry[k] for k in slim_fields if k in entry})
+
+    slim = {
+        "_note": "READ-ONLY projection. Canonical source: learnings.md. Full index: learning-index.json.",
+        "version": index.get("version"),
+        "generated": index.get("generated"),
+        "total_learnings": index.get("total_learnings"),
+        "session_count": index.get("session_count"),
+        "entries": slim_entries,
+        "quotes": index.get("quotes", []),
+        "meta_learnings": index.get("meta_learnings", []),
+    }
+
+    INDEX_SLIM_OUTPUT.parent.mkdir(parents=True, exist_ok=True)
+    tmp = INDEX_SLIM_OUTPUT.with_suffix(".tmp")
+    try:
+        # Compact entries (one line per entry) to minimize token cost.
+        # Top-level structure gets indent for human readability.
+        slim_copy = dict(slim)
+        entries_compact = [json.dumps(e, default=str) for e in slim_copy.pop("entries")]
+        quotes_compact = [json.dumps(q, default=str) for q in slim_copy.pop("quotes")]
+        meta_compact = [
+            json.dumps(m, default=str) for m in slim_copy.pop("meta_learnings")
+        ]
+        header = json.dumps(slim_copy, indent=2, default=str)
+        # Splice arrays into the JSON manually for compact-per-line format
+        body = header.rstrip("}")
+        body += ',\n  "entries": [\n    ' + ",\n    ".join(entries_compact) + "\n  ]"
+        body += ',\n  "quotes": [\n    ' + ",\n    ".join(quotes_compact) + "\n  ]"
+        body += (
+            ',\n  "meta_learnings": [\n    ' + ",\n    ".join(meta_compact) + "\n  ]"
+        )
+        body += "\n}"
+        tmp.write_text(body)
+        os.replace(str(tmp), str(INDEX_SLIM_OUTPUT))
+    except Exception:
+        try:
+            tmp.unlink(missing_ok=True)
+        except OSError:
+            pass
+        raise
+    return INDEX_SLIM_OUTPUT
 
 
 def verify_sources(index: dict) -> list[str]:

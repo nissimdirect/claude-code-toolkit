@@ -18,11 +18,12 @@ Checks:
     4. Registry skill descriptions vs actual counts
     5. File path references (do referenced paths exist?)
     6. Date staleness (overdue recurring tasks, stale files)
-    7. Cross-file data agreement (roadmap counts, company names)
-    8. SESSION_INIT completeness (all skills/docs referenced?)
-    9. Audio terminology correctness (LUFS not RMS)
-   10. Git repo status for key directories
-   11. Cron job setup for recurring tasks
+    7. KB scrape freshness (scraped_at timestamps in metadata.json)
+    8. Cross-file data agreement (roadmap counts, company names)
+    9. SESSION_INIT completeness (all skills/docs referenced?)
+   10. Audio terminology correctness (LUFS not RMS)
+   11. Git repo status for key directories
+   12. Cron job setup for recurring tasks
 
 Design: Code > Tokens. Run this script instead of burning tokens
 re-reading files to check consistency.
@@ -160,10 +161,19 @@ DEPENDENCY_GRAPH = {
     "skill_added": {
         "description": "New skill directory added to ~/.claude/skills/<name>/SKILL.md",
         "updates": [
-            ("registry.json", "Add skill entry with name, path, description, categories"),
-            ("SESSION_INIT.md", "Update skill count in 'Skills Arsenal (N Skills)' header + add row to skill table"),
+            (
+                "registry.json",
+                "Add skill entry with name, path, description, categories",
+            ),
+            (
+                "SESSION_INIT.md",
+                "Update skill count in 'Skills Arsenal (N Skills)' header + add row to skill table",
+            ),
             ("DIRECTORY.md", "Add skill to appropriate section in Skills Menu"),
-            ("Claude-Ecosystem-Status.md", "Update Skills Inventory section and total count"),
+            (
+                "Claude-Ecosystem-Status.md",
+                "Update Skills Inventory section and total count",
+            ),
             ("CRITICAL-CONTEXT.md", "Update Skills Inventory count and list"),
         ],
     },
@@ -181,12 +191,21 @@ DEPENDENCY_GRAPH = {
         "description": "Knowledge base article count changed (after scrape or cleanup)",
         "updates": [
             ("registry.json", "Update affected skill description with new count"),
-            ("SESSION_INIT.md", "Update Knowledge Bases table: per-source counts + TOTAL row"),
-            ("DIRECTORY.md", "Update Knowledge Bases section: per-source counts + total"),
+            (
+                "SESSION_INIT.md",
+                "Update Knowledge Bases table: per-source counts + TOTAL row",
+            ),
+            (
+                "DIRECTORY.md",
+                "Update Knowledge Bases section: per-source counts + total",
+            ),
             ("CRITICAL-CONTEXT.md", "Update advisor counts in Skills Inventory"),
             ("Claude-Ecosystem-Status.md", "Update advisor article counts"),
             ("self-improve/SKILL.md", "Update Training Data Audit section counts"),
-            ("Affected ask-*/SKILL.md", "Update data count in skill header/instructions"),
+            (
+                "Affected ask-*/SKILL.md",
+                "Update data count in skill header/instructions",
+            ),
         ],
     },
     "task_completed": {
@@ -202,9 +221,18 @@ DEPENDENCY_GRAPH = {
         "description": "New learning, pattern, or mistake discovered",
         "updates": [
             ("MEMORY.md", "Add to appropriate section (Patterns, Mistakes, etc.)"),
-            ("SESSION_INIT.md", "Update if it changes session protocol or workflow rules"),
-            ("CLAUDE.md", "Update if it changes build commands, code style, or workflows"),
-            ("self-improve/SKILL.md", "Update if it changes audit criteria or red flags"),
+            (
+                "SESSION_INIT.md",
+                "Update if it changes session protocol or workflow rules",
+            ),
+            (
+                "CLAUDE.md",
+                "Update if it changes build commands, code style, or workflows",
+            ),
+            (
+                "self-improve/SKILL.md",
+                "Update if it changes audit criteria or red flags",
+            ),
         ],
     },
     "prd_written": {
@@ -226,7 +254,10 @@ DEPENDENCY_GRAPH = {
     "roadmap_reprioritized": {
         "description": "Roadmap items re-ranked or re-scored",
         "updates": [
-            ("MASTER-ROADMAP-RANKING.md", "Update full ranking table and Top 10 section"),
+            (
+                "MASTER-ROADMAP-RANKING.md",
+                "Update full ranking table and Top 10 section",
+            ),
             ("ACTIVE-TASKS.md", "Reorder Next Up section based on new ranks"),
             ("SESSION_INIT.md", "Update Execution Sequence table"),
         ],
@@ -235,9 +266,15 @@ DEPENDENCY_GRAPH = {
         "description": "Work session ending (run /session-end)",
         "updates": [
             ("TASK-LOG.md", "Append session summary with totals"),
-            ("ACTIVE-TASKS.md", "Update all task statuses (in-progress, completed, blocked)"),
+            (
+                "ACTIVE-TASKS.md",
+                "Update all task statuses (in-progress, completed, blocked)",
+            ),
             ("MEMORY.md", "Capture any new learnings from this session"),
-            ("RECURRING-TASKS.md", "Update 'Last Run' dates for any maintenance performed"),
+            (
+                "RECURRING-TASKS.md",
+                "Update 'Last Run' dates for any maintenance performed",
+            ),
         ],
     },
 }
@@ -247,9 +284,19 @@ DEPENDENCY_GRAPH = {
 # Issue class
 # ──────────────────────────────────────────────
 
+
 class Issue:
-    def __init__(self, severity, file_ref, message, expected=None, actual=None,
-                 line_num=None, fixable=False, fix_hint=None):
+    def __init__(
+        self,
+        severity,
+        file_ref,
+        message,
+        expected=None,
+        actual=None,
+        line_num=None,
+        fixable=False,
+        fix_hint=None,
+    ):
         self.severity = severity  # CRITICAL, HIGH, MEDIUM, LOW
         self.file_ref = str(file_ref)
         self.message = message
@@ -289,13 +336,16 @@ class Issue:
 # Disk counting (source of truth)
 # ──────────────────────────────────────────────
 
+
 def count_articles(base_path, subdir, content_type):
     """Count items in a knowledge base directory."""
     target = base_path / subdir if subdir else base_path
     if not target.exists():
         return 0
     if content_type == "episodes":
-        return len([d for d in target.iterdir() if d.is_dir() and not d.name.startswith('.')])
+        return len(
+            [d for d in target.iterdir() if d.is_dir() and not d.name.startswith(".")]
+        )
     else:
         return len(list(target.glob("*.md")))
 
@@ -306,7 +356,9 @@ def get_actual_counts():
     for key, info in KNOWLEDGE_BASES.items():
         actual[key] = count_articles(info["path"], info["count_dir"], info["type"])
     actual["total"] = sum(actual.values())
-    actual["indie_total"] = actual.get("pieter", 0) + actual.get("justin", 0) + actual.get("daniel", 0)
+    actual["indie_total"] = (
+        actual.get("pieter", 0) + actual.get("justin", 0) + actual.get("daniel", 0)
+    )
     return actual
 
 
@@ -352,6 +404,7 @@ def load_file_by_path(path):
 # Check: Article counts
 # ──────────────────────────────────────────────
 
+
 def check_article_counts(actual_counts):
     """Check all reference files for stale article counts.
     Uses line-by-line matching: number must appear on same line as source keyword.
@@ -380,7 +433,9 @@ def check_article_counts(actual_counts):
 
     for file_label, file_path in files_to_check:
         if not file_path.exists():
-            issues.append(Issue("HIGH", file_label, f"File does not exist: {file_path}"))
+            issues.append(
+                Issue("HIGH", file_label, f"File does not exist: {file_path}")
+            )
             continue
 
         lines = file_path.read_text(encoding="utf-8").splitlines()
@@ -404,8 +459,8 @@ def check_article_counts(actual_counts):
 
                 # Extract numbers WITH their positions
                 number_matches = []
-                for m in re.finditer(r'[\d,]+', line):
-                    clean = m.group().replace(',', '')
+                for m in re.finditer(r"[\d,]+", line):
+                    clean = m.group().replace(",", "")
                     if clean.isdigit():
                         number_matches.append((int(clean), m.start(), m.end()))
 
@@ -433,44 +488,58 @@ def check_article_counts(actual_counts):
                     # --- False positive filters ---
 
                     # Context after the number (next 25 chars)
-                    context_after = line_lower[num_start:num_end+25]
+                    context_after = line_lower[num_start : num_end + 25]
 
                     # Skip numbers followed by "topic", "index" (e.g. "89 topic indexes")
-                    if any(w in context_after for w in ['topic', 'index']):
+                    if any(w in context_after for w in ["topic", "index"]):
                         continue
 
                     # Skip numbers followed by "project", "item" (roadmap counts)
-                    if any(w in context_after for w in ['project', 'item']):
+                    if any(w in context_after for w in ["project", "item"]):
                         continue
 
                     # Skip numbers followed by "skill" (skill counts, not article)
-                    if 'skill' in context_after:
+                    if "skill" in context_after:
                         continue
 
                     # Skip "combined" lines for individual sources
-                    if source in ('pieter', 'justin', 'daniel') and 'combined' in line_lower:
+                    if (
+                        source in ("pieter", "justin", "daniel")
+                        and "combined" in line_lower
+                    ):
                         continue
 
                     # Skip token economics lines (contain $, tokens, ~XXK)
-                    if any(p in line_lower for p in ['$', 'tokens', 'token cost', 'roi', 'cost per']):
+                    if any(
+                        p in line_lower
+                        for p in ["$", "tokens", "token cost", "roi", "cost per"]
+                    ):
                         continue
 
                     # Skip multi-source lines entirely: if 2+ different source keywords
                     # appear on one line, it's an aggregate/breakdown line where the checker
                     # can't reliably determine which number belongs to which source.
-                    sources_on_line = [s for s, kws in source_keywords.items()
-                                       if s != 'total' and any(kw in line_lower for kw in kws)]
+                    sources_on_line = [
+                        s
+                        for s, kws in source_keywords.items()
+                        if s != "total" and any(kw in line_lower for kw in kws)
+                    ]
                     if len(sources_on_line) >= 2:
                         continue
 
                     label = KNOWLEDGE_BASES.get(source, {}).get("label", source)
-                    issues.append(Issue(
-                        "HIGH", file_label,
-                        f"Stale count for {label}",
-                        expected=expected, actual=num,
-                        line_num=line_num, fixable=True,
-                        fix_hint=f"Update {num} -> {expected}",
-                    ))
+                    issues.append(
+                        Issue(
+                            "HIGH",
+                            file_label,
+                            f"Stale count for {label}",
+                            expected=expected,
+                            actual=num,
+                            line_num=line_num,
+                            fixable=True,
+                            fix_hint=f"Update {num} -> {expected}",
+                        )
+                    )
 
     return issues
 
@@ -479,7 +548,10 @@ def check_article_counts(actual_counts):
 # Check: Skill consistency
 # ──────────────────────────────────────────────
 
-def check_skill_consistency(disk_skills, registry_names, registry_by_name, actual_counts):
+
+def check_skill_consistency(
+    disk_skills, registry_names, registry_by_name, actual_counts
+):
     """Check skills across registry, disk, and documentation files."""
     issues = []
     registry_set = set(registry_names)
@@ -489,18 +561,24 @@ def check_skill_consistency(disk_skills, registry_names, registry_by_name, actua
     missing_from_disk = registry_set - disk_skills
 
     for skill in sorted(missing_from_registry):
-        issues.append(Issue(
-            "HIGH", "registry.json",
-            f"Skill '{skill}' on disk but NOT in registry.json",
-            fixable=True,
-            fix_hint=f"Add '{skill}' entry to registry.json",
-        ))
+        issues.append(
+            Issue(
+                "HIGH",
+                "registry.json",
+                f"Skill '{skill}' on disk but NOT in registry.json",
+                fixable=True,
+                fix_hint=f"Add '{skill}' entry to registry.json",
+            )
+        )
 
     for skill in sorted(missing_from_disk):
-        issues.append(Issue(
-            "CRITICAL", "registry.json",
-            f"Skill '{skill}' in registry but SKILL.md MISSING from disk",
-        ))
+        issues.append(
+            Issue(
+                "CRITICAL",
+                "registry.json",
+                f"Skill '{skill}' in registry but SKILL.md MISSING from disk",
+            )
+        )
 
     # 2. Registry skill descriptions: check article counts
     for skill_name, kb_key in SKILL_TO_KB.items():
@@ -508,7 +586,7 @@ def check_skill_consistency(disk_skills, registry_names, registry_by_name, actua
             continue
         desc = registry_by_name[skill_name].get("description", "")
         type_word = KNOWLEDGE_BASES[kb_key]["type"]
-        count_match = re.search(r'(\d[\d,]*)\+?\s*' + type_word, desc)
+        count_match = re.search(r"(\d[\d,]*)\+?\s*" + type_word, desc)
         if count_match:
             raw = count_match.group(1).replace(",", "")
             try:
@@ -517,100 +595,128 @@ def check_skill_consistency(disk_skills, registry_names, registry_by_name, actua
                 continue
             actual = actual_counts.get(kb_key, 0)
             if desc_count != actual and abs(desc_count - actual) > 2:
-                issues.append(Issue(
-                    "MEDIUM", "registry.json",
-                    f"Skill '{skill_name}' description count stale",
-                    expected=actual, actual=desc_count,
-                    fixable=True,
-                    fix_hint=f"Update description: {desc_count} -> {actual} {type_word}",
-                ))
+                issues.append(
+                    Issue(
+                        "MEDIUM",
+                        "registry.json",
+                        f"Skill '{skill_name}' description count stale",
+                        expected=actual,
+                        actual=desc_count,
+                        fixable=True,
+                        fix_hint=f"Update description: {desc_count} -> {actual} {type_word}",
+                    )
+                )
 
     # 3. Skill count in SESSION_INIT header
     content = load_file_by_key("SESSION_INIT")
     if content:
-        match = re.search(r'Skills Arsenal \((\d+) Skills?\)', content)
+        match = re.search(r"Skills Arsenal \((\d+) Skills?\)", content)
         if match:
             stated = int(match.group(1))
             actual_count = len(disk_skills)
             if stated != actual_count:
-                issues.append(Issue(
-                    "HIGH", "SESSION_INIT",
-                    "Skills Arsenal count stale",
-                    expected=actual_count, actual=stated,
-                    fixable=True,
-                    fix_hint=f"Update '({stated} Skills)' -> '({actual_count} Skills)'",
-                ))
+                issues.append(
+                    Issue(
+                        "HIGH",
+                        "SESSION_INIT",
+                        "Skills Arsenal count stale",
+                        expected=actual_count,
+                        actual=stated,
+                        fixable=True,
+                        fix_hint=f"Update '({stated} Skills)' -> '({actual_count} Skills)'",
+                    )
+                )
 
     # 4. Skill count in CRITICAL_CONTEXT
     content = load_file_by_key("CRITICAL_CONTEXT")
     if content:
-        match = re.search(r'(\d+)\s*[Tt]otal\)?', content)
+        match = re.search(r"(\d+)\s*[Tt]otal\)?", content)
         if match:
             stated = int(match.group(1))
             actual_count = len(disk_skills)
             if abs(stated - actual_count) > 1:
-                issues.append(Issue(
-                    "MEDIUM", "CRITICAL_CONTEXT",
-                    "Skill count stale",
-                    expected=actual_count, actual=stated,
-                    fixable=True,
-                ))
+                issues.append(
+                    Issue(
+                        "MEDIUM",
+                        "CRITICAL_CONTEXT",
+                        "Skill count stale",
+                        expected=actual_count,
+                        actual=stated,
+                        fixable=True,
+                    )
+                )
 
     # 5. Skill count in ECOSYSTEM_STATUS
     content = load_file_by_key("ECOSYSTEM_STATUS")
     if content:
-        match = re.search(r'[Tt]otal:?\s*(\d+)\s*skills?', content)
+        match = re.search(r"[Tt]otal:?\s*(\d+)\s*skills?", content)
         if match:
             stated = int(match.group(1))
             actual_count = len(disk_skills)
             if stated != actual_count:
-                issues.append(Issue(
-                    "MEDIUM", "ECOSYSTEM_STATUS",
-                    "Skill count stale",
-                    expected=actual_count, actual=stated,
-                    fixable=True,
-                ))
+                issues.append(
+                    Issue(
+                        "MEDIUM",
+                        "ECOSYSTEM_STATUS",
+                        "Skill count stale",
+                        expected=actual_count,
+                        actual=stated,
+                        fixable=True,
+                    )
+                )
 
     # 6. All disk skills should be mentioned in SESSION_INIT
     content = load_file_by_key("SESSION_INIT")
     if content:
         for skill_name in sorted(disk_skills):
             if skill_name not in content:
-                issues.append(Issue(
-                    "MEDIUM", "SESSION_INIT",
-                    f"Skill '/{skill_name}' on disk but not in SESSION_INIT.md",
-                ))
+                issues.append(
+                    Issue(
+                        "MEDIUM",
+                        "SESSION_INIT",
+                        f"Skill '/{skill_name}' on disk but not in SESSION_INIT.md",
+                    )
+                )
 
     # 7. All disk skills should be mentioned in DIRECTORY
     content = load_file_by_key("DIRECTORY")
     if content:
         for skill_name in sorted(disk_skills):
             if skill_name not in content:
-                issues.append(Issue(
-                    "MEDIUM", "DIRECTORY",
-                    f"Skill '/{skill_name}' on disk but not in DIRECTORY.md",
-                ))
+                issues.append(
+                    Issue(
+                        "MEDIUM",
+                        "DIRECTORY",
+                        f"Skill '/{skill_name}' on disk but not in DIRECTORY.md",
+                    )
+                )
 
     # 8. Skills referenced in docs that don't exist on disk
     for doc_key in ["SESSION_INIT", "DIRECTORY"]:
         content = load_file_by_key(doc_key)
         if not content:
             continue
-        mentioned = set(re.findall(r'`/([a-z][a-z0-9-]+)`', content))
+        mentioned = set(re.findall(r"`/([a-z][a-z0-9-]+)`", content))
         for skill_name in sorted(mentioned):
             if skill_name not in disk_skills and skill_name not in registry_set:
                 # Check common aliases
                 if skill_name == "ask-trinity" and "ask-indie-trinity" in disk_skills:
-                    issues.append(Issue(
-                        "MEDIUM", doc_key,
-                        f"References '/{skill_name}' but skill is actually named '/ask-indie-trinity'",
-                        fixable=True,
-                    ))
+                    issues.append(
+                        Issue(
+                            "MEDIUM",
+                            doc_key,
+                            f"References '/{skill_name}' but skill is actually named '/ask-indie-trinity'",
+                            fixable=True,
+                        )
+                    )
                 else:
-                    issues.append(Issue(
-                        "LOW", doc_key,
-                        f"References '/{skill_name}' which doesn't exist",
-                    ))
+                    issues.append(
+                        Issue(
+                            "LOW",
+                            doc_key,
+                            f"References '/{skill_name}' which doesn't exist",
+                        )
+                    )
 
     return issues
 
@@ -619,21 +725,26 @@ def check_skill_consistency(disk_skills, registry_names, registry_by_name, actua
 # Check: File paths exist
 # ──────────────────────────────────────────────
 
+
 def check_file_paths():
     """Verify all expected file paths exist."""
     issues = []
     for path in EXPECTED_PATHS:
         if not path.exists():
-            issues.append(Issue(
-                "MEDIUM", "DISK",
-                f"Expected path does not exist: {path}",
-            ))
+            issues.append(
+                Issue(
+                    "MEDIUM",
+                    "DISK",
+                    f"Expected path does not exist: {path}",
+                )
+            )
     return issues
 
 
 # ──────────────────────────────────────────────
 # Check: Date staleness
 # ──────────────────────────────────────────────
+
 
 def check_staleness():
     """Check for overdue recurring tasks and stale files."""
@@ -643,15 +754,18 @@ def check_staleness():
     # Check RECURRING-TASKS.md for overdue items
     content = load_file_by_key("RECURRING_TASKS")
     if content:
-        for match in re.finditer(r'\*\*Next Run:\*\*\s*(\d{4}-\d{2}-\d{2})', content):
+        for match in re.finditer(r"\*\*Next Run:\*\*\s*(\d{4}-\d{2}-\d{2})", content):
             try:
-                next_run = datetime.strptime(match.group(1), '%Y-%m-%d')
+                next_run = datetime.strptime(match.group(1), "%Y-%m-%d")
                 if next_run < today:
                     days_overdue = (today - next_run).days
-                    issues.append(Issue(
-                        "HIGH", "RECURRING_TASKS",
-                        f"Overdue recurring task (due {match.group(1)}, {days_overdue} days overdue)",
-                    ))
+                    issues.append(
+                        Issue(
+                            "HIGH",
+                            "RECURRING_TASKS",
+                            f"Overdue recurring task (due {match.group(1)}, {days_overdue} days overdue)",
+                        )
+                    )
             except ValueError:
                 pass
 
@@ -664,10 +778,73 @@ def check_staleness():
         mtime = datetime.fromtimestamp(path.stat().st_mtime)
         age = today - mtime
         if age > stale_threshold:
-            issues.append(Issue(
-                "LOW", key,
-                f"File not modified in {age.days} days (may be stale)",
-            ))
+            issues.append(
+                Issue(
+                    "LOW",
+                    key,
+                    f"File not modified in {age.days} days (may be stale)",
+                )
+            )
+
+    return issues
+
+
+# ──────────────────────────────────────────────
+# Check: KB scrape freshness
+# ──────────────────────────────────────────────
+
+
+def check_kb_scrape_freshness():
+    """Check scraped_at timestamps in all KB metadata.json files.
+
+    Walks ~/Development/ for metadata/metadata.json files, extracts
+    the scraped_at field, and flags stale KBs.
+    """
+    issues = []
+    today = datetime.now()
+    stale_medium = timedelta(days=30)
+    stale_high = timedelta(days=60)
+
+    # Find all metadata.json files under ~/Development/*/metadata/
+    for meta_path in sorted(DEV_DIR.glob("**/metadata/metadata.json")):
+        try:
+            with open(meta_path) as f:
+                meta = json.load(f)
+        except (json.JSONDecodeError, OSError):
+            continue
+
+        scraped_at_str = meta.get("scraped_at")
+        if not scraped_at_str:
+            continue
+
+        try:
+            scraped_at = datetime.fromisoformat(scraped_at_str)
+        except (ValueError, TypeError):
+            continue
+
+        age = today - scraped_at
+        advisor = meta.get("advisor", meta_path.parent.parent.name)
+        count = meta.get("total_articles", "?")
+        rel_path = str(meta_path.relative_to(DEV_DIR))
+
+        if age > stale_high:
+            issues.append(
+                Issue(
+                    "HIGH",
+                    rel_path,
+                    f"KB '{advisor}' ({count} articles) last scraped {age.days} days ago ({scraped_at_str[:10]})",
+                    fix_hint="Re-scrape with /forge or /research-scraper",
+                )
+            )
+        elif age > stale_medium:
+            issues.append(
+                Issue(
+                    "MEDIUM",
+                    rel_path,
+                    f"KB '{advisor}' ({count} articles) last scraped {age.days} days ago ({scraped_at_str[:10]})",
+                    fix_hint="Consider re-scraping with /forge or /research-scraper",
+                )
+            )
 
     return issues
 
@@ -675,6 +852,7 @@ def check_staleness():
 # ──────────────────────────────────────────────
 # Check: Cross-file agreement
 # ──────────────────────────────────────────────
+
 
 def check_cross_file_agreement():
     """Check that facts agree across multiple files."""
@@ -687,8 +865,8 @@ def check_cross_file_agreement():
         if not content:
             continue
         for match in re.finditer(
-            r'(?:[Aa]ll\s+)?(\d{2,3})\s*(?:projects?|items?)\s*(?:scored|ranked|identified|analyzed|roadmap)?',
-            content
+            r"(?:[Aa]ll\s+)?(\d{2,3})\s*(?:projects?|items?)\s*(?:scored|ranked|identified|analyzed|roadmap)?",
+            content,
         ):
             count = int(match.group(1))
             if 60 <= count <= 100:
@@ -696,32 +874,44 @@ def check_cross_file_agreement():
                 break
 
     if len(set(roadmap_counts.values())) > 1:
-        most_common = max(set(roadmap_counts.values()), key=list(roadmap_counts.values()).count)
+        most_common = max(
+            set(roadmap_counts.values()), key=list(roadmap_counts.values()).count
+        )
         for key, count in roadmap_counts.items():
             if count != most_common:
-                issues.append(Issue(
-                    "MEDIUM", key,
-                    "Roadmap item count disagrees with other files",
-                    expected=most_common, actual=count,
-                    fixable=True,
-                ))
+                issues.append(
+                    Issue(
+                        "MEDIUM",
+                        key,
+                        "Roadmap item count disagrees with other files",
+                        expected=most_common,
+                        actual=count,
+                        fixable=True,
+                    )
+                )
 
     # Sessions completed in ECOSYSTEM_STATUS
     content = load_file_by_key("ECOSYSTEM_STATUS")
     if content:
-        match = re.search(r'Sessions Completed:\s*(\d+)', content)
+        match = re.search(r"Sessions Completed:\s*(\d+)", content)
         if match:
             stated = int(match.group(1))
             task_log = load_file_by_key("TASK_LOG")
             if task_log:
-                session_count = len(re.findall(r'## \d{4}-\d{2}-\d{2} \(Session \d+\)', task_log))
+                session_count = len(
+                    re.findall(r"## \d{4}-\d{2}-\d{2} \(Session \d+\)", task_log)
+                )
                 if session_count > stated:
-                    issues.append(Issue(
-                        "LOW", "ECOSYSTEM_STATUS",
-                        "Sessions Completed is stale",
-                        expected=session_count, actual=stated,
-                        fixable=True,
-                    ))
+                    issues.append(
+                        Issue(
+                            "LOW",
+                            "ECOSYSTEM_STATUS",
+                            "Sessions Completed is stale",
+                            expected=session_count,
+                            actual=stated,
+                            fixable=True,
+                        )
+                    )
 
     return issues
 
@@ -729,6 +919,7 @@ def check_cross_file_agreement():
 # ──────────────────────────────────────────────
 # Check: Audio terminology
 # ──────────────────────────────────────────────
+
 
 def check_terminology():
     """Check for incorrect audio terminology."""
@@ -739,11 +930,14 @@ def check_terminology():
         content = load_file_by_key(key)
         if not content:
             continue
-        if 'volume matching' in content.lower():
-            issues.append(Issue(
-                "MEDIUM", key,
-                "Contains 'volume matching' -- should use 'loudness matching'",
-            ))
+        if "volume matching" in content.lower():
+            issues.append(
+                Issue(
+                    "MEDIUM",
+                    key,
+                    "Contains 'volume matching' -- should use 'loudness matching'",
+                )
+            )
 
     return issues
 
@@ -751,6 +945,7 @@ def check_terminology():
 # ──────────────────────────────────────────────
 # Check: SESSION_INIT completeness
 # ──────────────────────────────────────────────
+
 
 def check_session_init_completeness():
     """Verify SESSION_INIT has required sections and references all key files."""
@@ -771,10 +966,13 @@ def check_session_init_completeness():
 
     for section in required_sections:
         if section not in content:
-            issues.append(Issue(
-                "HIGH", "SESSION_INIT",
-                f"Missing required section: '{section}'",
-            ))
+            issues.append(
+                Issue(
+                    "HIGH",
+                    "SESSION_INIT",
+                    f"Missing required section: '{section}'",
+                )
+            )
 
     # Check all Obsidian .md files are referenced
     if OBSIDIAN.exists():
@@ -785,10 +983,13 @@ def check_session_init_completeness():
             if name == "CONSISTENCY-REPORT":
                 continue
             if name not in content and name.replace("-", " ") not in content:
-                issues.append(Issue(
-                    "LOW", "SESSION_INIT",
-                    f"Obsidian doc '{name}.md' not referenced",
-                ))
+                issues.append(
+                    Issue(
+                        "LOW",
+                        "SESSION_INIT",
+                        f"Obsidian doc '{name}.md' not referenced",
+                    )
+                )
 
     return issues
 
@@ -797,23 +998,28 @@ def check_session_init_completeness():
 # Check: Git repos
 # ──────────────────────────────────────────────
 
+
 def check_git_repos():
     """Check that key directories are git repos."""
     issues = []
     should_be_repos = [TOOLS_DIR]
     for repo_path in should_be_repos:
         if repo_path.exists() and not (repo_path / ".git").exists():
-            issues.append(Issue(
-                "LOW", "DISK",
-                f"Should be a git repo: {repo_path}",
-                fix_hint=f"cd {repo_path} && git init",
-            ))
+            issues.append(
+                Issue(
+                    "LOW",
+                    "DISK",
+                    f"Should be a git repo: {repo_path}",
+                    fix_hint=f"cd {repo_path} && git init",
+                )
+            )
     return issues
 
 
 # ──────────────────────────────────────────────
 # Check: Cron jobs
 # ──────────────────────────────────────────────
+
 
 def check_cron():
     """Check if expected scheduled jobs exist (cron or launchd)."""
@@ -829,8 +1035,13 @@ def check_cron():
 
     combined = cron_result + launchd_result
 
-    if "track_resources" not in cron_result and "resource-tracker" not in launchd_result:
-        issues.append(Issue("LOW", "SYSTEM", "Daily resource tracker cron/launchd not set up"))
+    if (
+        "track_resources" not in cron_result
+        and "resource-tracker" not in launchd_result
+    ):
+        issues.append(
+            Issue("LOW", "SYSTEM", "Daily resource tracker cron/launchd not set up")
+        )
     if "scrape-all" not in combined:
         issues.append(Issue("LOW", "SYSTEM", "Monthly scrape cron/launchd not set up"))
 
@@ -840,6 +1051,7 @@ def check_cron():
 # ──────────────────────────────────────────────
 # Report output
 # ──────────────────────────────────────────────
+
 
 def print_ground_truth(actual_counts, disk_skills, registry_names):
     """Print filesystem ground truth."""
@@ -917,7 +1129,7 @@ def print_dependency_graph():
 
 def generate_markdown_report(all_issues, actual_counts, disk_skills, registry_names):
     """Generate markdown report for Obsidian vault."""
-    now = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     sev = defaultdict(int)
     for i in all_issues:
         sev[i.severity] += 1
@@ -926,7 +1138,7 @@ def generate_markdown_report(all_issues, actual_counts, disk_skills, registry_na
     report = f"""# System Consistency Report
 
 **Generated:** {now}
-**Issues:** {len(all_issues)} ({sev['CRITICAL']} critical, {sev['HIGH']} high, {sev['MEDIUM']} medium, {sev['LOW']} low)
+**Issues:** {len(all_issues)} ({sev["CRITICAL"]} critical, {sev["HIGH"]} high, {sev["MEDIUM"]} medium, {sev["LOW"]} low)
 **Auto-Fixable:** {fixable}
 
 ---
@@ -971,8 +1183,8 @@ def generate_markdown_report(all_issues, actual_counts, disk_skills, registry_na
             report += f"- **{target}**: {action}\n"
         report += "\n"
 
-    report += f"\n---\n\n**Generated by:** `consistency_checker.py` v2.0  \n"
-    report += f"**Related:** [[ACTIVE-TASKS]] | [[DIRECTORY]] | [[RECURRING-TASKS]]\n"
+    report += "\n---\n\n**Generated by:** `consistency_checker.py` v2.0  \n"
+    report += "**Related:** [[ACTIVE-TASKS]] | [[DIRECTORY]] | [[RECURRING-TASKS]]\n"
     return report
 
 
@@ -1015,14 +1227,21 @@ def output_json(all_issues, actual_counts, disk_skills, registry_names):
 # Main
 # ──────────────────────────────────────────────
 
+
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="PopChaos Labs Ecosystem Consistency Checker v2.0")
+    parser = argparse.ArgumentParser(
+        description="PopChaos Labs Ecosystem Consistency Checker v2.0"
+    )
     parser.add_argument("--json", action="store_true", help="Output JSON")
     parser.add_argument("--summary", action="store_true", help="One-line summary")
-    parser.add_argument("--deps", action="store_true", help="Show dependency graph only")
-    parser.add_argument("--save", action="store_true", help="Save report to Obsidian vault")
+    parser.add_argument(
+        "--deps", action="store_true", help="Show dependency graph only"
+    )
+    parser.add_argument(
+        "--save", action="store_true", help="Save report to Obsidian vault"
+    )
 
     args = parser.parse_args()
 
@@ -1036,42 +1255,48 @@ def main():
         print("PopChaos Labs Ecosystem Consistency Checker v2.0")
         print("=" * 55)
         print()
-        print("[1/9] Counting actual articles on disk...")
+        print("[1/10] Counting actual articles on disk...")
 
     actual_counts = get_actual_counts()
     disk_skills = get_disk_skills()
     registry_names, registry_by_name = get_registry_data()
 
     if not quiet:
-        print("[2/9] Checking article counts across files...")
+        print("[2/10] Checking article counts across files...")
     all_issues = check_article_counts(actual_counts)
 
     if not quiet:
-        print("[3/9] Checking skill consistency...")
-    all_issues += check_skill_consistency(disk_skills, registry_names, registry_by_name, actual_counts)
+        print("[3/10] Checking skill consistency...")
+    all_issues += check_skill_consistency(
+        disk_skills, registry_names, registry_by_name, actual_counts
+    )
 
     if not quiet:
-        print("[4/9] Checking file paths...")
+        print("[4/10] Checking file paths...")
     all_issues += check_file_paths()
 
     if not quiet:
-        print("[5/9] Checking date staleness...")
+        print("[5/10] Checking date staleness...")
     all_issues += check_staleness()
 
     if not quiet:
-        print("[6/9] Checking cross-file agreement...")
+        print("[6/10] Checking KB scrape freshness...")
+    all_issues += check_kb_scrape_freshness()
+
+    if not quiet:
+        print("[7/10] Checking cross-file agreement...")
     all_issues += check_cross_file_agreement()
 
     if not quiet:
-        print("[7/9] Checking audio terminology...")
+        print("[8/10] Checking audio terminology...")
     all_issues += check_terminology()
 
     if not quiet:
-        print("[8/9] Checking SESSION_INIT completeness...")
+        print("[9/10] Checking SESSION_INIT completeness...")
     all_issues += check_session_init_completeness()
 
     if not quiet:
-        print("[9/9] Checking git repos and cron...")
+        print("[10/10] Checking git repos and cron...")
     all_issues += check_git_repos()
     all_issues += check_cron()
 
@@ -1087,7 +1312,9 @@ def main():
         high = sum(1 for i in all_issues if i.severity == "HIGH")
         total = len(all_issues)
         fixable = sum(1 for i in all_issues if i.fixable)
-        print(f"Consistency: {total} issues ({crit} critical, {high} high) | {fixable} fixable")
+        print(
+            f"Consistency: {total} issues ({crit} critical, {high} high) | {fixable} fixable"
+        )
     else:
         print()
         print_ground_truth(actual_counts, disk_skills, registry_names)
@@ -1095,9 +1322,11 @@ def main():
         print_dependency_graph()
 
     if args.save:
-        report = generate_markdown_report(all_issues, actual_counts, disk_skills, registry_names)
+        report = generate_markdown_report(
+            all_issues, actual_counts, disk_skills, registry_names
+        )
         report_path = OBSIDIAN / "CONSISTENCY-REPORT.md"
-        with open(report_path, 'w') as f:
+        with open(report_path, "w") as f:
             f.write(report)
         if not quiet:
             print(f"Report saved to: {report_path}")
