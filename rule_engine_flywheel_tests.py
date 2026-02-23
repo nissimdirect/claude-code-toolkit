@@ -118,7 +118,7 @@ from rule_engine import (
 RULES_PATH = rule_engine.RULES_PATH
 STATE_PATH = rule_engine.STATE_PATH
 HOOK_PATH = Path.home() / ".claude/hooks/learning_hook.py"
-LEARNINGS_PATH = Path.home() / ".claude/projects/-Users-nissimagent/memory/learnings.md"
+LEARNINGS_INDEX_PATH = Path.home() / ".claude/.locks/learning-index.json"
 PRINCIPLES_PATH = (
     Path.home() / ".claude/projects/-Users-nissimagent/memory/behavioral-principles.md"
 )

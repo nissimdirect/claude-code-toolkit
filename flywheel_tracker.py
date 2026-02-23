@@ -41,42 +41,26 @@ def _load_previous() -> dict:
 
 
 def _count_learnings() -> int:
-    """Count total learnings in learnings.md (numbered items like '1. **...**')."""
-    learnings_file = (
-        Path.home()
-        / ".claude"
-        / "projects"
-        / "-Users-nissimagent"
-        / "memory"
-        / "learnings.md"
-    )
-    if not learnings_file.exists():
+    """Count total learnings from learning-index.json (v2 index)."""
+    index_file = STATE_DIR / "learning-index.json"
+    if not index_file.exists():
         return 0
     try:
-        import re
-
-        content = learnings_file.read_text()
-        return len(re.findall(r"^\d+\. \*\*", content, re.MULTILINE))
-    except OSError:
+        index = json.loads(index_file.read_text())
+        return index.get("total_learnings", 0)
+    except (OSError, json.JSONDecodeError):
         return 0
 
 
 def _count_graduated() -> int:
-    """Count graduated learnings (those marked as graduated)."""
-    learnings_file = (
-        Path.home()
-        / ".claude"
-        / "projects"
-        / "-Users-nissimagent"
-        / "memory"
-        / "learnings.md"
-    )
-    if not learnings_file.exists():
+    """Count graduated learnings from learning-index.json (v2 index)."""
+    index_file = STATE_DIR / "learning-index.json"
+    if not index_file.exists():
         return 0
     try:
-        content = learnings_file.read_text().lower()
-        return content.count("graduated")
-    except OSError:
+        index = json.loads(index_file.read_text())
+        return index.get("graduated_count", 0)
+    except (OSError, json.JSONDecodeError):
         return 0
 
 
@@ -560,6 +544,30 @@ def verify(loops: dict) -> list[str]:
                 f"WARNING Loop {loop_num}: {label} = {metric}, "
                 f"expected >= {minimum} (possible measurement error)"
             )
+
+    # Consumer drift detection — migrated consumers must NOT read raw learnings.md
+    import re as _re
+
+    MIGRATED_CONSUMERS = [
+        Path.home() / ".claude/skills/today/SKILL.md",
+        Path.home() / ".claude/skills/self-improve/SKILL.md",
+        Path.home() / ".claude/skills/my-clone/SKILL.md",
+        Path.home() / ".claude/agents/learnings-researcher.md",
+    ]
+    RAW_READ_PATTERNS = [
+        r"learnings\.md.*first \d+ lines",
+        r"first \d+ lines.*learnings\.md",
+        r"Read.*learnings\.md(?!.*write)",
+        r"grep.*learnings\.md",
+    ]
+    for path in MIGRATED_CONSUMERS:
+        if path.exists():
+            content = path.read_text()
+            for pat in RAW_READ_PATTERNS:
+                if _re.search(pat, content, _re.IGNORECASE):
+                    warnings.append(
+                        f"WARNING Consumer drift: {path.name} has raw learnings.md read: {pat}"
+                    )
 
     return warnings
 

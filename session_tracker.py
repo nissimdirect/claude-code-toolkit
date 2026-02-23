@@ -37,20 +37,20 @@ from datetime import datetime
 
 HOME = Path.home()
 USERNAME = HOME.name
-CLAUDE_DIR = HOME / '.claude'
+CLAUDE_DIR = HOME / ".claude"
 
 # Claude Code stores project memory under a path-encoded directory
 # e.g., ~/.claude/projects/-Users-nissimagent/memory/
 # We derive this from the actual home directory.
 PROJECT_KEY = f"-{str(HOME).replace('/', '-').lstrip('-')}"
-MEMORY_DIR = CLAUDE_DIR / 'projects' / PROJECT_KEY / 'memory'
+MEMORY_DIR = CLAUDE_DIR / "projects" / PROJECT_KEY / "memory"
 
-SHARED_BUFFER = CLAUDE_DIR / 'shared-buffer.md'
-LOG_PATH = MEMORY_DIR / 'user-input-log.md'
-LEARNINGS_PATH = MEMORY_DIR / 'learnings.md'
-LOCK_DIR = CLAUDE_DIR / '.locks'
-ERROR_LOG = LOCK_DIR / '.session-tracker-errors.log'
-RESOURCE_LOG = LOCK_DIR / '.resource-tracker.json'
+SHARED_BUFFER = CLAUDE_DIR / "shared-buffer.md"
+LOG_PATH = MEMORY_DIR / "user-input-log.md"
+LEARNINGS_PATH = MEMORY_DIR / "learnings.md"
+LOCK_DIR = CLAUDE_DIR / ".locks"
+ERROR_LOG = LOCK_DIR / ".session-tracker-errors.log"
+RESOURCE_LOG = LOCK_DIR / ".resource-tracker.json"
 
 # Config
 DEBOUNCE_SECONDS = 300  # 5 minutes between full checks
@@ -61,17 +61,16 @@ MAX_ERROR_LOG_LINES = 100
 
 # --- Atomic File Operations ---
 
+
 def atomic_write(filepath, content, permissions=0o600):
     """Write to temp file, then atomic rename. Crash-safe."""
     filepath = Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(
-        dir=str(filepath.parent),
-        prefix=f'.{filepath.name}.',
-        suffix='.tmp'
+        dir=str(filepath.parent), prefix=f".{filepath.name}.", suffix=".tmp"
     )
     try:
-        with os.fdopen(fd, 'w') as f:
+        with os.fdopen(fd, "w") as f:
             f.write(content)
             f.flush()
             os.fsync(f.fileno())
@@ -92,17 +91,18 @@ def log_error(message):
         LOCK_DIR.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().isoformat()
         entry = f"[{timestamp}] {message}\n"
-        with open(str(ERROR_LOG), 'a') as f:
+        with open(str(ERROR_LOG), "a") as f:
             f.write(entry)
         # Trim if too long
         if ERROR_LOG.exists() and ERROR_LOG.stat().st_size > 50000:
             lines = ERROR_LOG.read_text().splitlines()
-            atomic_write(ERROR_LOG, '\n'.join(lines[-MAX_ERROR_LOG_LINES:]) + '\n')
+            atomic_write(ERROR_LOG, "\n".join(lines[-MAX_ERROR_LOG_LINES:]) + "\n")
     except Exception:
         pass  # Error logging itself failed — nothing we can do
 
 
 # --- Session Identity ---
+
 
 def get_session_id():
     """Generate a stable session ID from parent PID."""
@@ -121,16 +121,17 @@ def is_pid_alive(pid):
 
 # --- Debounce (Per-Session) ---
 
+
 def should_run(session_id):
     """Check if enough time has passed since THIS session's last full run."""
-    tracker_file = LOCK_DIR / f'.debounce-{session_id}'
+    tracker_file = LOCK_DIR / f".debounce-{session_id}"
     if not tracker_file.exists():
         return True
     try:
         data = json.loads(tracker_file.read_text())
         if not isinstance(data, dict):
             return True
-        last_run = data.get('last_run', 0)
+        last_run = data.get("last_run", 0)
         return (time.time() - last_run) > DEBOUNCE_SECONDS
     except Exception:
         return True
@@ -138,16 +139,17 @@ def should_run(session_id):
 
 def update_debounce(session_id):
     """Record when this session last did a full check."""
-    tracker_file = LOCK_DIR / f'.debounce-{session_id}'
+    tracker_file = LOCK_DIR / f".debounce-{session_id}"
     data = {
-        'last_run': time.time(),
-        'session_id': session_id,
-        'timestamp': datetime.now().isoformat(),
+        "last_run": time.time(),
+        "session_id": session_id,
+        "timestamp": datetime.now().isoformat(),
     }
     atomic_write(tracker_file, json.dumps(data))
 
 
 # --- Multi-Session Lock Files ---
+
 
 def claim_session(session_id):
     """Register this session. Preserves existing editing list."""
@@ -160,16 +162,16 @@ def claim_session(session_id):
         try:
             existing = json.loads(lock_file.read_text())
             if isinstance(existing, dict):
-                existing_editing = existing.get('editing', [])
+                existing_editing = existing.get("editing", [])
         except Exception:
             pass
 
     data = {
-        'session_id': session_id,
-        'pid': os.getppid(),
-        'started': datetime.now().isoformat(),
-        'last_heartbeat': time.time(),
-        'editing': existing_editing,
+        "session_id": session_id,
+        "pid": os.getppid(),
+        "started": datetime.now().isoformat(),
+        "last_heartbeat": time.time(),
+        "editing": existing_editing,
     }
     atomic_write(lock_file, json.dumps(data))
 
@@ -181,7 +183,7 @@ def update_heartbeat(session_id):
         try:
             data = json.loads(lock_file.read_text())
             if isinstance(data, dict):
-                data['last_heartbeat'] = time.time()
+                data["last_heartbeat"] = time.time()
                 atomic_write(lock_file, json.dumps(data))
                 return
         except Exception:
@@ -195,14 +197,14 @@ def cleanup_dead_sessions():
     if not LOCK_DIR.exists():
         return
     now = time.time()
-    for lock_file in LOCK_DIR.glob('*.lock'):
+    for lock_file in LOCK_DIR.glob("*.lock"):
         try:
             data = json.loads(lock_file.read_text())
             if not isinstance(data, dict):
                 lock_file.unlink()
                 continue
-            pid = data.get('pid', 0)
-            heartbeat = data.get('last_heartbeat', 0)
+            pid = data.get("pid", 0)
+            heartbeat = data.get("last_heartbeat", 0)
             # Only delete if BOTH heartbeat is stale AND process is dead
             if (now - heartbeat) > SESSION_TIMEOUT and not is_pid_alive(pid):
                 lock_file.unlink()
@@ -221,7 +223,7 @@ def get_active_sessions():
     if not LOCK_DIR.exists():
         return []
     sessions = []
-    for lock_file in LOCK_DIR.glob('*.lock'):
+    for lock_file in LOCK_DIR.glob("*.lock"):
         try:
             data = json.loads(lock_file.read_text())
             if isinstance(data, dict):
@@ -234,16 +236,16 @@ def get_active_sessions():
 def check_conflicts(session_id):
     """Check if other sessions are active and report."""
     sessions = get_active_sessions()
-    other_sessions = [s for s in sessions if s.get('session_id') != session_id]
+    other_sessions = [s for s in sessions if s.get("session_id") != session_id]
     if other_sessions:
-        other_ids = [s.get('session_id', '?') for s in other_sessions]
+        other_ids = [s.get("session_id", "?") for s in other_sessions]
         append_to_shared_buffer(
-            session_id,
-            f"Active sessions: {len(sessions)} (others: {other_ids})"
+            session_id, f"Active sessions: {len(sessions)} (others: {other_ids})"
         )
 
 
 # --- Shared Buffer (Append-Only for Safety) ---
+
 
 def ensure_shared_buffer():
     """Create shared buffer if it doesn't exist. Uses atomic write."""
@@ -263,14 +265,14 @@ def ensure_shared_buffer():
 def append_to_shared_buffer(session_id, message):
     """Post a message to the shared buffer with file locking."""
     ensure_shared_buffer()
-    timestamp = datetime.now().strftime('%H:%M:%S')
+    timestamp = datetime.now().strftime("%H:%M:%S")
     entry = f"**[{timestamp}] {session_id}:** {message}\n"
 
-    lock_path = str(SHARED_BUFFER) + '.lock'
+    lock_path = str(SHARED_BUFFER) + ".lock"
 
     try:
         # Acquire exclusive lock
-        lock_fd = open(lock_path, 'w')
+        lock_fd = open(lock_path, "w")
         fcntl.flock(lock_fd.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
     except (IOError, OSError):
         # Can't acquire lock — another session is writing. Skip this update.
@@ -284,39 +286,39 @@ def append_to_shared_buffer(session_id, message):
         content = SHARED_BUFFER.read_text()
 
         # Use robust delimiter
-        marker = '<!-- BUFFER_START -->'
+        marker = "<!-- BUFFER_START -->"
         if marker in content:
             parts = content.split(marker, 1)
-            header = parts[0] + marker + '\n'
+            header = parts[0] + marker + "\n"
             body = parts[1]
         else:
             # Fallback for old format with ---
-            parts = content.split('---\n', 1)
+            parts = content.split("---\n", 1)
             if len(parts) == 2:
-                header = parts[0] + '---\n'
+                header = parts[0] + "---\n"
                 body = parts[1]
             else:
                 header = content
-                body = ''
+                body = ""
 
         # Add new entry at top of body
-        body = '\n' + entry + body
+        body = "\n" + entry + body
 
         # Prune to 50 entries
-        lines = body.strip().split('\n')
-        entry_lines = [l for l in lines if l.startswith('**[')]
+        lines = body.strip().split("\n")
+        entry_lines = [l for l in lines if l.startswith("**[")]
         if len(entry_lines) > 50:
             body_lines = []
             count = 0
             for line in lines:
-                if line.startswith('**['):
+                if line.startswith("**["):
                     count += 1
                     if count > 50:
                         break
                 body_lines.append(line)
-            body = '\n'.join(body_lines)
+            body = "\n".join(body_lines)
 
-        atomic_write(SHARED_BUFFER, header + body + '\n')
+        atomic_write(SHARED_BUFFER, header + body + "\n")
     finally:
         # Release lock
         try:
@@ -329,16 +331,16 @@ def append_to_shared_buffer(session_id, message):
 
 # --- Log Rotation Check ---
 
+
 def check_log_rotation():
     """Check if input log needs rotation."""
     if not LOG_PATH.exists():
         return False
     try:
-        lines = len(LOG_PATH.read_text(encoding='utf-8').splitlines())
+        lines = len(LOG_PATH.read_text(encoding="utf-8").splitlines())
         if lines > MAX_LOG_LINES:
             append_to_shared_buffer(
-                get_session_id(),
-                f"INPUT LOG AT {lines} LINES — needs rotation"
+                get_session_id(), f"INPUT LOG AT {lines} LINES — needs rotation"
             )
             return True
     except Exception:
@@ -348,24 +350,27 @@ def check_log_rotation():
 
 # --- Profiling Flag ---
 
+
 def check_profiling_needed():
     """Check if profiling analysis is overdue. Flag, don't process."""
-    if not LEARNINGS_PATH.exists():
+    index_file = Path.home() / ".claude/.locks/learning-index.json"
+    if not index_file.exists():
         return
     try:
-        content = LEARNINGS_PATH.read_text(encoding='utf-8')
-        correction_lines = [l for l in content.splitlines()
-                           if 'Corrections this session:' in l]
-        if len(correction_lines) >= 5:
+        import json
+
+        index = json.loads(index_file.read_text(encoding="utf-8"))
+        correction_count = len(index.get("correction_history", []))
+        if correction_count >= 5:
             append_to_shared_buffer(
-                get_session_id(),
-                "PROFILING DUE — 5+ sessions since last /self-improve"
+                get_session_id(), "PROFILING DUE — 5+ sessions since last /self-improve"
             )
     except Exception:
         pass
 
 
 # --- Resource Tracking ---
+
 
 def track_response():
     """Increment response counter and track session duration.
@@ -385,35 +390,39 @@ def track_response():
         now = time.time()
 
         # Per-session tracking
-        sessions = data.get('sessions', {})
-        session = sessions.get(session_id, {
-            'first_response': now,
-            'response_count': 0,
-            'last_response': now,
-        })
-        session['response_count'] = session.get('response_count', 0) + 1
-        session['last_response'] = now
+        sessions = data.get("sessions", {})
+        session = sessions.get(
+            session_id,
+            {
+                "first_response": now,
+                "response_count": 0,
+                "last_response": now,
+            },
+        )
+        session["response_count"] = session.get("response_count", 0) + 1
+        session["last_response"] = now
 
         # Calculate session duration in minutes
-        duration_min = (now - session.get('first_response', now)) / 60
-        response_count = session['response_count']
+        duration_min = (now - session.get("first_response", now)) / 60
+        response_count = session["response_count"]
 
         sessions[session_id] = session
-        data['sessions'] = sessions
+        data["sessions"] = sessions
 
         # Daily aggregate
-        today = datetime.now().strftime('%Y-%m-%d')
-        daily = data.get('daily', {})
-        today_data = daily.get(today, {'responses': 0, 'sessions': []})
-        today_data['responses'] = today_data.get('responses', 0) + 1
-        if session_id not in today_data.get('sessions', []):
-            today_data.setdefault('sessions', []).append(session_id)
+        today = datetime.now().strftime("%Y-%m-%d")
+        daily = data.get("daily", {})
+        today_data = daily.get(today, {"responses": 0, "sessions": []})
+        today_data["responses"] = today_data.get("responses", 0) + 1
+        if session_id not in today_data.get("sessions", []):
+            today_data.setdefault("sessions", []).append(session_id)
         daily[today] = today_data
-        data['daily'] = daily
+        data["daily"] = daily
 
         # Prune daily data older than 7 days
-        cutoff = (datetime.now().replace(hour=0, minute=0, second=0)
-                  ).__format__('%Y-%m-%d')
+        cutoff = (datetime.now().replace(hour=0, minute=0, second=0)).__format__(
+            "%Y-%m-%d"
+        )
         for key in list(daily.keys()):
             if key < cutoff and len(daily) > 7:
                 del daily[key]
@@ -422,7 +431,7 @@ def track_response():
         week_ago = now - (7 * 86400)
         for sid in list(sessions.keys()):
             s = sessions[sid]
-            if isinstance(s, dict) and s.get('last_response', 0) < week_ago:
+            if isinstance(s, dict) and s.get("last_response", 0) < week_ago:
                 del sessions[sid]
 
         atomic_write(RESOURCE_LOG, json.dumps(data, indent=2))
@@ -432,14 +441,14 @@ def track_response():
             append_to_shared_buffer(
                 session_id,
                 f"RESOURCE: {response_count} responses in {duration_min:.0f}min. "
-                f"Consider /clear if context is bloated."
+                f"Consider /clear if context is bloated.",
             )
 
-        if today_data.get('responses', 0) > 200:
+        if today_data.get("responses", 0) > 200:
             append_to_shared_buffer(
                 session_id,
                 f"RESOURCE WARNING: {today_data['responses']} responses today. "
-                f"High burn rate — review if tasks need model downgrade to Haiku."
+                f"High burn rate — review if tasks need model downgrade to Haiku.",
             )
 
     except Exception:
@@ -447,6 +456,7 @@ def track_response():
 
 
 # --- Main ---
+
 
 def main():
     session_id = get_session_id()
@@ -468,7 +478,7 @@ def main():
     check_profiling_needed()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     try:
         main()
     except Exception as e:
