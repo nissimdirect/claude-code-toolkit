@@ -22,13 +22,17 @@ import re
 import json
 import argparse
 
-ENTROPIC_DIR = os.path.expanduser("~/Development/entropic")
+ENTROPIC_DIR = os.environ.get(
+    "ENTROPIC_DIR",
+    os.path.expanduser("~/Development/entropic-v2challenger/backend"),
+)
 
 
 def get_registered_effects():
     """Read all effect names from the EFFECTS registry."""
     sys.path.insert(0, ENTROPIC_DIR)
     from effects import EFFECTS
+
     return sorted(EFFECTS.keys())
 
 
@@ -57,7 +61,11 @@ def scan_test_files():
         for ref in set(effect_refs):
             ref_lower = ref.lower()
             if ref_lower not in coverage:
-                coverage[ref_lower] = {"rendering": False, "behavioral": False, "files": []}
+                coverage[ref_lower] = {
+                    "rendering": False,
+                    "behavioral": False,
+                    "files": [],
+                }
 
             # Rendering test = tests that the effect produces output without crashing
             if "render" in fname or "param_rendering" in fname:
@@ -102,22 +110,36 @@ def main():
     if auto_ok:
         for name in effects:
             if name not in coverage:
-                coverage[name] = {"rendering": True, "behavioral": False, "files": ["test_param_rendering.py"]}
+                coverage[name] = {
+                    "rendering": True,
+                    "behavioral": False,
+                    "files": ["test_param_rendering.py"],
+                }
             else:
                 coverage[name]["rendering"] = True
 
     # Build report
     total = len(effects)
-    rendering_covered = sum(1 for e in effects if coverage.get(e, {}).get("rendering", False))
-    behavioral_covered = sum(1 for e in effects if coverage.get(e, {}).get("behavioral", False))
-    uncovered_rendering = [e for e in effects if not coverage.get(e, {}).get("rendering", False)]
-    uncovered_behavioral = [e for e in effects if not coverage.get(e, {}).get("behavioral", False)]
+    rendering_covered = sum(
+        1 for e in effects if coverage.get(e, {}).get("rendering", False)
+    )
+    behavioral_covered = sum(
+        1 for e in effects if coverage.get(e, {}).get("behavioral", False)
+    )
+    uncovered_rendering = [
+        e for e in effects if not coverage.get(e, {}).get("rendering", False)
+    ]
+    uncovered_behavioral = [
+        e for e in effects if not coverage.get(e, {}).get("behavioral", False)
+    ]
 
     if args.check:
         name = args.check.lower()
         if name in coverage:
             c = coverage[name]
-            print(f"{name}: rendering={'PASS' if c['rendering'] else 'MISSING'}, behavioral={'PASS' if c['behavioral'] else 'MISSING'}")
+            print(
+                f"{name}: rendering={'PASS' if c['rendering'] else 'MISSING'}, behavioral={'PASS' if c['behavioral'] else 'MISSING'}"
+            )
             print(f"  Files: {', '.join(c['files'])}")
         else:
             print(f"{name}: NO TESTS FOUND")
@@ -138,7 +160,9 @@ def main():
 
     if args.summary:
         status = "PASS" if rendering_covered == total else "FAIL"
-        print(f"Test Coverage: {status} — {rendering_covered}/{total} rendering, {behavioral_covered}/{total} behavioral")
+        print(
+            f"Test Coverage: {status} — {rendering_covered}/{total} rendering, {behavioral_covered}/{total} behavioral"
+        )
         sys.exit(0 if rendering_covered == total else 1)
 
     # Full report
