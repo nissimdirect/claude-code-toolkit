@@ -269,6 +269,26 @@ def measure_all_loops() -> dict:
     shipped, total = _active_tasks_shipped_ratio()
     ratio = shipped / total if total > 0 else 0
     prev_l2 = prev_loops.get("2", {}).get("metric_value", 0)
+    # Secondary metric: test pass rate from manifests
+    test_detail = ""
+    for manifest_path in [
+        Path.home()
+        / "Development"
+        / "entropic-v2challenger"
+        / "backend"
+        / ".test-manifest.json",
+    ]:
+        if manifest_path.exists():
+            try:
+                import json as _json
+
+                m = _json.loads(manifest_path.read_text())
+                if m.get("green"):
+                    test_detail = f", tests GREEN ({m.get('passed', 0)} passed)"
+                else:
+                    test_detail = f", tests RED ({m.get('failed', 0)} failed)"
+            except (ValueError, OSError):
+                pass
     loops["2"] = {
         "name": "Build → Test → Ship → Document",
         "spinning": ratio > 0,
@@ -276,7 +296,7 @@ def measure_all_loops() -> dict:
         "metric_name": "shipped_planned_ratio",
         "metric_value": round(ratio, 2),
         "trend": _trend(ratio, prev_l2),
-        "detail": f"{shipped}/{total} tasks done (ratio: {ratio:.2f}, target: >0.7)",
+        "detail": f"{shipped}/{total} tasks done (ratio: {ratio:.2f}, target: >0.7){test_detail}",
         "last_activity": now,
     }
 
@@ -416,27 +436,43 @@ def measure_all_loops() -> dict:
         "last_activity": now if sentry_spinning else 0,
     }
 
-    # Loop 10: Playwright Browser Test
-    # Check if any browser test files exist
-    playwright_tests = 0
-    for d in [Path.home() / "Development" / "entropic" / "tests"]:
-        if d.exists():
-            try:
-                for f in d.rglob("*browser*"):
-                    playwright_tests += 1
-                for f in d.rglob("*playwright*"):
-                    playwright_tests += 1
-            except OSError:
-                pass
+    # Loop 10: Test Health (multi-project scan)
+    # Scan all ~/Development/*/ for .test-manifest.json files
+    dev_dir = Path.home() / "Development"
+    test_projects = []
+    total_tests = 0
+    all_green = True
+    if dev_dir.exists():
+        for project_dir in sorted(dev_dir.iterdir()):
+            if not project_dir.is_dir():
+                continue
+            # Check project root and backend/ subdirectory
+            for manifest_loc in [project_dir, project_dir / "backend"]:
+                manifest = manifest_loc / ".test-manifest.json"
+                if manifest.exists():
+                    try:
+                        import json as _json
+
+                        m = _json.loads(manifest.read_text())
+                        p = m.get("passed", 0)
+                        total_tests += p
+                        is_green = m.get("green", False)
+                        if not is_green:
+                            all_green = False
+                        test_projects.append(
+                            f"{project_dir.name}({'GREEN' if is_green else 'RED'})"
+                        )
+                    except (ValueError, OSError):
+                        pass
     loops["10"] = {
-        "name": "Playwright Browser Test",
-        "spinning": playwright_tests > 0,
-        "instrumented": playwright_tests > 0,
-        "metric_name": "browser_test_count",
-        "metric_value": playwright_tests,
+        "name": "Test Health",
+        "spinning": len(test_projects) > 0,
+        "instrumented": len(test_projects) > 0,
+        "metric_name": "test_project_count",
+        "metric_value": len(test_projects),
         "trend": "flat",
-        "detail": f"{playwright_tests} browser tests (target: >0 for web projects)",
-        "last_activity": now if playwright_tests > 0 else 0,
+        "detail": f"{len(test_projects)} projects, {total_tests} total tests, {'all green' if all_green else 'some RED'}: {', '.join(test_projects) if test_projects else 'none'}",
+        "last_activity": now if test_projects else 0,
     }
 
     return loops
