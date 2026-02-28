@@ -54,7 +54,7 @@ ADVISORS = {
             "~/Development/lennys-podcast-transcripts/index"
         ).expanduser(),
         "pattern": "*.md",
-        "article_count": 4491,  # 4006 + 46 (Leading Product) + 439 (Product Talk)
+        "article_count": 3818,  # 303 transcripts + 175 norman + 273 nngroup + 2091 lukew + 45 lawsofux + 34 uxmyths + 18 deceptive + 281 ala + 114 smashing + 46 leading-product + 438 product-talk (baymard 0)
         "excerpt_lines": 80,  # Transcripts are huge, take more context
     },
     "music-biz": {
@@ -79,7 +79,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 4165,  # 3628 + 421 (songtrust) + 116 (fancircles)
+        "article_count": 3163,  # cherie 711 + ari-herstand 465 + ari-dmn 265 + ari-guest 13 + jesse 148 + bandzoogle 1,024 + songtrust 421 + fancircles 116
         "excerpt_lines": 40,
     },
     "chatprd": {
@@ -101,7 +101,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 157,  # Verified 2026-02-14
+        "article_count": 148,  # Verified 2026-02-14
         "excerpt_lines": 40,
     },
     "cto": {
@@ -140,7 +140,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 8057,  # 6057 (prev) + 2000 (CDM/Create Digital Music)
+        "article_count": 7610,  # valhalla 207 + airwindows 399 + fabfilter 23 + circuit 26 + cto-leaders 2,169 + miessler 2,786 + cdm 2,000
         "excerpt_lines": 40,
     },
     "obsidian-docs": {
@@ -171,7 +171,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 3714,  # Verified 2026-02-09
+        "article_count": 3042,  # norman 175 + nngroup 273 + lukew 2,091 + lawsofux 45 + uxmyths 34 + deceptive 18 + ala 281 + smashing 114 + accessibility 11 (baymard 0)
         "excerpt_lines": 40,
     },
     "nngroup": {
@@ -190,7 +190,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/ux-design/baymard/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 471,
+        "article_count": 0,  # baymard articles/ is empty
         "excerpt_lines": 40,
     },
     "lukew": {
@@ -199,7 +199,7 @@ ADVISORS = {
         "article_dirs": [Path("~/Development/ux-design/lukew/articles").expanduser()],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 2118,
+        "article_count": 2091,
         "excerpt_lines": 40,
     },
     "lawsofux": {
@@ -258,7 +258,7 @@ ADVISORS = {
     # ── Art Direction Sources ──
     "art-director": {
         "name": "Art Director (Brand Identity + Visual Design + Creative Philosophy)",
-        "source": "Brand New + Design Observer + Creative Review + Hyperallergic + e-flux + Brian Eno Interviews + It's Nice That + Creative Boom + Fonts In Use + The Brand Identity",
+        "source": "Brand New + Design Observer + Creative Review + Hyperallergic + e-flux + Brian Eno + It's Nice That + Creative Boom + Fonts In Use + The Brand Identity + Typographica + Brad Frost",
         "article_dirs": [
             Path("~/Development/art-direction/brandnew/articles").expanduser(),
             Path("~/Development/art-direction/designobserver/articles").expanduser(),
@@ -280,10 +280,18 @@ ADVISORS = {
             Path("~/Development/tools/kb/accessibility").expanduser(),
             # Virgil Abloh portfolio (fashion, special projects, lectures)
             Path("~/Development/art-director/virgil-abloh/articles").expanduser(),
+            # Cross-routed: typography criticism (design systems, type specimens)
+            Path(
+                "~/Development/knowledge-bases/frontend-design/typographica"
+            ).expanduser(),
+            # Cross-routed: design systems, brand guides, Atomic Design
+            Path(
+                "~/Development/knowledge-bases/frontend-design/bradfrost"
+            ).expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 44082,  # 43898 + 184 (Virgil Abloh — RSS + page matching)
+        "article_count": 42718,  # fonts-in-use 30,072 + brandnew 3,695 + brand-identity 3,146 + e-flux 1,559 + its-nice-that 1,000 + typographica 950 + bradfrost 1,023 + hyperallergic 532 + creative-boom 517 + eno 163 + virgil 26 + other 35
         "excerpt_lines": 40,
     },
     "brandnew": {
@@ -294,7 +302,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 4062,
+        "article_count": 3695,
         "excerpt_lines": 40,
     },
     "designobserver": {
@@ -327,7 +335,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 214,
+        "article_count": 207,
         "excerpt_lines": 40,
     },
     "airwindows": {
@@ -371,7 +379,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 538,
+        "article_count": 532,
         "excerpt_lines": 40,
     },
     "creative-capital": {
@@ -382,7 +390,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 35,
+        "article_count": 50,
         "excerpt_lines": 80,  # Transcripts need more context
     },
     "nyfa-source": {
@@ -454,7 +462,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 201,  # Verified 2026-02-14
+        "article_count": 186,  # Verified 2026-02-14
         "excerpt_lines": 60,
     },
     "situationist": {
@@ -491,7 +499,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 305,
+        "article_count": 0,
         "excerpt_lines": 40,
     },
     "usa-fellows": {
@@ -513,7 +521,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 1500,
+        "article_count": 1494,
         "excerpt_lines": 50,
     },
     "texte-zur-kunst": {
@@ -535,12 +543,12 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 1076,
+        "article_count": 1051,
         "excerpt_lines": 40,
     },
     "atrium": {
         "name": "Atrium (Art Critical Theory + Grants + Publications)",
-        "source": "e-flux + Hyperallergic + Creative Capital + UbuWeb + Stanford + Situationist + CC Awardees + Artadia + USA Fellows + BOMB + Texte zur Kunst + Momus",
+        "source": "e-flux + Hyperallergic + Creative Capital + UbuWeb + Stanford + Situationist + CC Awardees + Artadia + USA Fellows + BOMB + Texte zur Kunst + Momus + LARB",
         "article_dirs": [
             # Original 3
             Path("~/Development/art-criticism/e-flux-journal/articles").expanduser(),
@@ -574,10 +582,12 @@ ADVISORS = {
             Path(
                 "~/Development/art-criticism/creative-independent/articles"
             ).expanduser(),
+            # Cross-routed: LARB (literary + cultural criticism, overlaps art theory)
+            Path("~/Development/knowledge-bases/literary-analyst/larb").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 12165,  # 12099 + 35 (NYFA) + 27 (FA) + 4 (TCI)
+        "article_count": 26210,  # e-flux 1,559 + BOMB 1,494 + USA 1,038 + momus 1,076 + quietus ~2K + needledrop ~1K + hyperallergic 532 + artadia 305 + texte 801 + ubuweb 256 + CC-awardees 831 + situationist 88 + CC 35 + NYFA 35 + FA 27 + stanford 32 + TCI 4 + LARB 14,463
         "excerpt_lines": 50,
     },
     "plugin-devs": {
@@ -590,7 +600,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 637,  # 214 + 400 + 23
+        "article_count": 629,  # 214 + 400 + 23
         "excerpt_lines": 40,
     },
     # ── Circuit Modeling (VA, WDF, SPICE, ML, Spring Reverb) ──
@@ -616,7 +626,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 85,  # Verified 2026-02-09
+        "article_count": 80,  # Verified 2026-02-09
         "excerpt_lines": 60,
     },
     # ── Music Composition + Production ──
@@ -643,7 +653,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 9904,  # 400 + 214 + 23 + 1710 + 148 + 1571 (splice) + 3838 (attack) + 2000 (BPB)
+        "article_count": 8893,  # airwindows 399 + valhalla 207 + fabfilter 23 + cherie 711 + jesse 148 + splice 1,571 + attack 3,834 + bpb 2,000
         "excerpt_lines": 50,
     },
     "label": {
@@ -665,7 +675,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 5943,  # 5406 + 421 (songtrust) + 116 (fancircles)
+        "article_count": 5802,  # jesse 148 + bandzoogle 1,024 + hypebot 1,961 + mbw 1,900 + ditto 232 + songtrust 421 + fancircles 116
         "excerpt_lines": 40,
     },
     "audio-production": {
@@ -686,31 +696,58 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 3316,  # 2380 + 936 (Tape Op)
+        "article_count": 2269,  # 2380 + 936 (Tape Op)
         "excerpt_lines": 50,
     },
     # ── Lyric Analyst + Ghostwriter ──
     "lyric-analyst": {
-        "name": "Lyric Analyst (Poetry + Prosody Education)",
-        "source": "Poetry Foundation + Poets.org + Songwriting Education",
+        "name": "Lyric Analyst (Songwriting Craft + Prosody Education)",
+        "source": "American Songwriter + Songwriting Mag + Berklee Take Note + Song Foundry + SongPad + Prosody Guides",
         "article_dirs": [
             Path("~/Development/lyric-analyst/articles").expanduser(),
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/american-songwriter"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/songwriting-magazine"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/berklee-takenote"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/song-foundry"
+            ).expanduser(),
+            Path("~/Development/knowledge-bases/lyric-analyst/songpad").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 3,  # 3 educational guides (prosody, rhyme-scheme, flow-taxonomy)
+        "article_count": 3464,  # 1996 (Am. Songwriter) + 769 (Songwriting Mag) + 599 (Berklee) + 74 (Song Foundry) + 23 (SongPad) + 3 (original)
         "excerpt_lines": 60,
     },
     "ghostwriter": {
-        "name": "Ghostwriter (Lyrics KB + Analysis + Songwriting Education)",
-        "source": "Genius Lyrics (enriched) + Songwriting Education",
+        "name": "Ghostwriter (Lyrics KB + Analysis + Songwriting Craft)",
+        "source": "Genius Lyrics (enriched) + Am. Songwriter + Songwriting Mag + Berklee + Song Foundry + SongPad",
         "article_dirs": [
             Path("~/Development/ghostwriter/articles").expanduser(),
             Path("~/Development/ghostwriter/education").expanduser(),
+            # Cross-routed from lyric-analyst (songwriting craft informs ghostwriting)
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/american-songwriter"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/songwriting-magazine"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/berklee-takenote"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/song-foundry"
+            ).expanduser(),
+            Path("~/Development/knowledge-bases/lyric-analyst/songpad").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 15,  # 3 education + 12 lyrics (growing via free_lyrics_scraper.py)
+        "article_count": 5101,  # 1636 lyrics + 4 education + 1996 Am. Songwriter + 769 Songwriting Mag + 599 Berklee + 74 Song Foundry + 23 SongPad
         "excerpt_lines": 80,  # Lyrics need more lines to capture full song
     },
     # ── Literary Analyst (Criticism, Theory, Editorial Craft) ──
@@ -728,7 +765,7 @@ ADVISORS = {
             ).expanduser(),
             Path("~/Development/literary-criticism/the-believer/articles").expanduser(),
             Path("~/Development/literary-criticism/the-millions/articles").expanduser(),
-            Path("~/Development/literary-criticism/larb/articles").expanduser(),
+            Path("~/Development/knowledge-bases/literary-analyst/larb").expanduser(),
             Path("~/Development/literary-criticism/paris-review/articles").expanduser(),
             Path(
                 "~/Development/literary-criticism/poetry-foundation/articles"
@@ -745,7 +782,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 16000,  # Growing — 4 active scrapers + 2 new launched
+        "article_count": 86969,  # LitHub 46,745 + JSTOR 7,962 + Marginalian 6,578 + Millions 3,190 + Believer 2,537 + ElecLit 2,153 + LARB 14,463 + e-flux 1,559 + BOMB 1,494 + UbuWeb 256 + Stanford 32 (paris-review/poetry-foundation/public-books/n+1 pending)
         "excerpt_lines": 60,
     },
     # ── Marketing Hacker (SEO, GEO, Growth) ──
@@ -773,7 +810,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 8531,  # 1775 + 2383 + 3533 + 618 + 23 + 38 + 159 (cross-routed)
+        "article_count": 8129,  # zyppy 26 + arvid 435 + sparktoro 440 + kevin 59 + backlinko 415 + copyblogger 2,383 + niche-pursuits 3,533 + noah-kagan 618 + growthhackers 23 + demand-curve 38 + newsletter-circle 159
         "excerpt_lines": 50,
     },
     # ── Fonts In Use (Dedicated Catalog Advisor) ──
@@ -785,7 +822,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 32578,
+        "article_count": 30072,
         "excerpt_lines": 30,  # Catalog entries are short
     },
     # ── First 1000 (Audience Building + PMF + Customer Acquisition) ──
@@ -832,7 +869,121 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 15397,  # Wave 9 complete: 9.1 (2,711) + 9.2 (988) + 9.3 (936) + 9.4 (1,275) + 9.5 (9,487)
+        "article_count": 15321,  # 28 sources — niche-pursuits 3,533 + copyblogger 2,383 + lukew 2,091 (symlink?) + first-round 863 + ramit 872 + kevin-kelly 773 + mixergy 726 + dan-martell 662 + marie-forleo 661 + andrew-chen 657 + noah-kagan 618 + arvid-kahl 435 + songtrust 421 + nathan-barry 409 + pat-flynn 369 + yc-library 387 + pmf-show 264 + stacking-bricks 268 + ship30for30 173 + creator-science 133 + codie-sanchez 120 + fancircles 116 + circle-so 112 + hiten-shah 97 + li-jin 44 + demand-curve 38 + growthhackers 23 + dent-global 5 + newsletter-circle 159
+        "excerpt_lines": 60,
+    },
+    # ── QA Red Team (Security Audit + OWASP) ──
+    "qa-redteam": {
+        "name": "QA Red Team (Security Audit + Attack Surface Analysis)",
+        "source": "OWASP Cheat Sheet Series + Daniel Miessler (AI Security, Red Teaming)",
+        "article_dirs": [
+            Path("~/Development/security-kb/owasp-cheatsheets/articles").expanduser(),
+            Path(
+                "~/Development/security-leaders/daniel-miessler/articles"
+            ).expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 2895,  # 109 (OWASP) + 2786 (Daniel Miessler)
+        "excerpt_lines": 60,
+    },
+    # ── PM (Product Management Frameworks) ──
+    "pm": {
+        "name": "Product Management (Frameworks + Strategy)",
+        "source": "SVPG + Dept of Product + Product Talk + First Round + Lenny + ChatPRD",
+        "article_dirs": [
+            # Wave 10: SVPG / Marty Cagan (product management, product teams)
+            Path("~/Development/knowledge-bases/pm/svpg").expanduser(),
+            # Wave 10: Department of Product (PM briefings, guides)
+            Path("~/Development/knowledge-bases/pm/dept-of-product").expanduser(),
+            # Product Talk (opportunity trees, product discovery)
+            Path("~/Development/lenny/product-talk/articles").expanduser(),
+            # First Round Review (startup strategy)
+            Path("~/Development/knowledge-bases/first-1000/first-round").expanduser(),
+            # Lenny transcripts (product strategy interviews)
+            Path("~/Development/lennys-podcast-transcripts/episodes").expanduser(),
+            # ChatPRD (AI workflows, PRD advice)
+            Path("~/Development/chatprd-blog/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 2344,  # 472 (SVPG) + 149 (DOP) + 438 (Product Talk) + 863 (First Round) + 303 (Lenny transcripts) + 119 (ChatPRD)
+        "excerpt_lines": 60,
+    },
+    # ── Frontend Design (CSS + Animation + Design Systems + Plugin UI + Typography) ──
+    "frontend-design": {
+        "name": "Frontend Design (CSS + Animation + Design Systems + Plugin UI + Typography)",
+        "source": "CSS-Tricks + Codrops + Brad Frost + Attack Mag + BPB + Typographica + Val Head + Ahmad Shadeed + Josh Comeau + Smashing",
+        "article_dirs": [
+            # Wave 10: CSS-Tricks (comprehensive CSS/frontend reference)
+            Path(
+                "~/Development/knowledge-bases/frontend-design/css-tricks"
+            ).expanduser(),
+            # Wave 10: Ahmad Shadeed (CSS deep dives, layout patterns)
+            Path(
+                "~/Development/knowledge-bases/frontend-design/ahmad-shadeed"
+            ).expanduser(),
+            # Wave 10.5: Josh Comeau (interactive CSS/React deep dives)
+            Path(
+                "~/Development/knowledge-bases/frontend-design/josh-comeau"
+            ).expanduser(),
+            # Wave 11: Codrops (CSS animation, demos, interactive tutorials)
+            Path("~/Development/knowledge-bases/frontend-design/codrops").expanduser(),
+            # Wave 11: Brad Frost (design systems, brand guides, Atomic Design)
+            Path(
+                "~/Development/knowledge-bases/frontend-design/bradfrost"
+            ).expanduser(),
+            # Wave 11: Attack Magazine (plugin UI, music production interfaces)
+            Path(
+                "~/Development/knowledge-bases/frontend-design/attack-magazine"
+            ).expanduser(),
+            # Wave 11: Bedroom Producers Blog (plugin UI/UX, instrument interfaces)
+            Path(
+                "~/Development/knowledge-bases/frontend-design/bedroom-producers-blog"
+            ).expanduser(),
+            # Wave 11: Typographica (typography reviews, font criticism)
+            Path(
+                "~/Development/knowledge-bases/frontend-design/typographica"
+            ).expanduser(),
+            # Wave 11: Val Head (web animation, motion design)
+            Path("~/Development/knowledge-bases/frontend-design/valhead").expanduser(),
+            # Cross-routed: Smashing Magazine UX articles
+            Path("~/Development/ux-design/smashingmag/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 15449,  # 1986 CSS-Tricks + 1611 Codrops + 3795 Attack Mag + 5645 BPB + 1023 Brad Frost + 950 Typographica + 156 Ahmad Shadeed + 114 Smashing + 87 Val Head + 82 Josh Comeau
+        "excerpt_lines": 50,
+    },
+    # ── Lyric Analyst (Songwriting Craft + Prosody + Flow) ──
+    "lyric-analyst-full": {
+        "name": "Lyric Analyst (Songwriting Craft + Prosody Education)",
+        "source": "American Songwriter + Songwriting Mag + Berklee Take Note + Song Foundry + SongPad + Prosody Guides",
+        "article_dirs": [
+            # Wave 10: American Songwriter (songwriting craft, interviews)
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/american-songwriter"
+            ).expanduser(),
+            # Wave 10.5: Songwriting Magazine (UK, Song Deconstructed series)
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/songwriting-magazine"
+            ).expanduser(),
+            # Wave 10.5: Berklee Take Note (faculty-written, prosody, Pat Pattison)
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/berklee-takenote"
+            ).expanduser(),
+            # Wave 10.5: The Song Foundry (prosody 101, hooks, structure)
+            Path(
+                "~/Development/knowledge-bases/lyric-analyst/song-foundry"
+            ).expanduser(),
+            # Wave 10.5: SongPad (rhyme, prosody, craft tips)
+            Path("~/Development/knowledge-bases/lyric-analyst/songpad").expanduser(),
+            # Original prosody/flow guides
+            Path("~/Development/lyric-analyst/articles").expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 3464,  # 1996 (Am. Songwriter) + 769 (Songwriting Mag) + 599 (Berklee) + 74 (Song Foundry) + 23 (SongPad) + 3 (original)
         "excerpt_lines": 60,
     },
 }
@@ -1163,6 +1314,67 @@ ALIASES = {
     "first-customers": "first-1000",
     "first-fans": "first-1000",
     "oversubscribed": "first-1000",
+    # QA Red Team
+    "qa-redteam": "qa-redteam",
+    "red-team": "qa-redteam",
+    "redteam": "qa-redteam",
+    "security-audit": "qa-redteam",
+    "owasp": "qa-redteam",
+    "penetration-test": "qa-redteam",
+    "pentest": "qa-redteam",
+    "attack-surface": "qa-redteam",
+    "vulnerability": "qa-redteam",
+    "xss": "qa-redteam",
+    "sql-injection": "qa-redteam",
+    "injection": "qa-redteam",
+    # PM
+    "pm": "pm",
+    "product-management": "pm",
+    "product-manager": "pm",
+    "opportunity-tree": "pm",
+    "jtbd": "pm",
+    "jobs-to-be-done": "pm",
+    "journey-map": "pm",
+    "prd": "pm",
+    "product-requirements": "pm",
+    "feature-decomposition": "pm",
+    "pricing-strategy": "pm",
+    # Frontend Design
+    "frontend-design": "frontend-design",
+    "frontend": "frontend-design",
+    "css": "frontend-design",
+    "css-tricks": "frontend-design",
+    "ui-design": "frontend-design",
+    "ui-patterns": "frontend-design",
+    "web-design": "frontend-design",
+    "design-system": "frontend-design",
+    "layout": "frontend-design",
+    "responsive": "frontend-design",
+    "tailwind": "frontend-design",
+    "flexbox": "frontend-design",
+    "grid": "frontend-design",
+    "animation": "frontend-design",
+    "motion-design": "frontend-design",
+    "codrops": "frontend-design",
+    "brad-frost": "frontend-design",
+    "atomic-design": "frontend-design",
+    "typographica": "frontend-design",
+    "valhead": "frontend-design",
+    "val-head": "frontend-design",
+    "web-animation": "frontend-design",
+    "plugin-ui": "frontend-design",
+    # LARB → literary-analyst + atrium
+    "larb": "literary-analyst",
+    "los-angeles-review": "literary-analyst",
+    "lithub": "literary-analyst",
+    "lit-hub": "literary-analyst",
+    # Lyric Analyst (full KB)
+    "lyric-analyst-full": "lyric-analyst",
+    "american-songwriter": "lyric-analyst",
+    "prosody": "lyric-analyst",
+    "rhyme-scheme": "lyric-analyst",
+    "songwriting-craft": "lyric-analyst",
+    "flow-analysis": "lyric-analyst",
 }
 
 
@@ -1218,6 +1430,22 @@ _STATIC_WEIGHTS = {
     "cdm": 1.5,
     "ditto-music": 1.2,
     "bedroom-producers-blog": 1.2,
+    # Wave 10/11 sources
+    "svpg": 2.5,
+    "berklee-takenote": 2.0,
+    "bradfrost": 2.0,
+    "codrops": 2.0,
+    "css-tricks": 2.0,
+    "ahmad-shadeed": 2.0,
+    "josh-comeau": 2.0,
+    "american-songwriter": 1.5,
+    "larb": 1.5,
+    "lithub": 1.5,
+    "jstor-daily": 1.5,
+    "the-marginalian": 1.5,
+    "typographica": 1.5,
+    "valhead": 1.5,
+    "songwriting-magazine": 1.2,
     "texte-zur-kunst": 0.8,
     "momus": 0.8,
     "situationist-international": 0.8,
@@ -1946,6 +2174,135 @@ SOURCE_DOMAINS = {
         "opt-in",
         "launch",
         "pre-launch",
+    ],
+    # ── Frontend Design Wave 11 ──
+    "codrops": [
+        "animation",
+        "css animation",
+        "transition",
+        "demo",
+        "interactive",
+        "webgl",
+        "scroll",
+        "hover",
+        "3d",
+    ],
+    "bradfrost": [
+        "design system",
+        "atomic design",
+        "pattern library",
+        "component",
+        "brand guide",
+        "style guide",
+        "design tokens",
+    ],
+    "typographica": [
+        "typeface review",
+        "type design",
+        "font review",
+        "typography",
+        "type specimen",
+        "foundry",
+    ],
+    "valhead": [
+        "web animation",
+        "motion design",
+        "css animation",
+        "transition",
+        "keyframe",
+        "scroll animation",
+    ],
+    # ── Songwriting ──
+    "american-songwriter": [
+        "songwriting",
+        "lyric",
+        "melody",
+        "hook",
+        "verse",
+        "chorus",
+        "bridge",
+        "rhyme",
+    ],
+    "songwriting-magazine": [
+        "songwriting",
+        "lyric",
+        "craft",
+        "deconstructed",
+        "arrangement",
+    ],
+    "berklee-takenote": [
+        "music education",
+        "prosody",
+        "songwriting",
+        "composition",
+        "pat pattison",
+    ],
+    # ── Literary Criticism ──
+    "lithub": [
+        "literary",
+        "book review",
+        "essay",
+        "fiction",
+        "poetry",
+        "publishing",
+    ],
+    "larb": [
+        "literary criticism",
+        "cultural criticism",
+        "essay",
+        "review",
+        "theory",
+    ],
+    "jstor-daily": [
+        "academic",
+        "research",
+        "history",
+        "literary history",
+        "cultural studies",
+    ],
+    "the-marginalian": [
+        "essay",
+        "philosophy",
+        "creativity",
+        "meaning",
+        "wisdom",
+    ],
+    # ── PM ──
+    "svpg": [
+        "product team",
+        "product management",
+        "discovery",
+        "empowered team",
+        "product ops",
+    ],
+    "dept-of-product": [
+        "product management",
+        "pm",
+        "product strategy",
+        "stakeholder",
+    ],
+    "css-tricks": [
+        "css",
+        "html",
+        "frontend",
+        "web development",
+        "flexbox",
+        "grid",
+        "responsive",
+    ],
+    "ahmad-shadeed": [
+        "css",
+        "layout",
+        "debugging css",
+        "rtl",
+        "responsive",
+    ],
+    "josh-comeau": [
+        "css",
+        "react",
+        "animation",
+        "interactive",
+        "tutorial",
     ],
 }
 
