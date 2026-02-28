@@ -1224,6 +1224,115 @@ def output_json(all_issues, actual_counts, disk_skills, registry_names):
 
 
 # ──────────────────────────────────────────────
+# Auto-fix (delegates to registry_sync.py)
+# ──────────────────────────────────────────────
+
+
+def apply_fixes(issues):
+    """Apply fixes for fixable issues. Returns (fixed_count, remaining_issues)."""
+    import subprocess
+
+    fixable = [i for i in issues if i.fixable]
+    if not fixable:
+        print("No fixable issues found.")
+        return 0, issues
+
+    print(f"\nAttempting to fix {len(fixable)} fixable issues...")
+    print()
+
+    fixed = 0
+    registry_sync = TOOLS_DIR / "registry_sync.py"
+
+    if not registry_sync.exists():
+        print(f"  ERROR: {registry_sync} not found. Cannot auto-fix.")
+        print("  Build registry_sync.py first (see plan Step 1).")
+        return 0, issues
+
+    # Classify fixable issues by type
+    has_stale_counts = any(
+        "stale count" in i.message.lower() or "count stale" in i.message.lower()
+        for i in fixable
+    )
+    has_registry_issues = any(
+        "not in registry" in i.message.lower() or "missing from" in i.message.lower()
+        for i in fixable
+    )
+    has_skill_count_issues = any(
+        "skills arsenal" in i.message.lower() or "skills menu" in i.message.lower()
+        for i in fixable
+    )
+
+    # Fix registry issues (phantom/missing entries)
+    if has_registry_issues:
+        print("  [FIX] Rebuilding registry.json from disk...")
+        result = subprocess.run(
+            [sys.executable, str(registry_sync), "--registry", "--apply"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode == 0:
+            print("    Registry rebuilt successfully.")
+            fixed += sum(
+                1
+                for i in fixable
+                if "not in registry" in i.message.lower()
+                or "missing from" in i.message.lower()
+            )
+        else:
+            print(f"    Registry rebuild failed: {result.stderr.strip()}")
+
+    # Fix stale counts (article counts in docs, skill counts)
+    if has_stale_counts or has_skill_count_issues:
+        print("  [FIX] Propagating counts to all dependent files...")
+        result = subprocess.run(
+            [sys.executable, str(registry_sync), "--apply"],
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode <= 1:  # 0=no changes, 1=changes applied
+            print("    Counts propagated successfully.")
+            fixed += sum(
+                1
+                for i in fixable
+                if "stale count" in i.message.lower()
+                or "count stale" in i.message.lower()
+                or "skills arsenal" in i.message.lower()
+                or "skills menu" in i.message.lower()
+            )
+        else:
+            print(f"    Count propagation failed: {result.stderr.strip()}")
+
+    # Remove phantom registry entries (in registry but not on disk)
+    phantom = [
+        i
+        for i in fixable
+        if "in registry but" in i.message.lower()
+        and "missing from disk" in i.message.lower()
+    ]
+    if phantom:
+        print("  [FIX] Removing phantom registry entries...")
+        registry_path = SKILLS_DIR / "registry.json"
+        try:
+            with open(registry_path) as f:
+                data = json.load(f)
+            disk_skills_set = get_disk_skills()
+            original_count = len(data.get("skills", []))
+            data["skills"] = [
+                s for s in data.get("skills", []) if s["name"] in disk_skills_set
+            ]
+            removed = original_count - len(data["skills"])
+            data["counts"]["total_skills"] = len(data["skills"])
+            with open(registry_path, "w") as f:
+                json.dump(data, f, indent=2)
+            print(f"    Removed {removed} phantom entries.")
+            fixed += len(phantom)
+        except Exception as e:
+            print(f"    Failed to clean registry: {e}")
+
+    return fixed, [i for i in issues if not i.fixable]
+
+
+# ──────────────────────────────────────────────
 # Main
 # ──────────────────────────────────────────────
 
@@ -1241,6 +1350,11 @@ def main():
     )
     parser.add_argument(
         "--save", action="store_true", help="Save report to Obsidian vault"
+    )
+    parser.add_argument(
+        "--fix",
+        action="store_true",
+        help="Auto-fix fixable issues (delegates to registry_sync.py)",
     )
 
     args = parser.parse_args()
@@ -1304,6 +1418,40 @@ def main():
     severity_order = {"CRITICAL": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
     all_issues.sort(key=lambda x: severity_order.get(x.severity, 99))
 
+    # Auto-fix mode
+    if args.fix:
+        fixable_count = sum(1 for i in all_issues if i.fixable)
+        if fixable_count > 0:
+            fixed, _remaining = apply_fixes(all_issues)
+            print(f"\n  Fixed {fixed}/{fixable_count} fixable issues.")
+
+            # Re-run checks to verify
+            print("\n  Re-checking after fixes...")
+            actual_counts = get_actual_counts()
+            disk_skills = get_disk_skills()
+            registry_names, registry_by_name = get_registry_data()
+            all_issues = check_article_counts(actual_counts)
+            all_issues += check_skill_consistency(
+                disk_skills, registry_names, registry_by_name, actual_counts
+            )
+            all_issues += check_file_paths()
+            all_issues += check_staleness()
+            all_issues += check_kb_scrape_freshness()
+            all_issues += check_cross_file_agreement()
+            all_issues += check_terminology()
+            all_issues += check_session_init_completeness()
+            all_issues += check_git_repos()
+            all_issues += check_cron()
+            all_issues.sort(key=lambda x: severity_order.get(x.severity, 99))
+
+            remaining_fixable = sum(1 for i in all_issues if i.fixable)
+            total = len(all_issues)
+            print(
+                f"  Post-fix: {total} issues remaining ({remaining_fixable} still fixable)"
+            )
+        else:
+            print("No fixable issues found.")
+
     # Output
     if args.json:
         output_json(all_issues, actual_counts, disk_skills, registry_names)
@@ -1316,10 +1464,12 @@ def main():
             f"Consistency: {total} issues ({crit} critical, {high} high) | {fixable} fixable"
         )
     else:
-        print()
-        print_ground_truth(actual_counts, disk_skills, registry_names)
+        if not args.fix:
+            print()
+            print_ground_truth(actual_counts, disk_skills, registry_names)
         print_issues(all_issues)
-        print_dependency_graph()
+        if not args.fix:
+            print_dependency_graph()
 
     if args.save:
         report = generate_markdown_report(

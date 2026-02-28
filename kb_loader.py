@@ -2348,6 +2348,8 @@ class KBLoader:
     def __init__(self):
         self.advisors = ADVISORS
         self.aliases = ALIASES
+        self._craft_cache = {}
+        self._ghostwriter_slugs = None
         # Build blended weights on first use (cached to disk for 24h)
         if not SOURCE_WEIGHTS:
             SOURCE_WEIGHTS.update(_build_blended_weights())
@@ -2471,6 +2473,16 @@ class KBLoader:
             recency_scored.sort(key=lambda x: -x[1])
             scored = recency_scored + scored[20:]
 
+        # Craft weight boost (ghostwriter only)
+        if key == "ghostwriter" and scored:
+            scored = self._apply_craft_weights(scored)
+            # Per-artist cap for no-specific-artist queries
+            artist_slugs = self._get_ghostwriter_artist_slugs()
+            query_words = set(query.lower().split())
+            has_specific_artist = any(slug in query_words for slug in artist_slugs)
+            if not has_specific_artist:
+                scored = self._apply_per_artist_cap(scored, cap=3)
+
         # Extract metadata and excerpts for top results
         results = []
         for path, score in scored[:max_results]:
@@ -2480,6 +2492,104 @@ class KBLoader:
                 results.append(article)
 
         return results
+
+    def _get_craft_weight(self, path: str) -> float:
+        """Look up song_weight from craft_index.json for a ghostwriter article path."""
+        if "ghostwriter/articles" not in path:
+            return 1.0
+        import json as _json
+        from pathlib import Path as _Path
+
+        # Extract artist slug from path: .../articles/{artist}/...
+        try:
+            parts = _Path(path).parts
+            idx = parts.index("articles")
+            artist_slug = parts[idx + 1]
+        except (ValueError, IndexError):
+            return 1.0
+
+        # Lazy load per-artist craft_index
+        if artist_slug not in self._craft_cache:
+            # Navigate to articles/{artist}/craft_index.json
+            articles_dir = _Path(path)
+            for _ in range(len(parts) - idx - 2):
+                articles_dir = articles_dir.parent
+            ci_file = articles_dir / "craft_index.json"
+            if ci_file.exists():
+                try:
+                    self._craft_cache[artist_slug] = _json.loads(ci_file.read_text())
+                except (_json.JSONDecodeError, OSError):
+                    self._craft_cache[artist_slug] = None
+            else:
+                self._craft_cache[artist_slug] = None
+
+        ci = self._craft_cache.get(artist_slug)
+        if not ci:
+            return 1.0
+
+        # Match by filename in craft_index songs
+        # Search returns song files (song.md), craft_index keys use analysis files
+        # (album/song-analysis.md). Try both the raw filename and analysis variant.
+        filename = _Path(path).name
+        stem = filename.removesuffix(".md")
+        analysis_filename = f"{stem}-analysis.md"
+        songs = ci.get("songs", {})
+        for song_key, song_data in songs.items():
+            if (
+                filename in song_key
+                or song_key.endswith(filename)
+                or analysis_filename in song_key
+                or song_key.endswith(analysis_filename)
+            ):
+                return song_data.get("song_weight", 1.0)
+        return 1.0
+
+    def _apply_craft_weights(self, scored: list[tuple]) -> list[tuple]:
+        """Multiply search scores by craft song_weight, re-sort."""
+        weighted = [
+            (path, score * self._get_craft_weight(path)) for path, score in scored
+        ]
+        weighted.sort(key=lambda x: -x[1])
+        return weighted
+
+    def _apply_per_artist_cap(self, scored: list[tuple], cap: int = 3) -> list[tuple]:
+        """Cap results to N per artist for broad queries. Non-article paths pass through."""
+        from pathlib import Path as _Path
+
+        artist_counts: dict[str, int] = {}
+        result = []
+        for path, score in scored:
+            if "ghostwriter/articles" not in path:
+                result.append((path, score))
+                continue
+            try:
+                parts = _Path(path).parts
+                idx = parts.index("articles")
+                artist = parts[idx + 1]
+            except (ValueError, IndexError):
+                result.append((path, score))
+                continue
+            artist_counts[artist] = artist_counts.get(artist, 0) + 1
+            if artist_counts[artist] <= cap:
+                result.append((path, score))
+        return result
+
+    def _get_ghostwriter_artist_slugs(self) -> set[str]:
+        """Cached set of artist dir names from ghostwriter articles."""
+        if self._ghostwriter_slugs is not None:
+            return self._ghostwriter_slugs
+        from pathlib import Path as _Path
+
+        articles = _Path("~/Development/ghostwriter/articles").expanduser()
+        if articles.exists():
+            self._ghostwriter_slugs = {
+                d.name
+                for d in articles.iterdir()
+                if d.is_dir() and (d / "profile.json").exists()
+            }
+        else:
+            self._ghostwriter_slugs = set()
+        return self._ghostwriter_slugs
 
     @staticmethod
     def _get_source_weight(path: str) -> float:
