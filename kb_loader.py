@@ -1064,7 +1064,7 @@ ADVISORS = {
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 11270,  # 31 active sources, deduped (6 blocked: andrew-gelman, fpp3, info-is-beautiful, r-bloggers, towards-data-science, kdnuggets)
+        "article_count": 11147,  # 31 active sources, content-hash deduped (6 blocked: andrew-gelman, fpp3, info-is-beautiful, r-bloggers, towards-data-science, kdnuggets)
         "excerpt_lines": 50,
     },
     "lyric-analyst-full": {

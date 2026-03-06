@@ -233,6 +233,56 @@ class BaseScraper:
         )
         self.articles = []
         self.errors = []
+        # Content-hash dedup: prevents saving articles with identical content
+        # even when slugs differ (e.g., re-scrapes, chapters with same title)
+        self._hash_index_path = self.output_dir / "metadata" / "content_hashes.json"
+        self._content_hashes: dict[str, str] = {}  # hash -> filename
+        if self._hash_index_path.exists():
+            try:
+                self._content_hashes = json.loads(self._hash_index_path.read_text())
+            except (json.JSONDecodeError, OSError):
+                self._content_hashes = {}
+
+    def _content_hash(self, content: str) -> str:
+        """SHA-256 of content with whitespace normalized."""
+        normalized = re.sub(r"\s+", " ", content.strip())
+        return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:16]
+
+    def _save_hash_index(self):
+        """Persist content hash index to disk."""
+        self._hash_index_path.parent.mkdir(parents=True, exist_ok=True)
+        self._hash_index_path.write_text(json.dumps(self._content_hashes, indent=2))
+
+    def build_hash_index(self):
+        """Scan existing articles on disk and build/rebuild the content hash index.
+
+        Call this once to seed the index for sources that were scraped before
+        content-hash dedup existed. Safe to re-run (idempotent).
+        """
+        articles_dir = self.output_dir / "articles"
+        self._content_hashes = {}  # Start fresh — rebuild from disk
+        count = 0
+        for f in sorted(articles_dir.glob("*.md")):
+            text = f.read_text(encoding="utf-8", errors="replace")
+            # Hash the body (everything after the frontmatter separator),
+            # stripping auto_tag wiki-link brackets so hashes match raw content
+            parts = text.split("---\n", maxsplit=1)
+            body = parts[1] if len(parts) > 1 else text
+            body = re.sub(r"\[\[([^\]]+)\]\]", r"\1", body)
+            h = self._content_hash(body)
+            if h not in self._content_hashes:
+                self._content_hashes[h] = f.name
+                count += 1
+            else:
+                # Duplicate on disk — remove the later copy
+                f.unlink()
+        self._save_hash_index()
+        remaining = len(list(articles_dir.glob("*.md")))
+        removed = count + len(self._content_hashes) - remaining - count
+        print(
+            f"[{self.source_name}] Hash index: {len(self._content_hashes)} unique entries, "
+            f"{remaining} files on disk"
+        )
 
     def fetch(self, url: str, retry: int = 3) -> requests.Response | None:
         for attempt in range(retry):
@@ -296,19 +346,31 @@ class BaseScraper:
         print(f"[{self.source_name}] Scraping {len(new_urls)} new articles...")
 
         idx = existing_count
+        skipped_dupes = 0
         for i, url in enumerate(new_urls, 1):
             print(f"  [{i}/{len(new_urls)}] {url[:80]}...")
             article = self.parse_article(url)
             if article:
+                # Content-hash dedup: skip if identical content already saved
+                content_hash = self._content_hash(article.get("content", ""))
+                if content_hash in self._content_hashes:
+                    skipped_dupes += 1
+                    continue
                 idx += 1
                 article["source"] = self.source_name
                 path = save_article(self.output_dir, idx, article)
                 if path:
+                    self._content_hashes[content_hash] = path.name
                     self.articles.append(article)
 
+        self._save_hash_index()
         save_metadata(
             self.output_dir, self.source_name, self.base_url, self.articles, self.errors
         )
+        if skipped_dupes:
+            print(
+                f"[{self.source_name}] Skipped {skipped_dupes} content-duplicate articles"
+            )
         print(
             f"[{self.source_name}] Done: {len(self.articles)} new, {len(self.errors)} errors"
         )
@@ -2122,7 +2184,18 @@ def main():
         help="Source to scrape (or all, all-priority-1, all-priority-2, all-priority-3)",
     )
     parser.add_argument("--list", action="store_true", help="List available sources")
+    parser.add_argument(
+        "--build-hashes",
+        action="store_true",
+        help="Build content hash indexes for all sources (dedup existing articles)",
+    )
     args = parser.parse_args()
+
+    if args.build_hashes:
+        for name in SCRAPERS:
+            scraper = SCRAPERS[name]()
+            scraper.build_hash_index()
+        return
 
     if args.list:
         print("Available sources:")
