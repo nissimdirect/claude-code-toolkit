@@ -956,6 +956,117 @@ ADVISORS = {
         "excerpt_lines": 50,
     },
     # ── Lyric Analyst (Songwriting Craft + Prosody + Flow) ──
+    "data-analyst": {
+        "name": "Data Analyst (Visualization + Statistics + Frontier Viz + Causal Inference + ML)",
+        "source": "FlowingData, Nightingale (DVS), The Pudding, Storytelling With Data, Data Sketches, Statistical Thinking, Simply Statistics, Datawrapper, dbt Blog, Metabase, Distill.pub, Variance Explained, Kozyrkov, Observable Blog, Plotly Blog, Cross Validated, NIST Handbook, Andy Kirk, Alberto Cairo, Colah, Lilian Weng, Causal Mixtape, The Effect, R4DS, Python DS Handbook, Think Bayes, Wilke DataViz, Data-to-Viz, Feature Engineering, Modern Stats Bio, Seeing Theory",
+        "article_dirs": [
+            Path(
+                "~/Development/knowledge-bases/data-analyst/flowingdata/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/nightingale/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/pudding/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/storytelling-with-data/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/observable-blog/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/plotly-blog/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/data-sketches/articles"
+            ).expanduser(),
+            # info-is-beautiful: BLOCKED (SSL cert error)
+            # andrew-gelman: BLOCKED (Cloudflare challenge)
+            # r-bloggers: BLOCKED (no scraper, needs JS rendering)
+            # towards-data-science: BLOCKED (Medium 403)
+            Path(
+                "~/Development/knowledge-bases/data-analyst/statistical-thinking/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/cross-validated/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/simply-statistics/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/seeing-theory/articles"
+            ).expanduser(),
+            # Wave 2: Enterprise + Academic
+            Path(
+                "~/Development/knowledge-bases/data-analyst/datawrapper/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/dbt-blog/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/metabase/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/distill-pub/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/variance-explained/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/kozyrkov-decision/articles"
+            ).expanduser(),
+            # Wave 3: Textbooks + Preeminent Minds
+            Path(
+                "~/Development/knowledge-bases/data-analyst/wilke-dataviz/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/data-to-viz/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/r4ds/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/python-ds-handbook/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/think-bayes/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/andy-kirk/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/alberto-cairo/articles"
+            ).expanduser(),
+            # Wave 4: Advanced Techniques
+            # fpp3: BLOCKED (otexts.com CAPTCHA bot protection)
+            Path(
+                "~/Development/knowledge-bases/data-analyst/causal-mixtape/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/the-effect/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/feat-engineering/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/lilian-weng/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/colah/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/modern-stats-bio/articles"
+            ).expanduser(),
+            Path(
+                "~/Development/knowledge-bases/data-analyst/nist-handbook/articles"
+            ).expanduser(),
+        ],
+        "index_dir": None,
+        "pattern": "*.md",
+        "article_count": 11270,  # 31 active sources, deduped (6 blocked: andrew-gelman, fpp3, info-is-beautiful, r-bloggers, towards-data-science, kdnuggets)
+        "excerpt_lines": 50,
+    },
     "lyric-analyst-full": {
         "name": "Lyric Analyst (Songwriting Craft + Prosody Education)",
         "source": "American Songwriter + Songwriting Mag + Berklee Take Note + Song Foundry + SongPad + Prosody Guides",
@@ -1375,6 +1486,79 @@ ALIASES = {
     "rhyme-scheme": "lyric-analyst",
     "songwriting-craft": "lyric-analyst",
     "flow-analysis": "lyric-analyst",
+    # Data Analyst
+    "data-analyst": "data-analyst",
+    "dataviz": "data-analyst",
+    "visualization": "data-analyst",
+    "statistics": "data-analyst",
+    "analytics": "data-analyst",
+    "tufte": "data-analyst",
+    "frontier-viz": "data-analyst",
+    "eda": "data-analyst",
+    "exploratory-data-analysis": "data-analyst",
+    "chart": "data-analyst",
+    "charts": "data-analyst",
+    "scatter-plot": "data-analyst",
+    "histogram": "data-analyst",
+    "heatmap": "data-analyst",
+    "dashboard": "data-analyst",
+    "bertin": "data-analyst",
+    "cleveland-mcgill": "data-analyst",
+    "flowingdata": "data-analyst",
+    "nightingale-dvs": "data-analyst",
+    "pudding": "data-analyst",
+    "nadieh-bremer": "data-analyst",
+    "shirley-wu": "data-analyst",
+    "giorgia-lupi": "data-analyst",
+    "knaflic": "data-analyst",
+    "storytelling-with-data": "data-analyst",
+    # Wave 2+ source aliases
+    "datawrapper": "data-analyst",
+    "dbt": "data-analyst",
+    "metabase": "data-analyst",
+    "distill-pub": "data-analyst",
+    "distill": "data-analyst",
+    "variance-explained": "data-analyst",
+    "kozyrkov": "data-analyst",
+    "decision-intelligence": "data-analyst",
+    # Wave 3+ source aliases
+    "wilke": "data-analyst",
+    "data-to-viz": "data-analyst",
+    "r4ds": "data-analyst",
+    "python-ds-handbook": "data-analyst",
+    "think-bayes": "data-analyst",
+    "bayesian": "data-analyst",
+    "andy-kirk": "data-analyst",
+    "alberto-cairo": "data-analyst",
+    # Wave 4+ source aliases
+    "causal-mixtape": "data-analyst",
+    "causal-inference": "data-analyst",
+    "the-effect": "data-analyst",
+    "feat-engineering": "data-analyst",
+    "feature-engineering": "data-analyst",
+    "lilian-weng": "data-analyst",
+    "colah": "data-analyst",
+    "neural-networks": "data-analyst",
+    "modern-stats-bio": "data-analyst",
+    # Wave 5+ source aliases
+    "nist-handbook": "data-analyst",
+    "nist": "data-analyst",
+    "cross-validated": "data-analyst",
+    "stats-stackexchange": "data-analyst",
+    "observable-blog": "data-analyst",
+    "observable": "data-analyst",
+    "plotly-blog": "data-analyst",
+    "plotly": "data-analyst",
+    "seeing-theory": "data-analyst",
+    "simply-statistics": "data-analyst",
+    "statistical-thinking": "data-analyst",
+    "data-sketches": "data-analyst",
+    "regression": "data-analyst",
+    "hypothesis-testing": "data-analyst",
+    "pca": "data-analyst",
+    "clustering": "data-analyst",
+    "time-series": "data-analyst",
+    "anomaly-detection": "data-analyst",
 }
 
 
