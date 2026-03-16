@@ -28,9 +28,10 @@ MAX_CONTEXT_CHARS = 30000  # Don't send huge files
 
 # Model tiers — select via model= param or GEMINI_MODEL env var
 MODELS = {
-    "bulk": "gemini-3.1-flash-lite",  # Cheapest, fastest. For experiments/evolution.
-    "quality": "gemini-3-flash-preview",  # Pro-grade reasoning. For tournaments/user-facing.
-    "legacy": "gemini-2.5-flash",  # Previous default. Fallback.
+    "bulk": "gemini-2.5-flash-lite",  # Cheapest, fastest. For experiments/evolution.
+    "quality": "gemini-2.5-flash",  # Best flash reasoning. For tournaments/user-facing.
+    "bleeding": "gemini-3-flash-preview",  # Newest preview. May be unstable.
+    "legacy": "gemini-2.0-flash",  # Stable fallback.
 }
 DEFAULT_MODEL = os.environ.get("GEMINI_MODEL", "bulk")
 
