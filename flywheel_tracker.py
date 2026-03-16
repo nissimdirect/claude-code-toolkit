@@ -318,6 +318,26 @@ def measure_all_loops() -> dict:
     bs = _budget_state()
     pct = bs.get("usage_pct", 0)
     prev_l4 = prev_loops.get("4", {}).get("metric_value", 0)
+    # Secondary: usage fetcher health (daemon + hook → usage-state.json)
+    usage_state_file = STATE_DIR / "usage-state.json"
+    usage_fetcher_detail = ""
+    if usage_state_file.exists():
+        try:
+            usage_age = now - usage_state_file.stat().st_mtime
+            us = json.loads(usage_state_file.read_text())
+            five_h = us.get("five_hour", {}).get("utilization")
+            source = us.get("source", "?")
+            errors = us.get("consecutive_errors", 0)
+            if five_h is not None:
+                usage_fetcher_detail = (
+                    f", plan: 5h={five_h:.0f}% (via {source}, {usage_age:.0f}s ago)"
+                )
+            if errors > 0:
+                usage_fetcher_detail += f", {errors} consecutive fetch errors"
+        except (json.JSONDecodeError, OSError):
+            usage_fetcher_detail = ", usage-state.json corrupt"
+    else:
+        usage_fetcher_detail = ", usage fetcher: no cache yet"
     loops["4"] = {
         "name": "Budget-Aware Degradation",
         "spinning": True,  # budget hook runs every prompt
@@ -325,7 +345,7 @@ def measure_all_loops() -> dict:
         "metric_name": "budget_usage_pct",
         "metric_value": pct,
         "trend": _trend(pct, prev_l4),
-        "detail": f"{pct:.0f}% budget used",
+        "detail": f"{pct:.0f}% budget used{usage_fetcher_detail}",
         "last_activity": now,
     }
 
@@ -367,15 +387,18 @@ def measure_all_loops() -> dict:
     skill_delegated = ds.get("total_skill_delegated", 0)
     prev_l7 = prev_loops.get("7", {}).get("metric_value", 0)
     # v4.4: skill delegation health — is the slash command path active?
+    # v4.5: MCP delegation counts (hybrid push+pull)
     skill_detail = f", {skill_delegated} from skills" if skill_delegated > 0 else ""
+    mcp_delegated = ds.get("mcp_delegated", 0)
+    mcp_detail = f", {mcp_delegated} via MCP" if mcp_delegated > 0 else ""
     loops["7"] = {
         "name": "Cross-Model Validation",
-        "spinning": delegations > 0,
+        "spinning": delegations > 0 or mcp_delegated > 0,
         "instrumented": True,  # delegation-compliance.json exists
         "metric_name": "total_delegated",
-        "metric_value": delegations,
-        "trend": _trend(delegations, prev_l7),
-        "detail": f"{delegations} delegated ({prefetched} prefetched{skill_detail})",
+        "metric_value": delegations + mcp_delegated,
+        "trend": _trend(delegations + mcp_delegated, prev_l7),
+        "detail": f"{delegations} delegated ({prefetched} prefetched{skill_detail}{mcp_detail})",
         "last_activity": now,
     }
 
@@ -565,6 +588,27 @@ def verify(loops: dict) -> list[str]:
         metric = loop.get("metric_value", 0)
         if source_path.exists() and metric == 0:
             warnings.append(f"WARNING Loop {loop_num}: {msg}")
+
+    # Usage fetcher daemon health — if plist exists but cache is >10min old, warn
+    usage_plist = (
+        Path.home()
+        / "Library"
+        / "LaunchAgents"
+        / "com.popchaos.claude-usage-fetcher.plist"
+    )
+    usage_cache = STATE_DIR / "usage-state.json"
+    if usage_plist.exists():
+        if not usage_cache.exists():
+            warnings.append(
+                "WARNING Loop 4: usage fetcher daemon plist exists but "
+                "usage-state.json missing — daemon may not be running"
+            )
+        elif time.time() - usage_cache.stat().st_mtime > 600:
+            age_min = (time.time() - usage_cache.stat().st_mtime) / 60
+            warnings.append(
+                f"WARNING Loop 4: usage-state.json is {age_min:.0f}min old — "
+                "daemon may be stuck or backoff active"
+            )
 
     # Regression checks — values that should never drop below known minimums
     # These minimums are conservative (well below actual counts)
