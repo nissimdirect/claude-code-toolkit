@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Usage fetcher daemon for Claude Code statusline.
 
-Polls the Anthropic usage API every 3 minutes and writes to
-~/.claude/.locks/usage-state.json. Skips if cache is <150s old.
+Polls the Anthropic usage API every 5 minutes and writes to
+~/.claude/.locks/usage-state.json. Skips if cache is <270s old.
 
 Single-instance via fcntl lock. Log rotation at 1MB.
 Follows the pattern of claude_memory_watchdog.py.
@@ -22,8 +22,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import usage_fetcher
 
-POLL_INTERVAL = 180  # 3 minutes
-MIN_CACHE_AGE = 150  # skip if cache < 150s old
+POLL_INTERVAL = 300  # 5 minutes
+MIN_CACHE_AGE = 270  # skip if cache < 4.5min old
 LOCK_PATH = Path.home() / ".claude" / ".locks" / "usage-fetcher.lock"
 LOG_DIR = Path.home() / ".claude" / "logs"
 

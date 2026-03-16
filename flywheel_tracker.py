@@ -323,8 +323,20 @@ def measure_all_loops() -> dict:
     usage_fetcher_detail = ""
     if usage_state_file.exists():
         try:
-            usage_age = now - usage_state_file.stat().st_mtime
             us = json.loads(usage_state_file.read_text())
+            # Use fetched_at for age, not file mtime (error writes touch mtime)
+            fetched_at = us.get("fetched_at")
+            if fetched_at:
+                from datetime import datetime as _dt, timezone as _tz
+
+                try:
+                    usage_age = (
+                        _dt.now(_tz.utc) - _dt.fromisoformat(fetched_at)
+                    ).total_seconds()
+                except (ValueError, TypeError):
+                    usage_age = float("inf")
+            else:
+                usage_age = float("inf")
             five_h = us.get("five_hour", {}).get("utilization")
             source = us.get("source", "?")
             errors = us.get("consecutive_errors", 0)
@@ -603,12 +615,26 @@ def verify(loops: dict) -> list[str]:
                 "WARNING Loop 4: usage fetcher daemon plist exists but "
                 "usage-state.json missing — daemon may not be running"
             )
-        elif time.time() - usage_cache.stat().st_mtime > 600:
-            age_min = (time.time() - usage_cache.stat().st_mtime) / 60
-            warnings.append(
-                f"WARNING Loop 4: usage-state.json is {age_min:.0f}min old — "
-                "daemon may be stuck or backoff active"
-            )
+        else:
+            try:
+                us = json.loads(usage_cache.read_text())
+                fetched_at = us.get("fetched_at")
+                if fetched_at:
+                    from datetime import datetime as _dt, timezone as _tz
+
+                    data_age = (
+                        _dt.now(_tz.utc) - _dt.fromisoformat(fetched_at)
+                    ).total_seconds()
+                else:
+                    data_age = float("inf")
+            except (json.JSONDecodeError, OSError, ValueError, TypeError):
+                data_age = float("inf")
+            if data_age > 600:
+                age_min = data_age / 60
+                warnings.append(
+                    f"WARNING Loop 4: usage data is {age_min:.0f}min old — "
+                    "daemon may be stuck or backoff active"
+                )
 
     # Regression checks — values that should never drop below known minimums
     # These minimums are conservative (well below actual counts)

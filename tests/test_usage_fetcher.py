@@ -574,16 +574,26 @@ class TestConcurrentWriters(CacheTestBase):
 
 
 class TestStatuslineReader(CacheTestBase):
-    """Tests for the read pattern statusline.py will use."""
+    """Tests for the read pattern statusline.py uses (fetched_at-based age)."""
 
     def _read_usage_state(self):
-        """Simulate what statusline.py will do."""
+        """Simulate what statusline.py does — age from fetched_at, not mtime."""
         try:
             if not self.cache_path.exists():
                 return ({}, float("inf"))
-            age = time.time() - self.cache_path.stat().st_mtime
             with open(self.cache_path) as f:
                 data = json.load(f)
+            if not isinstance(data, dict):
+                return ({}, float("inf"))
+            fetched_at = data.get("fetched_at")
+            if fetched_at:
+                try:
+                    fetched_dt = datetime.fromisoformat(fetched_at)
+                    age = (datetime.now(timezone.utc) - fetched_dt).total_seconds()
+                except (ValueError, TypeError):
+                    age = float("inf")
+            else:
+                age = float("inf")
             return (data, age)
         except (json.JSONDecodeError, OSError):
             return ({}, float("inf"))
@@ -600,10 +610,23 @@ class TestStatuslineReader(CacheTestBase):
         self.assertLess(age, 2.0)
 
     def test_stale_data_correct_age(self):
-        data = {"five_hour": {"utilization": 10.0}, "seven_day": {}, "extra_usage": {}}
-        usage_fetcher.write_cache(data, "daemon")
-        old_time = time.time() - 400
-        os.utime(str(self.cache_path), (old_time, old_time))
+        """Age should reflect fetched_at, not file mtime."""
+        # Write cache with fetched_at backdated to 400s ago
+        now = datetime.now(timezone.utc)
+        old_fetched = (now - timedelta(seconds=400)).isoformat()
+        cache = {
+            "five_hour": {"utilization": 10.0},
+            "seven_day": {},
+            "extra_usage": {},
+            "fetched_at": old_fetched,
+            "source": "test",
+            "fetch_duration_ms": 0,
+            "last_error": None,
+            "last_error_at": None,
+            "consecutive_errors": 0,
+            "backoff_until": None,
+        }
+        usage_fetcher._atomic_write(cache)
         result, age = self._read_usage_state()
         self.assertEqual(result["five_hour"]["utilization"], 10.0)
         self.assertGreater(age, 390)
@@ -619,6 +642,39 @@ class TestStatuslineReader(CacheTestBase):
         result, age = self._read_usage_state()
         self.assertEqual(result, {})
         self.assertEqual(age, float("inf"))
+
+    def test_error_write_does_not_mask_staleness(self):
+        """Regression: write_error_to_cache touches mtime but must not reset age."""
+        # Write good data
+        data = {
+            "five_hour": {"utilization": 25.0},
+            "seven_day": {"utilization": 3.0},
+            "extra_usage": {},
+        }
+        usage_fetcher.write_cache(data, "daemon")
+        # Backdate fetched_at to 1 hour ago (simulating old successful fetch)
+        cache = usage_fetcher.read_cache()
+        old_fetched = (datetime.now(timezone.utc) - timedelta(hours=1)).isoformat()
+        cache["fetched_at"] = old_fetched
+        usage_fetcher._atomic_write(cache)
+        # Now write an error (this touches mtime but preserves old fetched_at)
+        usage_fetcher.write_error_to_cache("HTTP 429", 429)
+        # Age should reflect fetched_at (1h ago), NOT mtime (just now)
+        result, age = self._read_usage_state()
+        self.assertEqual(result["five_hour"]["utilization"], 25.0)
+        self.assertGreater(age, 3500)  # ~1 hour
+        self.assertEqual(result["consecutive_errors"], 1)
+
+    def test_error_indicator_fields_present(self):
+        """After errors, cache has fields needed for statusline error indicator."""
+        data = {"five_hour": {}, "seven_day": {}, "extra_usage": {}}
+        usage_fetcher.write_cache(data, "daemon")
+        usage_fetcher.write_error_to_cache("HTTP 429", 429)
+        usage_fetcher.write_error_to_cache("HTTP 429", 429)
+        cache = usage_fetcher.read_cache()
+        self.assertEqual(cache["consecutive_errors"], 2)
+        self.assertEqual(cache["last_error"], "HTTP 429")
+        self.assertIsNotNone(cache["backoff_until"])
 
 
 if __name__ == "__main__":
