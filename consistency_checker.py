@@ -363,10 +363,16 @@ def get_actual_counts():
 
 
 def get_disk_skills():
-    """Get all skills on disk (directory/SKILL.md format)."""
+    """Get all skills on disk (directory/SKILL.md format).
+    Excludes redirect/deprecated skills that exist only for backward compat."""
+    REDIRECT_SKILLS = {"brainstorming"}  # merged into /brainstorm, dir kept as redirect
     if not SKILLS_DIR.exists():
         return set()
-    return {f.parent.name for f in SKILLS_DIR.glob("*/SKILL.md") if f.is_file()}
+    return {
+        f.parent.name
+        for f in SKILLS_DIR.glob("*/SKILL.md")
+        if f.is_file() and f.parent.name not in REDIRECT_SKILLS
+    }
 
 
 def get_registry_data():
