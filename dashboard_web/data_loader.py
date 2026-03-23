@@ -1087,6 +1087,7 @@ def _load_delegation_stats():
             comp = json.loads(DELEGATION_COMPLIANCE.read_text())
             data["delegation_rate"] = comp.get("delegation_rate", "0%")
             data["total_prompts"] = comp.get("total_prompts", 0)
+            data["mcp_delegated"] = comp.get("mcp_delegated", 0)
         except (json.JSONDecodeError, OSError):
             pass
 

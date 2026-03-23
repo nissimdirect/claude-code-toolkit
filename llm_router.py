@@ -16,6 +16,7 @@ Usage:
     python3 llm_router.py --dry-run "Generate a JUCE plugin skeleton"
 """
 
+import fcntl
 import json
 import os
 import re
@@ -32,13 +33,17 @@ import requests
 # Import delegation validator for output verification
 try:
     from delegation_validator import validate_delegated_output
+
     HAS_VALIDATOR = True
 except ImportError:
     # Fallback: try absolute path
     _validator_path = Path(__file__).parent / "delegation_validator.py"
     if _validator_path.exists():
         import importlib.util
-        _spec = importlib.util.spec_from_file_location("delegation_validator", _validator_path)
+
+        _spec = importlib.util.spec_from_file_location(
+            "delegation_validator", _validator_path
+        )
         _mod = importlib.util.module_from_spec(_spec)
         _spec.loader.exec_module(_mod)
         validate_delegated_output = _mod.validate_delegated_output
@@ -62,7 +67,7 @@ MODELS = {
         "wrapper": None,  # native, not delegated
         "rpm_limit": None,
         "headroom": 0,
-        "context": 200_000,
+        "context": 1_000_000,
         "strengths": ["strategy", "security", "tools", "taste", "multi-file"],
     },
     "gemini": {
@@ -102,7 +107,7 @@ MODELS = {
         "wrapper": str(TOOLS_DIR / "deepseek-safe.sh"),
         "rpm_limit": None,
         "headroom": 0,
-        "context": 64_000,
+        "context": 128_000,
         "strengths": ["math", "reasoning", "research"],
     },
 }
@@ -110,11 +115,15 @@ MODELS = {
 # --- Gemini API (direct REST, bypasses CLI agent mode) ---
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-GEMINI_DEFAULT_MODEL = "gemini-2.0-flash"
+GEMINI_API_URL = (
+    "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+)
+GEMINI_DEFAULT_MODEL = "gemini-2.5-flash"
 
 
-def _call_gemini_api(prompt: str, model: str = GEMINI_DEFAULT_MODEL, timeout: int = 120) -> str:
+def _call_gemini_api(
+    prompt: str, model: str = GEMINI_DEFAULT_MODEL, timeout: int = 120
+) -> str:
     """Call Gemini via REST API. Returns response text or raises."""
     if not GEMINI_API_KEY:
         raise RuntimeError("GEMINI_API_KEY not set")
@@ -129,7 +138,7 @@ def _call_gemini_api(prompt: str, model: str = GEMINI_DEFAULT_MODEL, timeout: in
     }
     resp = requests.post(
         url,
-        params={"key": GEMINI_API_KEY},
+        headers={"x-goog-api-key": GEMINI_API_KEY},
         json=payload,
         timeout=timeout,
     )
@@ -153,29 +162,47 @@ def _call_gemini_api(prompt: str, model: str = GEMINI_DEFAULT_MODEL, timeout: in
 # --- Safety Patterns (Gate 0a: secrets/credentials) ---
 
 SECRET_PATTERNS = [
-    re.compile(r'sk-[a-zA-Z0-9_]{8,}'),              # OpenAI/Anthropic API keys
-    re.compile(r'gsk_[a-zA-Z0-9]{8,}'),             # Groq API keys
-    re.compile(r'ntn_[a-zA-Z0-9]{8,}'),             # Notion tokens
-    re.compile(r'ghp_[a-zA-Z0-9]{8,}'),             # GitHub PATs
-    re.compile(r'xoxb-[a-zA-Z0-9-]+'),              # Slack tokens
-    re.compile(r'key[_-]?[a-zA-Z0-9]{16,}', re.I),  # Generic API key patterns
-    re.compile(r'-----BEGIN .* KEY-----', re.S),     # PEM keys
-    re.compile(r'password\s*[=:]\s*\S+', re.I),     # password assignments
+    re.compile(r"sk-[a-zA-Z0-9_]{8,}"),  # OpenAI/Anthropic API keys
+    re.compile(r"gsk_[a-zA-Z0-9]{8,}"),  # Groq API keys
+    re.compile(r"ntn_[a-zA-Z0-9]{8,}"),  # Notion tokens
+    re.compile(r"ghp_[a-zA-Z0-9]{8,}"),  # GitHub PATs
+    re.compile(r"xoxb-[a-zA-Z0-9-]+"),  # Slack tokens
+    re.compile(r"key[_-]?[a-zA-Z0-9]{16,}", re.I),  # Generic API key patterns
+    re.compile(r"-----BEGIN .* KEY-----", re.S),  # PEM keys
+    re.compile(r"password\s*[=:]\s*\S+", re.I),  # password assignments
     re.compile(r'token\s*[=:]\s*["\']?\S{10,}', re.I),  # token assignments
-    re.compile(r'export\s+\w*(?:KEY|TOKEN|SECRET|PASSWORD)\w*\s*=', re.I),  # env exports
-    re.compile(r'\b\d{3}[-.]?\d{3}[-.]?\d{4}\b'),   # phone numbers
-    re.compile(r'[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,10}'),  # emails (bounded, HT-4)
-    re.compile(r'\.env\b'),                          # .env references
-    re.compile(r'credentials?\.(json|yaml|yml|toml)', re.I),
+    re.compile(
+        r"export\s+\w*(?:KEY|TOKEN|SECRET|PASSWORD)\w*\s*=", re.I
+    ),  # env exports
+    re.compile(r"\b\d{3}[-.]?\d{3}[-.]?\d{4}\b"),  # phone numbers
+    re.compile(
+        r"[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,10}"
+    ),  # emails (bounded, HT-4)
+    re.compile(r"\.env\b"),  # .env references
+    re.compile(r"credentials?\.(json|yaml|yml|toml)", re.I),
 ]
 
 # --- DeepSeek Blocklist (proprietary terms that skip DeepSeek) ---
 
 DEEPSEEK_BLOCKLIST = [
-    "popchaos", "pop chaos", "nissim", "gone missin", "openclaw", "entropy bot",
-    "revenue", "customer", "pricing", "our strategy", "our roadmap",
-    "system design", "our plugin", "our architecture", "proprietary",
-    "sidechain operator", "majestyk", "space age superstar",
+    "popchaos",
+    "pop chaos",
+    "nissim",
+    "gone missin",
+    "openclaw",
+    "entropy bot",
+    "revenue",
+    "customer",
+    "pricing",
+    "our strategy",
+    "our roadmap",
+    "system design",
+    "our plugin",
+    "our architecture",
+    "proprietary",
+    "sidechain operator",
+    "majestyk",
+    "space age superstar",
 ]
 
 # --- Task Classification Keywords ---
@@ -183,55 +210,126 @@ DEEPSEEK_BLOCKLIST = [
 TASK_KEYWORDS = {
     "claude_only": {
         "keywords": [
-            "decide", "should we", "should i", "strategy", "plan", "approve",
-            "security", "review security", "attack surface", "red team",
-            "architecture", "design the", "deploy", "push", "commit",
-            "edit file", "modify", "debug", "fix this bug",
-            "what do you think", "your opinion", "recommend",
+            "decide",
+            "should we",
+            "should i",
+            "strategy",
+            "plan",
+            "approve",
+            "security",
+            "review security",
+            "attack surface",
+            "red team",
+            "architecture",
+            "design the",
+            "deploy",
+            "push",
+            "commit",
+            "edit file",
+            "modify",
+            "debug",
+            "fix this bug",
+            "what do you think",
+            "your opinion",
+            "recommend",
         ],
         "model": "claude",
     },
     "gemini_research": {
         "keywords": [
-            "summarize", "summarise", "recap", "overview", "what do.*say about",
-            "read this codebase", "read this file", "read these",
-            "find in", "search across", "cross-reference",
-            "compare these", "find contradictions", "extract from",
-            "analyze this pdf", "analyze these articles",
-            "translate to english", "translate to spanish", "translate to",
+            "summarize",
+            "summarise",
+            "recap",
+            "overview",
+            "what do.*say about",
+            "read this codebase",
+            "read this file",
+            "read these",
+            "find in",
+            "search across",
+            "cross-reference",
+            "compare these",
+            "find contradictions",
+            "extract from",
+            "analyze this pdf",
+            "analyze these articles",
+            "translate to english",
+            "translate to spanish",
+            "translate to",
         ],
         "model": "gemini",
     },
     "groq_reasoning": {
         "keywords": [
-            "explain", "explain why", "explain how", "walk through", "step by step",
-            "analyze this code", "what's wrong with", "code review",
-            "write docs for", "document this",
-            "how does.*work", "what happens when", "describe how",
+            "explain",
+            "explain why",
+            "explain how",
+            "walk through",
+            "step by step",
+            "analyze this code",
+            "what's wrong with",
+            "code review",
+            "write docs for",
+            "document this",
+            "how does.*work",
+            "what happens when",
+            "describe how",
         ],
         "model": "groq",
     },
     "qwen_code": {
         "keywords": [
-            "generate", "scaffold", "boilerplate", "template",
-            "write code for", "write a function", "write a class",
-            "write tests for", "unit test", "test file", "integration test", "pytest",
-            "translate.*to python", "translate.*to c\\+\\+", "translate.*to rust",
-            "convert.*code", "rename all", "batch", "regex for",
-            "refactor", "refactor.*to use", "apply.*pattern",
-            "cmakelist.*", "github action", "ci config", "dockerfile",
+            "generate",
+            "scaffold",
+            "boilerplate",
+            "template",
+            "write code for",
+            "write a function",
+            "write a class",
+            "write tests for",
+            "unit test",
+            "test file",
+            "integration test",
+            "pytest",
+            "translate.*to python",
+            "translate.*to c\\+\\+",
+            "translate.*to rust",
+            "convert.*code",
+            "rename all",
+            "batch",
+            "regex for",
+            "refactor",
+            "refactor.*to use",
+            "apply.*pattern",
+            "cmakelist.*",
+            "github action",
+            "ci config",
+            "dockerfile",
         ],
         "model": "qwen",
     },
     "ollama_simple": {
         "keywords": [
-            "what is", "what are", "define", "syntax for",
-            "how to.*in python", "how to.*in bash", "how to.*in javascript",
-            "convert.*json.*yaml", "convert.*yaml.*json", "format this",
-            "spell check", "grammar", "fix typos",
-            "give me.*names", "brainstorm.*names", "list.*ideas",
-            "what http", "what status code",
-            "is this a bug", "classify",
+            "what is",
+            "what are",
+            "define",
+            "syntax for",
+            "how to.*in python",
+            "how to.*in bash",
+            "how to.*in javascript",
+            "convert.*json.*yaml",
+            "convert.*yaml.*json",
+            "format this",
+            "spell check",
+            "grammar",
+            "fix typos",
+            "give me.*names",
+            "brainstorm.*names",
+            "list.*ideas",
+            "what http",
+            "what status code",
+            "is this a bug",
+            "classify",
         ],
         "model": "ollama",
     },
@@ -240,36 +338,55 @@ TASK_KEYWORDS = {
 # --- Follow-up Detection (Task Chaining) ---
 
 FOLLOWUP_SIGNALS = [
-    re.compile(r'^(now|also|then|and|next|what about|how about)\b', re.I),
-    re.compile(r'^(compare that|expand on|tell me more|go deeper|elaborate)', re.I),
-    re.compile(r'\b(the previous|from before|you just said|your answer|that result)\b', re.I),
+    re.compile(r"^(now|also|then|and|next|what about|how about)\b", re.I),
+    re.compile(r"^(compare that|expand on|tell me more|go deeper|elaborate)", re.I),
+    re.compile(
+        r"\b(the previous|from before|you just said|your answer|that result)\b", re.I
+    ),
 ]
 
 # --- Confidence Scoring ---
 
 HEDGING_WORDS = [
-    "i'm not sure", "i think", "probably", "might be", "could be",
-    "unclear", "ambiguous", "it depends", "hard to say",
-    "i believe", "perhaps", "possibly", "not certain",
+    "i'm not sure",
+    "i think",
+    "probably",
+    "might be",
+    "could be",
+    "unclear",
+    "ambiguous",
+    "it depends",
+    "hard to say",
+    "i believe",
+    "perhaps",
+    "possibly",
+    "not certain",
 ]
 
 REFUSAL_SIGNALS = [
-    "i can't", "i cannot", "i don't have enough", "beyond my capability",
-    "i'm unable to", "not able to", "outside my", "i need more context",
+    "i can't",
+    "i cannot",
+    "i don't have enough",
+    "beyond my capability",
+    "i'm unable to",
+    "not able to",
+    "outside my",
+    "i need more context",
 ]
 
 
 @dataclass
 class RouteResult:
     """Result of routing a task to a model."""
-    model: str                          # "gemini", "groq", "claude", etc.
-    wrapper: Optional[str]              # path to safe wrapper, or None for Claude
-    reason: str                         # why this model was chosen
-    tier: int                           # 1-4
+
+    model: str  # "gemini", "groq", "claude", etc.
+    wrapper: Optional[str]  # path to safe wrapper, or None for Claude
+    reason: str  # why this model was chosen
+    tier: int  # 1-4
     fallback_chain: list = field(default_factory=list)  # remaining fallbacks
     gate_triggered: Optional[str] = None  # which safety gate fired, if any
-    is_followup: bool = False           # was this detected as a follow-up?
-    confidence: float = 1.0             # routing confidence (0-1)
+    is_followup: bool = False  # was this detected as a follow-up?
+    confidence: float = 1.0  # routing confidence (0-1)
 
 
 def log_event(status: str, detail: str) -> None:
@@ -285,6 +402,7 @@ def log_event(status: str, detail: str) -> None:
 
 # --- Rate Limit Tracking ---
 
+
 def load_rate_limits() -> dict:
     """Load rate limit state from disk."""
     if RATE_LIMITS_FILE.exists():
@@ -296,9 +414,11 @@ def load_rate_limits() -> dict:
 
 
 def save_rate_limits(state: dict) -> None:
-    """Save rate limit state to disk."""
+    """Save rate limit state to disk (atomic with flock)."""
     RATE_LIMITS_FILE.parent.mkdir(parents=True, exist_ok=True)
-    RATE_LIMITS_FILE.write_text(json.dumps(state, indent=2))
+    with open(RATE_LIMITS_FILE, "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        f.write(json.dumps(state, indent=2))
 
 
 def record_call(model_name: str) -> None:
@@ -311,7 +431,8 @@ def record_call(model_name: str) -> None:
     # Prune calls older than 60 seconds
     cutoff = time.time() - 60
     state[model_name]["calls"] = [
-        c for c in state[model_name]["calls"]
+        c
+        for c in state[model_name]["calls"]
         if datetime.fromisoformat(c.replace("Z", "+00:00")).timestamp() > cutoff
     ]
     save_rate_limits(state)
@@ -329,7 +450,8 @@ def check_rate_limit(model_name: str) -> bool:
 
     cutoff = time.time() - 60
     recent_calls = [
-        c for c in state.get(model_name, {}).get("calls", [])
+        c
+        for c in state.get(model_name, {}).get("calls", [])
         if datetime.fromisoformat(c.replace("Z", "+00:00")).timestamp() > cutoff
     ]
     remaining = model["rpm_limit"] - len(recent_calls)
@@ -337,6 +459,7 @@ def check_rate_limit(model_name: str) -> bool:
 
 
 # --- Model Health ---
+
 
 def check_model_health(model_name: str) -> bool:
     """Check if a model is available. Returns True if healthy."""
@@ -355,9 +478,7 @@ def check_model_health(model_name: str) -> bool:
     if model_name == "ollama":
         # Check if ollama service is running
         try:
-            result = subprocess.run(
-                ["ollama", "list"], capture_output=True, timeout=5
-            )
+            result = subprocess.run(["ollama", "list"], capture_output=True, timeout=5)
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
             return False
@@ -385,6 +506,7 @@ def check_budget() -> float:
 
 # --- Gate 0a: Secrets Detection ---
 
+
 def contains_secrets(message: str) -> bool:
     """Check if message contains credentials or PII."""
     for pattern in SECRET_PATTERNS:
@@ -394,6 +516,7 @@ def contains_secrets(message: str) -> bool:
 
 
 # --- Gate 0b: Size Validation ---
+
 
 def check_message_size(message: str) -> Optional[str]:
     """Return error string if message is invalid size, None if OK."""
@@ -405,6 +528,7 @@ def check_message_size(message: str) -> Optional[str]:
 
 
 # --- Context Checks ---
+
 
 def is_followup(message: str) -> bool:
     """Detect if this is a follow-up to a previous task."""
@@ -429,6 +553,7 @@ def set_last_model(model_name: str) -> None:
 
 # --- DeepSeek Filter ---
 
+
 def contains_deepseek_blocked(message: str) -> bool:
     """Check if message contains proprietary terms that should skip DeepSeek."""
     lower = message.lower()
@@ -436,6 +561,7 @@ def contains_deepseek_blocked(message: str) -> bool:
 
 
 # --- Task Classification ---
+
 
 def classify_task(message: str) -> tuple[str, float]:
     """Classify a message into a task category.
@@ -452,18 +578,26 @@ def classify_task(message: str) -> tuple[str, float]:
         for keyword in config["keywords"]:
             # If keyword already contains regex chars (.*+\), use as-is
             # Otherwise, wrap with word boundaries
-            if any(c in keyword for c in r'.*+\()[]{}|^$?'):
+            if any(c in keyword for c in r".*+\()[]{}|^$?"):
                 pattern = keyword
             else:
-                pattern = rf'\b{keyword}\b'
+                pattern = rf"\b{keyword}\b"
             if re.search(pattern, lower):
                 return config["model"], 0.9
 
     # Check for Claude-leaning signals before defaulting to Gemini (HT-6)
     claude_signals = [
-        "this codebase", "this project", "my files", "our system",
-        "this repo", "my repo", "these files", "this file",
-        "the current", "our codebase", "my project",
+        "this codebase",
+        "this project",
+        "my files",
+        "our system",
+        "this repo",
+        "my repo",
+        "these files",
+        "this file",
+        "the current",
+        "our codebase",
+        "my project",
     ]
     if any(sig in lower for sig in claude_signals):
         return "claude", 0.6
@@ -473,6 +607,7 @@ def classify_task(message: str) -> tuple[str, float]:
 
 
 # --- Confidence Scoring (for responses) ---
+
 
 def score_response_confidence(response: str) -> int:
     """Score a model's response confidence. 100 = confident, 0 = uncertain."""
@@ -493,14 +628,14 @@ def score_response_confidence(response: str) -> int:
 # --- Fallback Chains ---
 
 FALLBACK_CHAINS = {
-    "research":     ["gemini", "groq", "deepseek", "ollama"],
-    "code":         ["qwen", "groq", "ollama"],
-    "reasoning":    ["gemini", "groq", "deepseek"],
-    "simple":       ["ollama", "groq", "gemini"],
+    "research": ["gemini", "groq", "deepseek", "ollama"],
+    "code": ["qwen", "groq", "ollama"],
+    "reasoning": ["gemini", "groq", "deepseek"],
+    "simple": ["ollama", "groq", "gemini"],
     "large_context": ["gemini", "groq"],
-    "privacy":      ["ollama"],
-    "security":     [],  # Claude only, no fallback
-    "default":      ["gemini", "groq", "ollama", "deepseek"],
+    "privacy": ["ollama"],
+    "security": [],  # Claude only, no fallback
+    "default": ["gemini", "groq", "ollama", "deepseek"],
 }
 
 
@@ -542,6 +677,7 @@ def get_fallback_chain(model: str, message: str) -> list[str]:
 
 
 # --- Main Router ---
+
 
 def route(message: str, previous_model: Optional[str] = None) -> RouteResult:
     """Route a task to the best available model.
@@ -709,7 +845,7 @@ def clean_response(text: str) -> str:
         return text
 
     # Strip qwen3 thinking chain (Thinking...\n[chain]\n...done thinking.\n[answer])
-    thinking_match = re.search(r'(?:\.\.\.done thinking\.?\s*\n?)(.*)', text, re.DOTALL)
+    thinking_match = re.search(r"(?:\.\.\.done thinking\.?\s*\n?)(.*)", text, re.DOTALL)
     if thinking_match and "Thinking..." in text:
         text = thinking_match.group(1).strip()
 
@@ -717,28 +853,32 @@ def clean_response(text: str) -> str:
     cleaned = []
     for line in lines:
         # Strip markdown headers (## Header → Header)
-        line = re.sub(r'^#{1,6}\s+', '', line)
+        line = re.sub(r"^#{1,6}\s+", "", line)
         # Strip bold markers (**text** → text)
-        line = re.sub(r'\*\*(.+?)\*\*', r'\1', line)
+        line = re.sub(r"\*\*(.+?)\*\*", r"\1", line)
         # Strip italic markers (*text* → text, but not bullet *)
-        line = re.sub(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)', r'\1', line)
+        line = re.sub(r"(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)", r"\1", line)
         # Strip horizontal rules
-        if re.match(r'^[-*_]{3,}\s*$', line):
+        if re.match(r"^[-*_]{3,}\s*$", line):
             continue
         # Strip leading bullet markers (- item → item, * item → item)
-        line = re.sub(r'^\s*[-*]\s+', '', line)
+        line = re.sub(r"^\s*[-*]\s+", "", line)
         # Strip numbered list markers (1. item → item)
-        line = re.sub(r'^\s*\d+\.\s+', '', line)
+        line = re.sub(r"^\s*\d+\.\s+", "", line)
         cleaned.append(line)
 
     result = "\n".join(cleaned)
     # Collapse 3+ consecutive newlines to 2
-    result = re.sub(r'\n{3,}', '\n\n', result)
+    result = re.sub(r"\n{3,}", "\n\n", result)
     return result.strip()
 
 
-def execute(message: str, dry_run: bool = False, verbose: bool = False,
-            force_model: Optional[str] = None) -> str:
+def execute(
+    message: str,
+    dry_run: bool = False,
+    verbose: bool = False,
+    force_model: Optional[str] = None,
+) -> str:
     """Route and optionally execute a task.
 
     Args:
@@ -753,6 +893,17 @@ def execute(message: str, dry_run: bool = False, verbose: bool = False,
     if force_model:
         if force_model not in MODELS:
             return f"[ERROR] Unknown model '{force_model}'. Available: {', '.join(MODELS.keys())}"
+        # Security gate: secrets and DeepSeek blocklist apply even with force_model
+        if contains_secrets(message):
+            log_event(
+                "GATE_FORCED", f"Secrets detected — blocking forced {force_model}"
+            )
+            return f"[BLOCKED] Message contains credentials/PII — cannot send to {force_model}"
+        if force_model == "deepseek" and contains_deepseek_blocked(message):
+            log_event("GATE_FORCED", "Proprietary terms — blocking forced deepseek")
+            return (
+                "[BLOCKED] Message contains proprietary terms — cannot send to deepseek"
+            )
         model_info = MODELS[force_model]
         result = RouteResult(
             model=force_model,
@@ -842,7 +993,9 @@ def execute(message: str, dry_run: bool = False, verbose: bool = False,
                             text=True,
                             timeout=120,
                         )
-                        fb_response = fb_proc.stdout.strip() if fb_proc.returncode == 0 else ""
+                        fb_response = (
+                            fb_proc.stdout.strip() if fb_proc.returncode == 0 else ""
+                        )
                     if fb_response:
                         response = clean_response(fb_response)
                         break
@@ -857,18 +1010,29 @@ def execute(message: str, dry_run: bool = False, verbose: bool = False,
             # Infer validator task_type from routing context
             validator_type = "general"
             msg_lower = message.lower()
-            if any(kw in msg_lower for kw in ["code", "implement", "function", "class", "def ", "import"]):
+            if any(
+                kw in msg_lower
+                for kw in ["code", "implement", "function", "class", "def ", "import"]
+            ):
                 validator_type = "code"
-            elif any(kw in msg_lower for kw in ["file", "path", "directory", "find", "locate"]):
+            elif any(
+                kw in msg_lower
+                for kw in ["file", "path", "directory", "find", "locate"]
+            ):
                 validator_type = "file_analysis"
-            elif any(kw in msg_lower for kw in ["count", "how many", "number of", "total"]):
+            elif any(
+                kw in msg_lower for kw in ["count", "how many", "number of", "total"]
+            ):
                 validator_type = "count"
 
             validation = validate_delegated_output(response, task_type=validator_type)
 
             if validation["blocked"]:
                 warnings_str = "; ".join(validation["warnings"])
-                log_event("VALIDATION_BLOCKED", f"{result.model} output blocked: {warnings_str}")
+                log_event(
+                    "VALIDATION_BLOCKED",
+                    f"{result.model} output blocked: {warnings_str}",
+                )
                 return f"[BLOCKED BY VALIDATOR] {result.model} output failed safety check: {warnings_str}. Task queued for Claude."
 
             if validation["warnings"]:
@@ -892,18 +1056,37 @@ def execute(message: str, dry_run: bool = False, verbose: bool = False,
 
 # --- CLI ---
 
+
 def main():
     import argparse
 
-    parser = argparse.ArgumentParser(description="LLM Router — route tasks to the best model")
+    parser = argparse.ArgumentParser(
+        description="LLM Router — route tasks to the best model"
+    )
     parser.add_argument("message", nargs="?", help="Task to route (positional)")
-    parser.add_argument("-p", "--prompt", help="Task to route (same as positional, for consistency with safe wrappers)")
-    parser.add_argument("--dry-run", action="store_true", help="Show routing decision only")
-    parser.add_argument("--verbose", "-v", action="store_true", help="Show routing details")
-    parser.add_argument("--score", help="Score a response's confidence (pass response text)")
-    parser.add_argument("--model", choices=list(MODELS.keys()), help="Force a specific model (bypass routing)")
+    parser.add_argument(
+        "-p",
+        "--prompt",
+        help="Task to route (same as positional, for consistency with safe wrappers)",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Show routing decision only"
+    )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Show routing details"
+    )
+    parser.add_argument(
+        "--score", help="Score a response's confidence (pass response text)"
+    )
+    parser.add_argument(
+        "--model",
+        choices=list(MODELS.keys()),
+        help="Force a specific model (bypass routing)",
+    )
     parser.add_argument("--health", action="store_true", help="Check all model health")
-    parser.add_argument("--rates", action="store_true", help="Show current rate limit state")
+    parser.add_argument(
+        "--rates", action="store_true", help="Show current rate limit state"
+    )
     args = parser.parse_args()
 
     # Support both positional and -p flag (consistent with safe wrappers)
@@ -915,10 +1098,14 @@ def main():
         for name in MODELS:
             healthy = check_model_health(name)
             rate_ok = check_rate_limit(name)
-            status = "OK" if (healthy and rate_ok) else "DEGRADED" if healthy else "DOWN"
+            status = (
+                "OK" if (healthy and rate_ok) else "DEGRADED" if healthy else "DOWN"
+            )
             rpm = MODELS[name]["rpm_limit"]
             rpm_str = f"{rpm} RPM" if rpm else "unlimited"
-            print(f"  {name:12s} [{status:8s}] tier={MODELS[name]['tier']} rpm={rpm_str}")
+            print(
+                f"  {name:12s} [{status:8s}] tier={MODELS[name]['tier']} rpm={rpm_str}"
+            )
         budget = check_budget()
         print(f"\n  Claude budget: {budget:.0f}% used")
         return
@@ -930,8 +1117,10 @@ def main():
         for name in MODELS:
             if name in state:
                 recent = [
-                    c for c in state[name].get("calls", [])
-                    if datetime.fromisoformat(c.replace("Z", "+00:00")).timestamp() > cutoff
+                    c
+                    for c in state[name].get("calls", [])
+                    if datetime.fromisoformat(c.replace("Z", "+00:00")).timestamp()
+                    > cutoff
                 ]
                 rpm = MODELS[name]["rpm_limit"] or "unlimited"
                 print(f"  {name:12s} {len(recent)} calls/min (limit: {rpm})")
@@ -957,8 +1146,9 @@ def main():
             parser.print_help()
             return
 
-    output = execute(args.message, dry_run=args.dry_run, verbose=args.verbose,
-                     force_model=args.model)
+    output = execute(
+        args.message, dry_run=args.dry_run, verbose=args.verbose, force_model=args.model
+    )
     print(output)
 
 

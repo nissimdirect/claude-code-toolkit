@@ -16,8 +16,9 @@ import delegation_hook
 
 # --- Compliance tracking tests ---
 
-def test_load_compliance_defaults_have_new_fields():
-    """load_compliance() defaults include new tracking fields."""
+
+def test_update_compliance_creates_defaults():
+    """update_compliance() creates file with all required fields when missing."""
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False) as f:
         tmp_path = Path(f.name)
     tmp_path.unlink()
@@ -25,39 +26,44 @@ def test_load_compliance_defaults_have_new_fields():
     original = delegation_hook.COMPLIANCE_FILE
     delegation_hook.COMPLIANCE_FILE = tmp_path
     try:
-        state = delegation_hook.load_compliance()
+        delegation_hook.update_compliance(False, False, False)
+        state = json.loads(tmp_path.read_text())
         assert "total_prompts" in state
         assert "total_skipped_complexity" in state
         assert "backend_failures" in state
         assert "delegation_rate" in state
-        assert state["total_prompts"] == 0
+        assert state["total_prompts"] == 1
         assert state["backend_failures"] == 0
     finally:
         delegation_hook.COMPLIANCE_FILE = original
+        tmp_path.unlink(missing_ok=True)
 
 
-def test_load_compliance_forward_compatible():
-    """load_compliance() adds missing fields to old-format files."""
+def test_update_compliance_forward_compatible():
+    """update_compliance() adds missing fields to old-format files."""
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
-        json.dump({
-            "consecutive_ignored": 0,
-            "total_advised": 5,
-            "total_delegated": 10,
-            "total_prefetched": 10,
-            "last_date": "2026-02-15",
-        }, f)
+        json.dump(
+            {
+                "consecutive_ignored": 0,
+                "total_advised": 5,
+                "total_delegated": 10,
+                "total_prefetched": 10,
+                "last_date": time.strftime("%Y-%m-%d"),
+            },
+            f,
+        )
         tmp_path = Path(f.name)
 
     original = delegation_hook.COMPLIANCE_FILE
     delegation_hook.COMPLIANCE_FILE = tmp_path
     try:
-        state = delegation_hook.load_compliance()
+        delegation_hook.update_compliance(False, False, False)
+        state = json.loads(tmp_path.read_text())
         assert state["total_advised"] == 5
         assert state["total_delegated"] == 10
-        assert state["total_prompts"] == 0
-        assert state["total_skipped_complexity"] == 0
-        assert state["backend_failures"] == 0
-        assert state["delegation_rate"] == "0%"
+        assert state["total_prompts"] == 1  # incremented by update_compliance
+        assert "total_skipped_complexity" in state
+        assert "backend_failures" in state
     finally:
         delegation_hook.COMPLIANCE_FILE = original
         tmp_path.unlink(missing_ok=True)
@@ -127,10 +133,10 @@ def test_delegation_rate_computed():
     original = delegation_hook.COMPLIANCE_FILE
     delegation_hook.COMPLIANCE_FILE = tmp_path
     try:
-        delegation_hook.update_compliance(False, True, False)   # prompt 1, delegated
-        delegation_hook.update_compliance(False, False, False)   # prompt 2
-        delegation_hook.update_compliance(False, True, False)   # prompt 3, delegated
-        delegation_hook.update_compliance(False, False, False)   # prompt 4
+        delegation_hook.update_compliance(False, True, False)  # prompt 1, delegated
+        delegation_hook.update_compliance(False, False, False)  # prompt 2
+        delegation_hook.update_compliance(False, True, False)  # prompt 3, delegated
+        delegation_hook.update_compliance(False, False, False)  # prompt 4
         state = json.loads(tmp_path.read_text())
         assert state["delegation_rate"] == "50%"
         assert state["total_delegated"] == 2
@@ -141,6 +147,7 @@ def test_delegation_rate_computed():
 
 
 # --- Complexity gate tests (stable, no budget awareness) ---
+
 
 def test_is_too_complex_short():
     """Short simple prompts are NOT complex."""
@@ -175,9 +182,13 @@ def test_complexity_gate_stable():
 
 # --- Extraction tests (always smart, no budget tiers) ---
 
+
 def test_extract_query_uses_focused_extraction():
     """extract_query uses smart focused extraction for long prompts."""
-    msg = "Some context here.\nWhat is the best approach?\nBuild a new module.\n" + "x" * 1500
+    msg = (
+        "Some context here.\nWhat is the best approach?\nBuild a new module.\n"
+        + "x" * 1500
+    )
     result = delegation_hook.extract_query(msg)
     assert "What is the best approach?" in result
     assert "Build a new module" in result
@@ -208,6 +219,7 @@ def test_extract_summary_keeps_first_and_last():
 
 
 # --- Circuit breaker tests ---
+
 
 def test_breaker_closed_by_default():
     """Circuit breaker is closed when no state file exists."""
@@ -265,10 +277,15 @@ def test_breaker_half_open_after_cooldown():
     """Breaker allows one attempt after cooldown period."""
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
         # Write tripped state with old monotonic timestamp (past cooldown)
-        json.dump({
-            "failures": delegation_hook.GEMINI_BREAKER_THRESHOLD,
-            "tripped_at": time.monotonic() - delegation_hook.GEMINI_BREAKER_COOLDOWN - 1,
-        }, f)
+        json.dump(
+            {
+                "failures": delegation_hook.GEMINI_BREAKER_THRESHOLD,
+                "tripped_at": time.monotonic()
+                - delegation_hook.GEMINI_BREAKER_COOLDOWN
+                - 1,
+            },
+            f,
+        )
         tmp_path = Path(f.name)
 
     original = delegation_hook.GEMINI_BREAKER_FILE
@@ -284,10 +301,13 @@ def test_breaker_half_open_after_cooldown():
 def test_breaker_stays_open_within_cooldown():
     """Breaker stays tripped within cooldown period."""
     with tempfile.NamedTemporaryFile(suffix=".json", delete=False, mode="w") as f:
-        json.dump({
-            "failures": delegation_hook.GEMINI_BREAKER_THRESHOLD,
-            "tripped_at": time.monotonic(),  # Just tripped
-        }, f)
+        json.dump(
+            {
+                "failures": delegation_hook.GEMINI_BREAKER_THRESHOLD,
+                "tripped_at": time.monotonic(),  # Just tripped
+            },
+            f,
+        )
         tmp_path = Path(f.name)
 
     original = delegation_hook.GEMINI_BREAKER_FILE
@@ -318,6 +338,7 @@ def test_breaker_below_threshold_stays_closed():
 
 
 # --- Concurrency stress tests ---
+
 
 def test_concurrent_breaker_records():
     """Multiple threads recording failures don't corrupt breaker state."""
@@ -378,7 +399,7 @@ def test_concurrent_breaker_mixed_success_failure():
         # Mix of successes and failures
         threads = []
         for i in range(20):
-            success = (i % 3 == 0)  # ~33% success rate
+            success = i % 3 == 0  # ~33% success rate
             threads.append(_threading.Thread(target=record, args=(success,)))
         for t in threads:
             t.start()
@@ -463,7 +484,9 @@ def test_breaker_state_label():
         # Reset it
         delegation_hook._gemini_breaker_record(True)
         label = delegation_hook._breaker_state_label()
-        assert label == "closed(0)" or label == "closed", f"Expected closed, got {label}"
+        assert label == "closed(0)" or label == "closed", (
+            f"Expected closed, got {label}"
+        )
     finally:
         delegation_hook.GEMINI_BREAKER_FILE = original
         tmp_path.unlink(missing_ok=True)

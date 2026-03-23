@@ -106,6 +106,20 @@ def main():
         except (json.JSONDecodeError, OSError):
             pass
 
+    # --- MCP Delegations (v4.5 hybrid) ---
+    if AUDIT_LOG.exists():
+        lines = [
+            l.strip() for l in AUDIT_LOG.read_text().strip().split("\n") if l.strip()
+        ]
+        mcp_entries = [l for l in lines if "source=mcp" in l]
+        if mcp_entries:
+            mcp_ok = sum(1 for l in mcp_entries if "DELEGATED" in l)
+            mcp_blocked = sum(1 for l in mcp_entries if "BLOCKED" in l)
+            print("\n  --- MCP Delegations (v4.5 hybrid) ---")
+            print(f"  MCP calls:        {len(mcp_entries)}")
+            print(f"  MCP delegated:    {mcp_ok}")
+            print(f"  MCP blocked:      {mcp_blocked}")
+
     # --- Compliance ---
     if COMPLIANCE.exists():
         try:
@@ -114,6 +128,9 @@ def main():
             print(f"  Total prompts:    {comp.get('total_prompts', 0)}")
             print(f"  Delegation rate:  {comp.get('delegation_rate', '0%')}")
             print(f"  Backend failures: {comp.get('backend_failures', 0)}")
+            mcp_del = comp.get("mcp_delegated", 0)
+            if mcp_del > 0:
+                print(f"  MCP delegated:    {mcp_del}")
         except (json.JSONDecodeError, OSError):
             pass
 
@@ -266,6 +283,17 @@ def json_summary():
             data["gemini_date"] = counter.get("date", "?")
         except (json.JSONDecodeError, OSError):
             pass
+
+    # MCP delegation counts (v4.5 hybrid)
+    if AUDIT_LOG.exists():
+        lines = [
+            l.strip() for l in AUDIT_LOG.read_text().strip().split("\n") if l.strip()
+        ]
+        mcp_lines = [l for l in lines if "source=mcp" in l]
+        if mcp_lines:
+            data["mcp_delegated"] = sum(1 for l in mcp_lines if "DELEGATED" in l)
+            data["mcp_blocked"] = sum(1 for l in mcp_lines if "BLOCKED" in l)
+            data["mcp_total"] = len(mcp_lines)
 
     print(json.dumps(data))
 

@@ -68,7 +68,9 @@ def extract_user_messages(jsonl_path: Path, max_messages: int = 200) -> list[str
                     # Claude Code JSONL format: type="user", content in entry["message"]["content"]
                     if entry.get("type") == "user":
                         msg = entry.get("message", {})
-                        content = msg.get("content", "") if isinstance(msg, dict) else ""
+                        content = (
+                            msg.get("content", "") if isinstance(msg, dict) else ""
+                        )
                         if isinstance(content, list):
                             text_parts = [
                                 p.get("text", "")
@@ -121,7 +123,9 @@ def analyze_sessions(num_sessions: int = 5) -> dict:
         "sessions_analyzed": len(jsonl_files),
         "total_prompts": total_prompts,
         "delegatable": delegatable,
-        "delegatable_pct": (delegatable / total_prompts * 100) if total_prompts > 0 else 0,
+        "delegatable_pct": (delegatable / total_prompts * 100)
+        if total_prompts > 0
+        else 0,
         "classifications": dict(all_classifications),
     }
 
@@ -136,24 +140,30 @@ def analyze_live_log() -> dict:
         return {"error": "Audit log is empty"}
 
     models = Counter()
+    sources = Counter()
     advised_count = 0
     for line in lines:
         for token in line.split():
             if token.startswith("model="):
                 models[token.split("=")[1]] += 1
+            if token.startswith("source="):
+                sources[token.split("=")[1]] += 1
             # v2 audit log uses tone=X (not injected=True)
             if token.startswith("tone=") and token != "tone=none":
                 advised_count += 1
 
     total = len(lines)
     delegatable = total - models.get("claude", 0)
-    return {
+    result = {
         "total_prompts": total,
         "delegatable": delegatable,
         "delegatable_pct": (delegatable / total * 100) if total > 0 else 0,
         "advised": advised_count,
         "classifications": dict(models),
     }
+    if sources:
+        result["sources"] = dict(sources)
+    return result
 
 
 def validate_assumptions(actual_data: dict) -> None:
@@ -169,7 +179,9 @@ def validate_assumptions(actual_data: dict) -> None:
     research_count = classifications.get("gemini", 0)
     simple_count = classifications.get("ollama", 0)
     code_count = classifications.get("qwen", 0)
-    claude_count = classifications.get("claude", 0) + classifications.get("claude_secrets", 0)
+    claude_count = classifications.get("claude", 0) + classifications.get(
+        "claude_secrets", 0
+    )
     groq_count = classifications.get("groq", 0)
 
     actuals = {
@@ -180,18 +192,26 @@ def validate_assumptions(actual_data: dict) -> None:
         "potential_savings_pct": actual_data.get("delegatable_pct", 0),
     }
 
-    print(f"\n{'Assumption':<30s} {'Hypothesis':>10s} {'Actual':>10s} {'Delta':>10s} {'Status'}")
+    print(
+        f"\n{'Assumption':<30s} {'Hypothesis':>10s} {'Actual':>10s} {'Delta':>10s} {'Status'}"
+    )
     print("-" * 80)
     for key, assumption in ASSUMPTIONS.items():
         hyp = assumption["hypothesis"]
         actual = actuals.get(key, 0)
         delta = actual - hyp
-        status = "VALIDATED" if abs(delta) < 10 else ("HIGHER" if delta > 0 else "LOWER")
+        status = (
+            "VALIDATED" if abs(delta) < 10 else ("HIGHER" if delta > 0 else "LOWER")
+        )
         emoji = "~" if abs(delta) < 10 else ("^" if delta > 0 else "v")
-        print(f"{assumption['description'][:30]:<30s} {hyp:>9.0f}% {actual:>9.1f}% {delta:>+9.1f}% {emoji} {status}")
+        print(
+            f"{assumption['description'][:30]:<30s} {hyp:>9.0f}% {actual:>9.1f}% {delta:>+9.1f}% {emoji} {status}"
+        )
 
     print(f"\nTotal prompts analyzed: {total}")
-    print(f"Delegatable: {actual_data.get('delegatable', 0)} ({actual_data.get('delegatable_pct', 0):.1f}%)")
+    print(
+        f"Delegatable: {actual_data.get('delegatable', 0)} ({actual_data.get('delegatable_pct', 0):.1f}%)"
+    )
 
 
 def main():

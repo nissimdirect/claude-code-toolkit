@@ -389,6 +389,29 @@ def check_delegation_health():
     else:
         results["gemini_api"] = "SKIPPED (no key)"
 
+    # 6a. Check MCP server health (llm-router)
+    mcp_config = Path.home() / ".mcp.json"
+    if mcp_config.exists():
+        try:
+            mcp_data = json.loads(mcp_config.read_text())
+            llm_router_mcp = mcp_data.get("mcpServers", {}).get("llm-router", {})
+            if llm_router_mcp:
+                mcp_script = (
+                    llm_router_mcp.get("args", [None])[-1]
+                    if llm_router_mcp.get("args")
+                    else None
+                )
+                if mcp_script and Path(mcp_script).exists():
+                    results["mcp_llm_router"] = "registered"
+                else:
+                    results["mcp_llm_router"] = f"MISSING script: {mcp_script}"
+            else:
+                results["mcp_llm_router"] = "NOT REGISTERED"
+        except (json.JSONDecodeError, OSError):
+            results["mcp_llm_router"] = "config_error"
+    else:
+        results["mcp_llm_router"] = "no_mcp_config"
+
     # 6. Check delegation hook is registered (check both settings files)
     hook_found = False
     for settings_name in ["settings.json", "settings.local.json"]:
