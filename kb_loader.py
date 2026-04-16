@@ -49,12 +49,16 @@ ADVISORS = {
             Path("~/Development/lenny/leading-product/articles").expanduser(),
             # Product Talk (Teresa Torres — product discovery, opportunity trees)
             Path("~/Development/lenny/product-talk/articles").expanduser(),
+            # Wave 15: Lenny newsletter full-text essays (complement podcast transcripts)
+            Path(
+                "~/Development/cdo-sources/lenny-newsletter-text/articles"
+            ).expanduser(),
         ],
         "index_dir": Path(
             "~/Development/lennys-podcast-transcripts/index"
         ).expanduser(),
         "pattern": "*.md",
-        "article_count": 3818,  # 303 transcripts + 175 norman + 273 nngroup + 2091 lukew + 45 lawsofux + 34 uxmyths + 18 deceptive + 281 ala + 114 smashing + 46 leading-product + 438 product-talk (baymard 0)
+        "article_count": 3875,  # 360 transcripts (303 + 57 Wave 12 gap-fill) + 175 norman + 273 nngroup + 2091 lukew + 45 lawsofux + 34 uxmyths + 18 deceptive + 281 ala + 114 smashing + 46 leading-product + 438 product-talk (baymard 0)
         "excerpt_lines": 80,  # Transcripts are huge, take more context
     },
     "music-biz": {
@@ -84,11 +88,15 @@ ADVISORS = {
     },
     "chatprd": {
         "name": "Claire Vo / ChatPRD",
-        "source": "ChatPRD Blog",
-        "article_dirs": [Path("~/Development/chatprd-blog/articles").expanduser()],
+        "source": "ChatPRD Blog + How I AI podcast (YouTube transcripts)",
+        "article_dirs": [
+            Path("~/Development/chatprd-blog/articles").expanduser(),
+            # Wave 12: How I AI podcast — Claire Vo interviews on AI-native workflows
+            Path("~/Development/ai-sdlc/how-i-ai/articles").expanduser(),
+        ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 119,
+        "article_count": 239,  # 119 blog + 120 How I AI transcripts
         "excerpt_lines": 40,
     },
     "indie-trinity": {
@@ -137,10 +145,34 @@ ADVISORS = {
             ).expanduser(),
             # Wave 6: Music technology
             Path("~/Development/cto/cdm/articles").expanduser(),
+            # Wave 12 (2026-04-16): AI SDLC — evals, agents, harnesses, LLM apps
+            Path("~/Development/ai-sdlc/hamel-husain/articles").expanduser(),
+            Path("~/Development/ai-sdlc/hamel-substack/articles").expanduser(),
+            Path("~/Development/ai-sdlc/eugene-yan/articles").expanduser(),
+            Path("~/Development/ai-sdlc/jason-liu/articles").expanduser(),
+            Path("~/Development/ai-sdlc/shreya-shankar/articles").expanduser(),
+            Path("~/Development/ai-sdlc/chip-huyen/articles").expanduser(),
+            Path("~/Development/ai-sdlc/ethan-mollick/articles").expanduser(),
+            Path("~/Development/ai-sdlc/dan-shipper/articles").expanduser(),
+            Path("~/Development/ai-sdlc/latent-space/articles").expanduser(),
+            Path("~/Development/ai-sdlc/ai-engineer-yt/articles").expanduser(),
+            Path("~/Development/ai-sdlc/dwarkesh/articles").expanduser(),
+            Path("~/Development/ai-sdlc/no-priors/articles").expanduser(),
+            Path("~/Development/ai-sdlc/cognitive-revolution/articles").expanduser(),
+            Path("~/Development/ai-sdlc/ai-daily-brief/articles").expanduser(),
+            # Wave 14: OpenAI Cookbook (agent patterns, structured outputs)
+            Path("~/Development/cdo-sources/openai-cookbook/articles").expanduser(),
+            # Wave 15 (2026-04-16): AI infra + journalism
+            Path("~/Development/cdo-sources/huggingface/articles").expanduser(),
+            Path("~/Development/cdo-sources/replicate/articles").expanduser(),
+            Path("~/Development/cdo-sources/together-ai/articles").expanduser(),
+            Path("~/Development/cdo-sources/supabase/articles").expanduser(),
+            Path("~/Development/cdo-sources/platformer/articles").expanduser(),
+            Path("~/Development/cdo-sources/stratechery/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 7610,  # valhalla 207 + airwindows 399 + fabfilter 23 + circuit 26 + cto-leaders 2,169 + miessler 2,786 + cdm 2,000
+        "article_count": 9700,  # prior 7,610 + Wave 12 (2,047) + Wave 15 AI infra (43): replicate 5 + together 24 + supabase 2 + platformer 7 + stratechery 5 + HF 0 (page-fetch recovery pending)
         "excerpt_lines": 40,
     },
     "obsidian-docs": {
@@ -875,16 +907,18 @@ ADVISORS = {
     # ── QA Red Team (Security Audit + OWASP) ──
     "qa-redteam": {
         "name": "QA Red Team (Security Audit + Attack Surface Analysis)",
-        "source": "OWASP Cheat Sheet Series + Daniel Miessler (AI Security, Red Teaming)",
+        "source": "OWASP + Daniel Miessler + Johann Rehberger (AI security, prompt injection)",
         "article_dirs": [
             Path("~/Development/security-kb/owasp-cheatsheets/articles").expanduser(),
             Path(
                 "~/Development/security-leaders/daniel-miessler/articles"
             ).expanduser(),
+            # Wave 12: Johann Rehberger — AI security, prompt injection, agent exploits
+            Path("~/Development/ai-sdlc/rehberger/articles").expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 2895,  # 109 (OWASP) + 2786 (Daniel Miessler)
+        "article_count": 3114,  # 109 (OWASP) + 2786 (Miessler) + 219 (Rehberger)
         "excerpt_lines": 60,
     },
     # ── PM (Product Management Frameworks) ──
@@ -949,10 +983,36 @@ ADVISORS = {
             Path("~/Development/knowledge-bases/frontend-design/valhead").expanduser(),
             # Cross-routed: Smashing Magazine UX articles
             Path("~/Development/ux-design/smashingmag/articles").expanduser(),
+            # Wave 13 (2026-04-16): CDO — AI-enabled design, design systems, modern workflow
+            Path("~/Development/cdo-sources/brad-frost/articles").expanduser(),
+            Path("~/Development/cdo-sources/eightshapes/articles").expanduser(),
+            Path("~/Development/cdo-sources/storybook/articles").expanduser(),
+            Path("~/Development/cdo-sources/wattenberger/articles").expanduser(),
+            Path("~/Development/cdo-sources/maggie-appleton/articles").expanduser(),
+            Path("~/Development/cdo-sources/interconnected/articles").expanduser(),
+            Path("~/Development/cdo-sources/linear-blog/articles").expanduser(),
+            Path("~/Development/cdo-sources/linear-changelog/articles").expanduser(),
+            Path("~/Development/cdo-sources/adactio/articles").expanduser(),
+            Path("~/Development/cdo-sources/frank-chimero/articles").expanduser(),
+            Path("~/Development/cdo-sources/shadcn/articles").expanduser(),
+            Path("~/Development/cdo-sources/vercel/articles").expanduser(),
+            Path("~/Development/cdo-sources/anthropic/articles").expanduser(),
+            # Wave 14 (2026-04-16): Claude capabilities + AI dev tools
+            Path("~/Development/cdo-sources/claude-docs/articles").expanduser(),
+            Path("~/Development/cdo-sources/claude-code-repo/articles").expanduser(),
+            Path("~/Development/cdo-sources/anthropic-cookbook/articles").expanduser(),
+            Path("~/Development/cdo-sources/cursor/articles").expanduser(),
+            Path("~/Development/cdo-sources/figma/articles").expanduser(),
+            # Wave 15 (2026-04-16): Design-led orgs + Claude Code changelog
+            Path("~/Development/cdo-sources/stripe-blog/articles").expanduser(),
+            Path("~/Development/cdo-sources/superhuman/articles").expanduser(),
+            Path(
+                "~/Development/cdo-sources/claude-code-releases/articles"
+            ).expanduser(),
         ],
         "index_dir": None,
         "pattern": "*.md",
-        "article_count": 15449,  # 1986 CSS-Tricks + 1611 Codrops + 3795 Attack Mag + 5645 BPB + 1023 Brad Frost + 950 Typographica + 156 Ahmad Shadeed + 114 Smashing + 87 Val Head + 82 Josh Comeau
+        "article_count": 17191,  # prior 15,449 + Wave 13 CDO (1,126) + Wave 14 (208) + Figma 384 + Wave 15 design (24): stripe 9 + superhuman 15 + claude-code-releases 0
         "excerpt_lines": 50,
     },
     # ── Lyric Analyst (Songwriting Craft + Prosody + Flow) ──
