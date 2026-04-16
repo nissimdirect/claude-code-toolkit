@@ -24,12 +24,15 @@ from collections import defaultdict
 SUBSCRIPTION = {
     "plan": "Max 20x",
     "monthly_cost": 200.00,
-    # 5-hour rolling window limits (community-measured, not official)
-    # Source: Portkey, TrueFoundry, GitHub issues #9424, #3873, GitHub Gist eonist
-    # Max 20x advertises ~900 messages/5h. At ~600 tokens/msg average = ~540K tokens.
-    # Previous 220K was Pro-tier estimate, far too low for Max 20x.
-    # Conservative estimate: 500K tokens (may be higher in practice).
-    "five_hour_token_budget": 500_000,
+    # 5-hour session token budget — CALIBRATED against Anthropic dashboard.
+    # On 2026-04-16 at 01:00 CDT: tracker counted 462,370 in+out tokens.
+    # Anthropic's usage page showed "Current session: 9% used" for the same window.
+    # → real budget ≈ 462,370 / 0.09 ≈ 5,140,000. Rounding to 5M.
+    # Note: Anthropic's "session" is start-on-first-message, not rolling.
+    # This tracker sums across overlapping session files in a 5-hour rolling window,
+    # so % may read slightly higher than Anthropic's dashboard when multiple sessions
+    # chain back-to-back. Use Anthropic's page as ground truth for hard-cap decisions.
+    "five_hour_token_budget": 5_000_000,
     # Weekly limits (approximate, Anthropic doesn't publish exact numbers)
     "weekly_opus_hours": 40,
     "weekly_sonnet_hours": 480,
@@ -361,6 +364,87 @@ def calculate_five_hour_window(sessions):
         "remaining": max(budget - window_tokens, 0),
         "carbon_g": carbon_g,
         "wh": wh,
+    }
+
+
+def calculate_current_session_window(sessions):
+    """Anchored budget window that matches Anthropic's 'Current session' metric.
+
+    Anthropic's Usage dashboard shows a 5-hour window anchored to the FIRST
+    message of the active session(s), not rolling across all prior sessions.
+    When multiple sessions are active concurrently, they share one pool.
+
+    Algorithm:
+      1. Find sessions with activity in the last 60 min ("active" cluster).
+      2. Anchor window at the earliest first-message among them, clamped to
+         `now - 5h` (handles long sessions that overran the window).
+      3. Sum conversational tokens from that anchor forward, across all
+         active session files.
+
+    Falls back to trailing 5h if nothing is active.
+
+    Returns dict with: tokens_used, budget, percentage, messages, remaining,
+    active_sessions, anchor, reset_minutes (time until Anthropic-style reset).
+    """
+    now = datetime.now(timezone.utc)
+    activity_cutoff = now - timedelta(minutes=60)
+
+    active = [
+        s for s in sessions if s.get("end_time") and s["end_time"] >= activity_cutoff
+    ]
+    if not active:
+        fallback = calculate_five_hour_window(sessions)
+        fallback["active_sessions"] = 0
+        fallback["reset_minutes"] = 0
+        fallback["anchor"] = None
+        fallback["model"] = "trailing_5h_fallback"
+        return fallback
+
+    starts = [s["start_time"] for s in active if s.get("start_time")]
+    if not starts:
+        fallback = calculate_five_hour_window(sessions)
+        fallback["active_sessions"] = len(active)
+        fallback["reset_minutes"] = 0
+        fallback["anchor"] = None
+        fallback["model"] = "trailing_5h_fallback"
+        return fallback
+
+    earliest_start = min(starts)
+    window_start = max(earliest_start, now - timedelta(hours=5))
+
+    window_tokens = 0
+    window_messages = 0
+    window_model_msgs: dict = {}
+
+    for s in active:
+        session_file = s.get("session_file")
+        if not session_file:
+            continue
+        tok, msg, mmsg = _count_tokens_in_window(session_file, window_start)
+        window_tokens += tok
+        window_messages += msg
+        for cls, count in mmsg.items():
+            window_model_msgs[cls] = window_model_msgs.get(cls, 0) + count
+
+    budget = SUBSCRIPTION["five_hour_token_budget"]
+    pct = (window_tokens / budget * 100) if budget > 0 else 0
+    wh, carbon_g = calculate_carbon_from_model_msgs(window_model_msgs)
+
+    reset_at = earliest_start + timedelta(hours=5)
+    reset_minutes = max(0, int((reset_at - now).total_seconds() / 60))
+
+    return {
+        "tokens_used": window_tokens,
+        "budget": budget,
+        "percentage": round(pct, 1),
+        "messages": window_messages,
+        "remaining": max(budget - window_tokens, 0),
+        "carbon_g": carbon_g,
+        "wh": wh,
+        "active_sessions": len(active),
+        "anchor": window_start.isoformat(),
+        "reset_minutes": reset_minutes,
+        "model": "current_session_anchored",
     }
 
 
@@ -1041,27 +1125,51 @@ def main():
     report = generate_report(sessions, output_path)
 
     # Print summary to terminal
+    current = calculate_current_session_window(sessions)
     five_hour = calculate_five_hour_window(sessions)
-    api_equiv = calculate_api_equivalent(sessions)
+    weekly = calculate_weekly_usage(sessions)
     env = estimate_energy_and_carbon(sessions)
-    alerts = generate_alerts(five_hour, calculate_weekly_usage(sessions))
+    alerts = generate_alerts(current, weekly)
 
     print(f"\n{'=' * 50}")
     print("  RESOURCE TRACKER v2 — PopChaos Labs")
     print(f"{'=' * 50}")
 
-    # Always show alerts first
     if alerts:
         print()
         for a in alerts:
             print(f"  ⚠  {a}")
 
-    print(
-        f"\n  Budget:  {five_hour['percentage']:.0f}% of 5-hour window "
-        f"({five_hour['tokens_used']:,} / {five_hour['budget']:,} tokens)"
+    # PRIMARY: Current session (matches Anthropic's dashboard model)
+    reset_str = ""
+    if current.get("reset_minutes"):
+        h, m = divmod(current["reset_minutes"], 60)
+        reset_str = f", resets in {h}h {m}m" if h else f", resets in {m}m"
+    active_str = (
+        f" across {current['active_sessions']} active session(s)"
+        if current.get("active_sessions", 0) > 1
+        else ""
     )
-    print(f"  Value:   ${api_equiv:,.2f} API-equivalent")
-    print(f"  Energy:  {env['total_wh']:.1f} Wh ({env['total_carbon_g']:.1f}g CO₂e)")
+    print(
+        f"\n  Current:  {current['percentage']:.0f}% "
+        f"({current['tokens_used']:,} / {current['budget']:,} tokens"
+        f"{reset_str}){active_str}"
+    )
+    print(
+        f"  Trend:    {five_hour['percentage']:.0f}% trailing 5h "
+        f"({five_hour['messages']} msgs, all sessions)"
+    )
+
+    # Weekly — exact caps aren't published; show raw msg counts
+    print(
+        f"  Weekly:   {weekly['opus_messages']:,} Opus msgs, "
+        f"{weekly['sonnet_messages']:,} Sonnet msgs (see official link for %)"
+    )
+
+    print("\n  Official: https://claude.ai/settings/usage  (ground truth)")
+    print(
+        f"  Energy:   {env['total_wh']:.1f} Wh ({env['total_carbon_g']:.1f}g CO₂e lifetime)"
+    )
     print(f"{'=' * 50}")
     print(f"  Full report: {output_path}")
 

@@ -711,9 +711,16 @@ def classify_domain(entry: dict) -> str:
 
 
 def detect_graduation_candidates(entry: dict, entry_type: str | None = None) -> bool:
-    """Flag entries that could potentially become hook rules."""
+    """Flag entries that could potentially become hook rules.
+
+    Respects explicit markers in the title: [GRADUATED], [ARCHIVED], [HOOK-ENFORCED]
+    prevent re-flagging entries that already have a disposition.
+    """
     etype = entry_type or entry.get("type", "")
     if etype != "mechanical":
+        return False
+    title = entry.get("title", "")
+    if any(m in title for m in ("[GRADUATED", "[ARCHIVED", "[HOOK-ENFORCED")):
         return False
     text = entry["full_text"].lower()
     # Patterns that suggest automatable checks
