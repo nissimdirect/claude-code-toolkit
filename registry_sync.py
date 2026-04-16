@@ -28,6 +28,7 @@ AGENTS_DIR = HOME / ".claude" / "agents"
 REGISTRY_PATH = SKILLS_DIR / "registry.json"
 MEMORY_DIR = HOME / ".claude" / "projects" / "-Users-nissimagent" / "memory"
 OBSIDIAN = HOME / "Documents" / "Obsidian"
+DEV_DIR = HOME / "Development"
 BACKUP_DIR = HOME / ".claude" / ".backups"
 
 # Files where counts are propagated
@@ -37,6 +38,54 @@ COUNT_TARGETS = {
     "WORKFLOW": MEMORY_DIR / "workflow.md",
     "CURRENT_STATE": MEMORY_DIR / "current-state.md",
     "DIRECTORY": OBSIDIAN / "DIRECTORY.md",
+    "CRITICAL_CONTEXT": OBSIDIAN / "CRITICAL-CONTEXT.md",
+    "ECOSYSTEM_STATUS": OBSIDIAN / "Claude-Ecosystem-Status.md",
+}
+
+# Knowledge bases (mirrors consistency_checker.py — source of truth on disk)
+KNOWLEDGE_BASES = {
+    "lenny": {
+        "label": "Lenny Rachitsky",
+        "path": DEV_DIR / "lennys-podcast-transcripts" / "episodes",
+        "type": "episodes",
+        "keywords": ["lenny rachitsky", "lenny's podcast", "lennys-podcast"],
+    },
+    "cherie": {
+        "label": "Cherie Hu / Water & Music",
+        "path": DEV_DIR / "cherie-hu" / "articles",
+        "type": "articles",
+        "keywords": ["cherie hu", "water & music", "water and music"],
+    },
+    "jesse": {
+        "label": "Jesse Cannon",
+        "path": DEV_DIR / "jesse-cannon" / "articles",
+        "type": "articles",
+        "keywords": ["jesse cannon"],
+    },
+    "chatprd": {
+        "label": "ChatPRD",
+        "path": DEV_DIR / "chatprd-blog" / "articles",
+        "type": "articles",
+        "keywords": ["chatprd", "chat prd", "claire vo"],
+    },
+    "pieter": {
+        "label": "Pieter Levels",
+        "path": DEV_DIR / "indie-hackers" / "pieter-levels" / "articles",
+        "type": "articles",
+        "keywords": ["pieter levels"],
+    },
+    "justin": {
+        "label": "Justin Welsh",
+        "path": DEV_DIR / "indie-hackers" / "justin-welsh" / "articles",
+        "type": "articles",
+        "keywords": ["justin welsh"],
+    },
+    "daniel": {
+        "label": "Daniel Vassallo",
+        "path": DEV_DIR / "indie-hackers" / "daniel-vassallo" / "articles",
+        "type": "articles",
+        "keywords": ["daniel vassallo"],
+    },
 }
 
 
@@ -177,6 +226,175 @@ def compute_counts(disk_state):
         "frozen": len(disk_state["skills_frozen"]),
         "agents": len(disk_state["agents"]),
     }
+
+
+def get_article_counts():
+    """Count actual articles per knowledge base on disk (ground truth)."""
+    counts = {}
+    for key, info in KNOWLEDGE_BASES.items():
+        target = info["path"]
+        if not target.exists():
+            counts[key] = 0
+            continue
+        if info["type"] == "episodes":
+            counts[key] = len(
+                [
+                    d
+                    for d in target.iterdir()
+                    if d.is_dir() and not d.name.startswith(".")
+                ]
+            )
+        else:
+            counts[key] = len(list(target.glob("*.md")))
+    return counts
+
+
+def propagate_article_counts(article_counts, dry_run=True):
+    """Update stale article counts in Obsidian docs and SESSION_INIT.
+
+    Mirrors detection logic from consistency_checker.check_article_counts():
+    proximity-based matching (number within 20 chars of source keyword on
+    same line), with safety filters for data-dense lines, token economics,
+    and aggregate/multi-source rows.
+
+    Returns list of (file_label, old_text, new_text, path) changes.
+    """
+    changes = []
+
+    # Files to scan and rewrite
+    targets = [
+        ("DIRECTORY", COUNT_TARGETS["DIRECTORY"]),
+        ("SESSION_INIT", COUNT_TARGETS["SESSION_INIT"]),
+        ("CRITICAL_CONTEXT", COUNT_TARGETS["CRITICAL_CONTEXT"]),
+        ("ECOSYSTEM_STATUS", COUNT_TARGETS["ECOSYSTEM_STATUS"]),
+        ("CURRENT_STATE", COUNT_TARGETS["CURRENT_STATE"]),
+        ("CONTEXT_MEMORY", OBSIDIAN / "process" / "CONTEXT-MEMORY-SYSTEM.md"),
+    ]
+
+    for file_label, path in targets:
+        if not path or not path.exists():
+            continue
+
+        original = path.read_text(encoding="utf-8")
+        lines = original.splitlines(keepends=True)
+        new_lines = []
+        file_changed = False
+
+        for line in lines:
+            line_lower = line.lower()
+            new_line = line
+
+            # Determine which sources are mentioned on this line
+            sources_on_line = [
+                key
+                for key, info in KNOWLEDGE_BASES.items()
+                if any(kw in line_lower for kw in info["keywords"])
+            ]
+
+            # Skip multi-source aggregate lines (ambiguous attribution)
+            if len(sources_on_line) >= 2:
+                new_lines.append(new_line)
+                continue
+            if not sources_on_line:
+                new_lines.append(new_line)
+                continue
+
+            # Skip token-economics / cost lines (numbers there aren't article counts)
+            if any(
+                p in line_lower
+                for p in ["$", "tokens", "token cost", "roi", "cost per"]
+            ):
+                new_lines.append(new_line)
+                continue
+
+            source = sources_on_line[0]
+            expected = article_counts.get(source, 0)
+            if expected == 0:
+                new_lines.append(new_line)
+                continue
+
+            keywords = KNOWLEDGE_BASES[source]["keywords"]
+            kw_positions = []
+            for kw in keywords:
+                idx = line_lower.find(kw)
+                if idx >= 0:
+                    kw_positions.append((idx, idx + len(kw)))
+
+            number_matches = list(re.finditer(r"[\d,]+", new_line))
+            # Skip data-dense lines (5+ numbers = data dump, attribution unreliable)
+            if len(number_matches) >= 5:
+                new_lines.append(new_line)
+                continue
+
+            # Find numbers that need updating (in reverse so positions stay valid)
+            replacements = []
+            for m in number_matches:
+                clean = m.group().replace(",", "")
+                if not clean.isdigit():
+                    continue
+                num = int(clean)
+                num_start, num_end = m.start(), m.end()
+
+                # Proximity check
+                near_keyword = any(
+                    abs(num_start - kw_end) <= 20 or abs(kw_start - num_end) <= 20
+                    for kw_start, kw_end in kw_positions
+                )
+                if not near_keyword:
+                    continue
+                if num < 8 and source != "daniel":
+                    continue
+                if 2020 <= num <= 2030:
+                    continue
+                if num == expected:
+                    continue
+                if abs(num - expected) <= 3:
+                    continue
+
+                # Skip false positives (mirrors checker logic)
+                context_after = line_lower[num_start : num_end + 25]
+                if any(
+                    w in context_after
+                    for w in ["topic", "index", "project", "item", "skill"]
+                ):
+                    continue
+                if (
+                    source in ("pieter", "justin", "daniel")
+                    and "combined" in line_lower
+                ):
+                    continue
+
+                # Preserve thousands-separator format
+                had_comma = "," in m.group()
+                formatted = (
+                    f"{expected:,}" if had_comma or expected >= 1000 else str(expected)
+                )
+                replacements.append((num_start, num_end, formatted))
+
+            if replacements:
+                # Apply in reverse to preserve indices
+                for num_start, num_end, repl in sorted(
+                    replacements, key=lambda r: -r[0]
+                ):
+                    old_num = new_line[num_start:num_end]
+                    new_line = new_line[:num_start] + repl + new_line[num_end:]
+                    changes.append(
+                        (
+                            file_label,
+                            f"{KNOWLEDGE_BASES[source]['label']}: {old_num}",
+                            f"-> {repl}",
+                            path,
+                        )
+                    )
+                file_changed = True
+
+            new_lines.append(new_line)
+
+        if file_changed and not dry_run:
+            backup_file(path)
+            path.write_text("".join(new_lines), encoding="utf-8")
+
+    return changes
 
 
 def propagate_counts(counts, dry_run=True):
@@ -432,16 +650,26 @@ def main():
     # Count propagation
     if do_counts:
         count_changes = propagate_counts(counts, dry_run=dry_run)
+        article_counts = get_article_counts()
+        article_changes = propagate_article_counts(article_counts, dry_run=dry_run)
 
-        if count_changes:
+        if count_changes or article_changes:
             if not args.json:
-                print("Count propagation:")
-                for file_key, old, new, path in count_changes:
-                    print(f"  [{file_key}]")
-                    print(f"    - {old}")
-                    print(f"    + {new}")
-                print()
-            all_changes.extend([f"{fk}: {o} -> {n}" for fk, o, n, _ in count_changes])
+                if count_changes:
+                    print("Skill/agent count propagation:")
+                    for file_key, old, new, _ in count_changes:
+                        print(f"  [{file_key}]")
+                        print(f"    - {old}")
+                        print(f"    + {new}")
+                    print()
+                if article_changes:
+                    print("Article count propagation:")
+                    for file_key, old, new, _ in article_changes:
+                        print(f"  [{file_key}] {old} {new}")
+                    print()
+            all_changes.extend(
+                [f"{fk}: {o} -> {n}" for fk, o, n, _ in count_changes + article_changes]
+            )
 
             if dry_run and not args.json:
                 print("DRY RUN — no files modified. Use --apply to write.")

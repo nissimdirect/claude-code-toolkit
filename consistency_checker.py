@@ -562,9 +562,11 @@ def check_skill_consistency(
     issues = []
     registry_set = set(registry_names)
 
-    # 1. Registry vs disk
-    missing_from_registry = disk_skills - registry_set
-    missing_from_disk = registry_set - disk_skills
+    # 1. Registry vs disk (exclude redirect/deprecated skills from comparison)
+    REDIRECT_SKILLS = {"brainstorming"}
+    registry_set_compare = registry_set - REDIRECT_SKILLS
+    missing_from_registry = disk_skills - registry_set_compare
+    missing_from_disk = registry_set_compare - disk_skills
 
     for skill in sorted(missing_from_registry):
         issues.append(
@@ -614,22 +616,24 @@ def check_skill_consistency(
                 )
 
     # 3. Skill count in SESSION_INIT header
+    # Use ALL SKILL.md dirs (including redirect shims), since the header reflects
+    # the physical inventory, not the registry's deduplicated set.
+    all_disk_count = len([f for f in SKILLS_DIR.glob("*/SKILL.md") if f.is_file()])
     content = load_file_by_key("SESSION_INIT")
     if content:
         match = re.search(r"Skills Arsenal \((\d+) Skills?\)", content)
         if match:
             stated = int(match.group(1))
-            actual_count = len(disk_skills)
-            if stated != actual_count:
+            if stated != all_disk_count:
                 issues.append(
                     Issue(
                         "HIGH",
                         "SESSION_INIT",
                         "Skills Arsenal count stale",
-                        expected=actual_count,
+                        expected=all_disk_count,
                         actual=stated,
                         fixable=True,
-                        fix_hint=f"Update '({stated} Skills)' -> '({actual_count} Skills)'",
+                        fix_hint=f"Update '({stated} Skills)' -> '({all_disk_count} Skills)'",
                     )
                 )
 
