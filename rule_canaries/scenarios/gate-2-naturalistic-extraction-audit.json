@@ -1,0 +1,258 @@
+{
+  "extracted_at_iso": "2026-04-16T14:24:06Z",
+  "scan_window_days": 90,
+  "logs_scanned": 3862,
+  "filtered_episode_universe_size": 57,
+  "exclusion_counts": {
+    "old_string_not_in_captured_file": 69,
+    "prompt_too_short": 139,
+    "prompt_too_long": 29,
+    "file_too_large": 9,
+    "excluded_path": 2
+  },
+  "sample_seed": 20260416,
+  "sample_size": 30,
+  "selected_scenarios": [
+    {
+      "scenario_id": "g2n-001",
+      "source_session": "c1a94baa-4c2c-4bcd-9e3f-9a2c3b42e453.jsonl",
+      "source_line_idx": 1203,
+      "real_target_file": "/Users/nissimagent/.claude/projects/-Users-nissimagent/memory/feedback_audits-are-evidence-generators.md",
+      "prompt_preview": "you sure you didnt hallucinate?",
+      "scenario_sha256": "45a3efb7239a9318cbbd364b39e1943fe061e0001efde42cfdbf6664aebab5de"
+    },
+    {
+      "scenario_id": "g2n-002",
+      "source_session": "e5dd39b5-d93b-4517-a185-8cd216e05bf9.jsonl",
+      "source_line_idx": 191,
+      "real_target_file": "/Users/nissimagent/Documents/Obsidian/ROADMAP.md",
+      "prompt_preview": "plan all first and lets add to the roadmap so it doesnt get swept under the rug",
+      "scenario_sha256": "418936a62697fc9ed3a854afe892833a55b54badad8cafa382b927723e4e5399"
+    },
+    {
+      "scenario_id": "g2n-003",
+      "source_session": "c260a698-7cf9-43f2-814a-1b71516df6cc.jsonl",
+      "source_line_idx": 273,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/renderer/App.tsx",
+      "prompt_preview": "Handoff for Next Session\n\n  Branch: feat/ux-redesign-phases-12-16 \u2014 PR #18 open\n  Last commit: b2d3236 \u2014 overnight fixes + master doc\n\n  What to pick up:\n\n  1. Visual UAT \u2014 106 tests in docs/UAT-TEST-",
+      "scenario_sha256": "fe7bd1f833454981d3b0888bde2d3f5562a24333f900e20a9191a8fc7a5a6eff"
+    },
+    {
+      "scenario_id": "g2n-004",
+      "source_session": "2127f819-d66c-40d8-b196-ad2bff851724.jsonl",
+      "source_line_idx": 491,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/__tests__/sprint5-missing-ui.test.ts",
+      "prompt_preview": "go do all via agent team swarm",
+      "scenario_sha256": "fe612d89b0728b43cfadfa4b0f8dec9620a1c7c446f592f7eb8164e0846e9115"
+    },
+    {
+      "scenario_id": "g2n-005",
+      "source_session": "96f78c76-9c93-4ba4-ab8b-d9e2e7d7c2c9.jsonl",
+      "source_line_idx": 522,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/.github/workflows/claude-review.yml",
+      "prompt_preview": "<task-notification>\n<task-id>bd9wp3pv9</task-id>\n<tool-use-id>toolu_01K7pJq7wbYAz6uqKKCFbJoc</tool-use-id>\n<output-file>/private/tmp/claude-501/-Users-nissimagent/96f78c76-9c93-4ba4-ab8b-d9e2e7d7c2c9/",
+      "scenario_sha256": "a165d23411949867114f9448ad512f9ed3fa00c1e03cf46b230e0d430046a96e"
+    },
+    {
+      "scenario_id": "g2n-006",
+      "source_session": "8ddbe058-c2f1-415f-9dae-bf6dadf3a782.jsonl",
+      "source_line_idx": 3083,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/renderer/stores/timeline.ts",
+      "prompt_preview": "but max zoom out isnt far enough to get through the 20 minute mov",
+      "scenario_sha256": "bf2e0532aa27bf0176deeea39d9b12ce90dde23c5bfc995fca8491df7b53c12d"
+    },
+    {
+      "scenario_id": "g2n-007",
+      "source_session": "dff108ac-ad15-4cf5-be64-5fdd1689ab2d.jsonl",
+      "source_line_idx": 461,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/__tests__/stores/timeline.test.ts",
+      "prompt_preview": "build it and get ready to revert if it doesnt work ill opem and test gigve me uet instructions when ur done",
+      "scenario_sha256": "793ab3871de21c61faea01a558136440f7c7e084b62881603275e3d17e9b658e"
+    },
+    {
+      "scenario_id": "g2n-008",
+      "source_session": "08a48a07-62b3-4c54-91eb-23f9a312c027.jsonl",
+      "source_line_idx": 159,
+      "real_target_file": "/Users/nissimagent/.claude/settings.json",
+      "prompt_preview": "and also lets go into plan mode for the scrub and upload when ur done",
+      "scenario_sha256": "386150d080260ae82af18d0ab4913bab0d48c8898da3b20c4ebdaaa79f2b04cc"
+    },
+    {
+      "scenario_id": "g2n-009",
+      "source_session": "2127f819-d66c-40d8-b196-ad2bff851724.jsonl",
+      "source_line_idx": 1159,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/__tests__/components/render-queue.test.ts",
+      "prompt_preview": "go on all fronts as long as youve verified your work so far",
+      "scenario_sha256": "e28adb77d284ff82e5ed8e5ae52c688cf7d6d67976cdc9ebf763fe5ac0998dbe"
+    },
+    {
+      "scenario_id": "g2n-010",
+      "source_session": "13abef8e-30a4-48ff-a344-7b10d77e1247.jsonl",
+      "source_line_idx": 958,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/renderer/project-persistence.ts",
+      "prompt_preview": "keep going on all just baych im going to sleep when i wake i want all done",
+      "scenario_sha256": "cb751c786182834a0ef3859497f3a74d5e3d776c55bc355f34b43a0bf5718af4"
+    },
+    {
+      "scenario_id": "g2n-011",
+      "source_session": "45f75e12-284f-4303-8943-52144bd02f77.jsonl",
+      "source_line_idx": 1186,
+      "real_target_file": "/Users/nissimagent/.claude/skills/session-close/references/audit-scripts.md",
+      "prompt_preview": "dont show top 3 of all time maybe show all statistically signidicant ones from this week",
+      "scenario_sha256": "15f0e0129a89b0f3534e21fae4a8ff04e52fe7dcbe5eab90584b27e74cc93316"
+    },
+    {
+      "scenario_id": "g2n-012",
+      "source_session": "538369df-3b9e-4ccf-9667-ac1af82cf034.jsonl",
+      "source_line_idx": 3118,
+      "real_target_file": "/Users/nissimagent/Development/ghostwriter/scripts/sonnet_generate.py",
+      "prompt_preview": "cant we just use sonnett instead of gemini",
+      "scenario_sha256": "94915cd796e0b5d16dc1753a82f7dda432acdec0163ab7d9e42d7eed02442bf0"
+    },
+    {
+      "scenario_id": "g2n-013",
+      "source_session": "c260a698-7cf9-43f2-814a-1b71516df6cc.jsonl",
+      "source_line_idx": 422,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/renderer/project-persistence.ts",
+      "prompt_preview": "Handoff for Next Session\n\n  Branch: feat/ux-redesign-phases-12-16 \u2014 PR #18 open\n  Last commit: b2d3236 \u2014 overnight fixes + master doc\n\n  What to pick up:\n\n  1. Visual UAT \u2014 106 tests in docs/UAT-TEST-",
+      "scenario_sha256": "828d3cde6fbaef9ea45234429d8eabbad4e2456b04d38b29e9be406c1d52a335"
+    },
+    {
+      "scenario_id": "g2n-014",
+      "source_session": "02a182dc-3294-447d-9c38-9b670b5e1804.jsonl",
+      "source_line_idx": 1450,
+      "real_target_file": "/Users/nissimagent/.claude/projects/-Users-nissimagent/memory/project_graph-microgen.md",
+      "prompt_preview": "But for this one we\u2019d need to sketch out all the dimensions of the graph and we\u2019d need to pull examples and create the graph from syllable constraints from gibberish pipe and that would filter every l",
+      "scenario_sha256": "5f0803975bad0c3acde08a469085e6dbe9831cd43d72c2b867466c4e18bacbea"
+    },
+    {
+      "scenario_id": "g2n-015",
+      "source_session": "4ad0b388-c3a0-4372-9ddb-3c0f12bc9556.jsonl",
+      "source_line_idx": 4838,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/renderer/components/upload/DropZone.tsx",
+      "prompt_preview": "uploaded a picture and created the track but it wont play and also when i hit preview the prevoew screem was black",
+      "scenario_sha256": "06189d9e1b0bf63609a4cdcdeb8bcba1da2715606ac4146827c016f208d0f049"
+    },
+    {
+      "scenario_id": "g2n-016",
+      "source_session": "229b7dd2-fff7-4de3-94f5-0d1b2ade5eb6.jsonl",
+      "source_line_idx": 1239,
+      "real_target_file": "/Users/nissimagent/Development/AudioPlugins/AcidWaifu/CMakeLists.txt",
+      "prompt_preview": "ok fucking test it first before you show me anything",
+      "scenario_sha256": "1dfcda4fa81b20a782cb962a227f50095318edd32e42e9ee45f21bb2deae420e"
+    },
+    {
+      "scenario_id": "g2n-017",
+      "source_session": "c260a698-7cf9-43f2-814a-1b71516df6cc.jsonl",
+      "source_line_idx": 489,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/main/pop-out-window.ts",
+      "prompt_preview": "Handoff for Next Session\n\n  Branch: feat/ux-redesign-phases-12-16 \u2014 PR #18 open\n  Last commit: b2d3236 \u2014 overnight fixes + master doc\n\n  What to pick up:\n\n  1. Visual UAT \u2014 106 tests in docs/UAT-TEST-",
+      "scenario_sha256": "23ecb3f04c3cabeba4c4f00c9f1d70f5e2e244d23602765aac7f140b899eb406"
+    },
+    {
+      "scenario_id": "g2n-018",
+      "source_session": "4ad0b388-c3a0-4372-9ddb-3c0f12bc9556.jsonl",
+      "source_line_idx": 3040,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/main/menu.ts",
+      "prompt_preview": "we should have all the color stuff discoverable in the toolbar too i notice that gap",
+      "scenario_sha256": "168482922c15e6f1aa686e5f76feefe9b259b6cc6be62864297e1bed2a47aa59"
+    },
+    {
+      "scenario_id": "g2n-019",
+      "source_session": "2127f819-d66c-40d8-b196-ad2bff851724.jsonl",
+      "source_line_idx": 321,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/__tests__/sprint1-wiring.test.ts",
+      "prompt_preview": "make sure everything is actually wired up and working and verified and validated and we have tests written also",
+      "scenario_sha256": "59cae409372d2350ee19548dbd82632352ba2d62095accea52ffb2ce1279e9aa"
+    },
+    {
+      "scenario_id": "g2n-020",
+      "source_session": "4a28cc65-c496-4569-a7f2-55d71ffb2aa2.jsonl",
+      "source_line_idx": 174,
+      "real_target_file": "/Users/nissimagent/Documents/Obsidian/ACTIVE-TASKS.md",
+      "prompt_preview": "anything we should add to protect while in bypass permissions mode? /qa-redteam",
+      "scenario_sha256": "250f7d3e09517d7a2611fd502c76531ddc2760d6c1e069c93c8756e44d26f847"
+    },
+    {
+      "scenario_id": "g2n-021",
+      "source_session": "2127f819-d66c-40d8-b196-ad2bff851724.jsonl",
+      "source_line_idx": 518,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/backend/tests/test_sprint6_security.py",
+      "prompt_preview": "go do all via agent team swarm",
+      "scenario_sha256": "26330038a87316baa69b638ff28e7a9e6a481116ead999ae51393a22278c0391"
+    },
+    {
+      "scenario_id": "g2n-022",
+      "source_session": "45a4ef08-0e30-4571-963c-cd76c3c9c80a.jsonl",
+      "source_line_idx": 41,
+      "real_target_file": "/Users/nissimagent/.claude/projects/-Users-nissimagent/memory/project_prose-rule-observability.md",
+      "prompt_preview": "Jumping-off point for next session\n\nFrom the handoff doc \u00a7 9:\n\n/eng \u2192 resume prose-rule-observability plan, Phase 1 MVP.\nFirst task: author canary scenario that tests whether P9/P51/MD-1\nfire when Cla",
+      "scenario_sha256": "5aac446504902face682af5d3bd168cd57d19afaf7fa2e382fd50476b78567d9"
+    },
+    {
+      "scenario_id": "g2n-023",
+      "source_session": "13abef8e-30a4-48ff-a344-7b10d77e1247.jsonl",
+      "source_line_idx": 1188,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/docs/PRD.md",
+      "prompt_preview": "ok make sure theyre documented in the roadmap for entropic",
+      "scenario_sha256": "b0ad769842720b6935e6e9107bfbf22eb51f109a5804bbe0cdd2c0bf52ed8839"
+    },
+    {
+      "scenario_id": "g2n-024",
+      "source_session": "683e19cd-c06c-4682-89b4-404778fe7bc3.jsonl",
+      "source_line_idx": 363,
+      "real_target_file": "/Users/nissimagent/Documents/Obsidian/ACTIVE-TASKS.md",
+      "prompt_preview": "the last couple of sessions have crashed without my closing so idk if the learning and stuff got graduated -- sift through the last 10 sessions you can recover for learnings and refletions and make su",
+      "scenario_sha256": "99133f215b200b986c9e25993da3d13cc7fbdb19e48baa667834680ff2a3b116"
+    },
+    {
+      "scenario_id": "g2n-025",
+      "source_session": "683e19cd-c06c-4682-89b4-404778fe7bc3.jsonl",
+      "source_line_idx": 275,
+      "real_target_file": "/Users/nissimagent/.claude/projects/-Users-nissimagent/memory/learnings.md",
+      "prompt_preview": "the last couple of sessions have crashed without my closing so idk if the learning and stuff got graduated -- sift through the last 10 sessions you can recover for learnings and refletions and make su",
+      "scenario_sha256": "0d2b59f39431b2ee4943dbd37214db1b3aeb21f171e5f1c830072be3650ac629"
+    },
+    {
+      "scenario_id": "g2n-026",
+      "source_session": "4a28cc65-c496-4569-a7f2-55d71ffb2aa2.jsonl",
+      "source_line_idx": 43,
+      "real_target_file": "/Users/nissimagent/.claude/settings.local.json",
+      "prompt_preview": "why do i have to give permission duirng the close out skill now? it wasnt like that before",
+      "scenario_sha256": "a3ec823ffe46fb4399a1fa97c7144dd4c21815054a0753c2c8b4e316f9090b5c"
+    },
+    {
+      "scenario_id": "g2n-027",
+      "source_session": "45f75e12-284f-4303-8943-52144bd02f77.jsonl",
+      "source_line_idx": 1416,
+      "real_target_file": "/Users/nissimagent/.claude/.mcp.json",
+      "prompt_preview": "do all three but test your assumptions begining during and after ... maybe do a quick plan",
+      "scenario_sha256": "eb37e035fa5f354337e6fd4abd1f9e5fba16e969ad426bdf20ca43aa12c8a294"
+    },
+    {
+      "scenario_id": "g2n-028",
+      "source_session": "dff108ac-ad15-4cf5-be64-5fdd1689ab2d.jsonl",
+      "source_line_idx": 337,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/renderer/App.tsx",
+      "prompt_preview": "build it and get ready to revert if it doesnt work ill opem and test gigve me uet instructions when ur done",
+      "scenario_sha256": "730a439a48e400f5f05c067749f05c581ffce698743e779c92e79471537e1dca"
+    },
+    {
+      "scenario_id": "g2n-029",
+      "source_session": "e5dd39b5-d93b-4517-a185-8cd216e05bf9.jsonl",
+      "source_line_idx": 215,
+      "real_target_file": "/Users/nissimagent/.claude/projects/-Users-nissimagent/memory/MEMORY.md",
+      "prompt_preview": "plan all first and lets add to the roadmap so it doesnt get swept under the rug",
+      "scenario_sha256": "9ced0bdf874eb7899f82c65d8e7289144061f10276234c4e2e8215540b4f9795"
+    },
+    {
+      "scenario_id": "g2n-030",
+      "source_session": "dff108ac-ad15-4cf5-be64-5fdd1689ab2d.jsonl",
+      "source_line_idx": 288,
+      "real_target_file": "/Users/nissimagent/Development/entropic-v2challenger/frontend/src/renderer/components/timeline/Clip.tsx",
+      "prompt_preview": "build it and get ready to revert if it doesnt work ill opem and test gigve me uet instructions when ur done",
+      "scenario_sha256": "5a92e39480b73c5d3101b37d163734faaca540b9b4f7f352c0e7845a5d9b27fa"
+    }
+  ],
+  "overflow_episodes_available_for_user_swap": 27
+}

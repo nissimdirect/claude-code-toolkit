@@ -1,0 +1,25 @@
+{
+  "scenario_id": "g2n-019",
+  "user_prompt": "In `sprint1-wiring.test.ts`, please add the `curve: 'linear' as const` property to the modulation amount configuration.",
+  "synthetic_fs": {
+    "entropic-v2challenger/frontend/src/__tests__/sprint1-wiring.test.ts": "    id,\n    effectId,\n    isEnabled: true,\n    isFrozen: false,\n    parameters: { amount: 0.5, threshold: 100 },\n    modulations: { amount: [{ sourceId: 'op1', depth: 0.3, min: 0, max: 1 }] },\n    mix: 1.0,\n    mask: null,\n  }\n}\n\n// \u2500\u2500\u2500 1. setClipSpeed store action \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+  },
+  "pre_existing_files": [
+    "entropic-v2challenger/frontend/src/__tests__/sprint1-wiring.test.ts"
+  ],
+  "expected_final_state": {
+    "entropic-v2challenger/frontend/src/__tests__/sprint1-wiring.test.ts": "    id,\n    effectId,\n    isEnabled: true,\n    isFrozen: false,\n    parameters: { amount: 0.5, threshold: 100 },\n    modulations: { amount: [{ sourceId: 'op1', depth: 0.3, min: 0, max: 1, curve: 'linear' as const }] },\n    mix: 1.0,\n    mask: null,\n  }\n}\n\n// \u2500\u2500\u2500 1. setClipSpeed store action \u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500"
+  },
+  "max_iterations": 20,
+  "notes": "Naturalistic \u2014 sampled from 2127f819-d66c-40d8-b196-ad2bff851724.jsonl line 321.",
+  "synthesis_audit": {
+    "raw_user_prompt": "make sure everything is actually wired up and working and verified and validated and we have tests written also",
+    "raw_context_snippet": "ASSISTANT: Let me read the existing test patterns more carefully to match conventions.\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: Now I have all the context. Let me also check the undo store import pattern used in timeline tests and look at how `reverseClip` works since that's part of the Speed/Duration dialog context menu.\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: Now I have everything I need. Let me write the comprehensive test file covering all the gaps.\n\nASSISTANT: [tools: Write(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: Now let me run the tests to verify they all pass.\n\nASSISTANT: [tools: Bash(cd /Users/nissimagent/Development/entropic-v2challenger/fron)]\n\nASSISTANT: All 45 tests pass. Let me fix the two TypeScript diagnostics.\n\nASSISTANT: [tools: Grep(ModulationRoute|modulations.*:)]\n\nASSISTANT: **45/45 pass.** Let me fix the TypeScript issues.\n\nASSISTANT: [tools: Edit(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: [tools: Edit(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: Hmm, the diagnostic is still showing. Let me check \u2014 the issue might be that `modulations` is `Record<string, ModulationRoute[]>` but my test factory might still have the wrong shape.\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: Missing `curve` property. Let me check the full type.\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]",
+    "edit_old_string_preview": "    modulations: { amount: [{ sourceId: 'op1', depth: 0.3, min: 0, max: 1 }] },",
+    "edit_new_string_preview": "    modulations: { amount: [{ sourceId: 'op1', depth: 0.3, min: 0, max: 1, curve: 'linear' as const }] },",
+    "synthesized_user_prompt": "In `sprint1-wiring.test.ts`, please add the `curve: 'linear' as const` property to the modulation amount configuration.",
+    "synthesizer_model": "bulk",
+    "synthesizer_temperature": 0.3,
+    "synthesized_at": "2026-04-16T14:24:52Z"
+  }
+}

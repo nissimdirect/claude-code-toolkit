@@ -1,0 +1,25 @@
+{
+  "scenario_id": "g2n-021",
+  "user_prompt": "Please remove the unused `pytest` import from `entropic-v2challenger/backend/tests/test_sprint6_security.py`.",
+  "synthetic_fs": {
+    "entropic-v2challenger/backend/tests/test_sprint6_security.py": "\"\"\"Sprint 6: Security Hardening \u2014 param validation at trust boundary.\n\nVerifies that NaN/Infinity/negative-Infinity in effect params are\nsanitized before reaching apply_chain / EffectContainer.process().\n\"\"\"\n\nimport math\n\nimport numpy as np\nimport pytest\n\nfrom engine.guards import clamp_finite, sanitize_params\nfrom engine.container import EffectContainer\n\n\n# ---------------------------------------------------------------------------\n# 1. sanitize_params \u2014 already tested in test_engine/test_guards.py\n#    These tests add coverage for the Sprint 6 acceptance criteria:\n#    \"NaN/Infinity in param values \u2192 clamped to valid range, no NumPy crash\"\n# ---------------------------------------------------------------------------"
+  },
+  "pre_existing_files": [
+    "entropic-v2challenger/backend/tests/test_sprint6_security.py"
+  ],
+  "expected_final_state": {
+    "entropic-v2challenger/backend/tests/test_sprint6_security.py": "\"\"\"Sprint 6: Security Hardening \u2014 param validation at trust boundary.\n\nVerifies that NaN/Infinity/negative-Infinity in effect params are\nsanitized before reaching apply_chain / EffectContainer.process().\n\"\"\"\n\nimport math\n\nimport numpy as np\n\nfrom engine.guards import clamp_finite, sanitize_params\nfrom engine.container import EffectContainer\n\n\n# ---------------------------------------------------------------------------\n# 1. sanitize_params \u2014 already tested in test_engine/test_guards.py\n#    These tests add coverage for the Sprint 6 acceptance criteria:\n#    \"NaN/Infinity in param values \u2192 clamped to valid range, no NumPy crash\"\n# ---------------------------------------------------------------------------"
+  },
+  "max_iterations": 20,
+  "notes": "Naturalistic \u2014 sampled from 2127f819-d66c-40d8-b196-ad2bff851724.jsonl line 518.",
+  "synthesis_audit": {
+    "raw_user_prompt": "go do all via agent team swarm",
+    "raw_context_snippet": "ASSISTANT: Now I see the issues. `Asset.meta` doesn't have `totalFrames`. And the store method is `setLoopRegion`, not `setLoopIn`/`setLoopOut`. Let me fix all the diagnostics across all files.\n\nASSISTANT: [tools: Edit(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: [tools: Edit(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: [tools: Edit(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: That one's already correct. Let me check the remaining diagnostic issues \u2014 the `totalFrames` one seems not to have been fixed yet (may have been a different instance).\n\nASSISTANT: [tools: Grep(totalFrames)]\n\nASSISTANT: That's reading from the store, not an object literal \u2014 that line is fine if the store has a `totalFrames` getter. Let me check if the original line 127 diagnostic is now fixed.\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: Good, that's fixed. Now fix the remaining unused imports.\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: [tools: Edit(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: [tools: Edit(/Users/nissimagent/Development/entropic-v2challenger/fronten)]\n\nASSISTANT: Now fix the Python test diagnostics.\n\nASSISTANT: [tools: Read(/Users/nissimagent/Development/entropic-v2challenger/backend)]\n\nASSISTANT: [tools: Grep(from (src\\.)?engine|import engine)]\n\nASSISTANT: The imports are fine \u2014 `from engine.guards` is the standard pattern across all test files (Pyright warning is false positive from IDE not having PYTHONPATH set). The `pytest` import warning is also just an unused import warning.\n\nASSISTANT: [tools: Grep(^import pytest)]\n\nASSISTANT: [tools: Grep(pytest\\.)]",
+    "edit_old_string_preview": "import numpy as np\nimport pytest\n\nfrom engine.guards import clamp_finite, sanitize_params",
+    "edit_new_string_preview": "import numpy as np\n\nfrom engine.guards import clamp_finite, sanitize_params",
+    "synthesized_user_prompt": "Please remove the unused `pytest` import from `entropic-v2challenger/backend/tests/test_sprint6_security.py`.",
+    "synthesizer_model": "bulk",
+    "synthesizer_temperature": 0.3,
+    "synthesized_at": "2026-04-16T14:24:54Z"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "scenario_id": "g2n-027",
+  "user_prompt": "Please update the `.claude/.mcp.json` file to remove the Sentry server configuration.",
+  "synthetic_fs": {
+    ".claude/.mcp.json": "{\n  \"mcpServers\": {\n    \"sentry\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@sentry/mcp-server\", \"--access-token\", \"${SENTRY_AUTH_TOKEN}\"],\n      \"description\": \"Sentry error tracking and issue management\"\n    },\n    \"playwright\": {\n      \"command\": \"npx\",\n      \"args\": [\"@playwright/mcp@latest\"]\n    }\n  }\n}\n"
+  },
+  "pre_existing_files": [
+    ".claude/.mcp.json"
+  ],
+  "expected_final_state": {
+    ".claude/.mcp.json": "{\n  \"mcpServers\": {\n    \"sentry\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@sentry/mcp-server\", \"--access-token\", \"${SENTRY_AUTH_TOKEN}\"],\n      \"description\": \"Sentry error tracking and issue management\"\n    },\n    \"playwright\": {\n      \"command\": \"npx\",\n      \"args\": [\"@playwright/mcp@latest\"]\n    },\n    \"llm-router\": {\n      \"command\": \"python3\",\n      \"args\": [\"/Users/nissimagent/Development/tools/llm_router_mcp.py\"],\n      \"description\": \"Route mechanical tasks to Gemini/Groq. Pull tool for Gate 18.\"\n    }\n  }\n}\n"
+  },
+  "max_iterations": 20,
+  "notes": "Naturalistic \u2014 sampled from 45f75e12-284f-4303-8943-52144bd02f77.jsonl line 1416.",
+  "synthesis_audit": {
+    "raw_user_prompt": "do all three but test your assumptions begining during and after ... maybe do a quick plan",
+    "raw_context_snippet": "ASSISTANT: [tools: Bash(# Test 3: Ollama race wins in route log\npython3 -c \"\nimport )]\n\nASSISTANT: [tools: Bash(# Test 4: llm_router_mcp.py is valid\npython3 -c \"\nimport sys)]\n\nASSISTANT: [tools: Bash(# Inspect response quality\necho \"--- Groq response ---\"; cat)]\n\nASSISTANT: [tools: Read(/tmp/groq.json)]\n\nASSISTANT: [tools: Read(/tmp/gem_heavy.json)]\n\nASSISTANT: Pre-flight findings (before I touch any code):\n\n| Assumption | Verdict | Evidence |\n|------------|---------|----------|\n| Groq works with current key | \u2705 Confirmed | HTTP 200, 662ms, `\"ok\"` returned, llama-3.3-70b-versatile |\n| Groq faster than Gemini flash | \u2705 662ms vs 866ms | 23% faster; both well under 2s |\n| Ollama is truly dead weight | \u2705 Confirmed | Route log: **0 Ollama wins**, 36/36 are Gemini |\n| `llm_router_mcp.py` is valid | \u2705 Imports + MCP Server object + `_handle_delegate`, `_handle_health` | Ready to register |\n| gemini-2.5-flash works | \u26a0\ufe0f **Works but gotcha** | HTTP 200, but \"t\n\nASSISTANT: [tools: Bash(grep -nE \"prefetch_from_ollama|prefetch_from_gemini_api|OLLA)]\n\nASSISTANT: [tools: Read(/Users/nissimagent/.claude/hooks/delegation_hook.py)]\n\nASSISTANT: [tools: Bash(grep -nE \"^GEMINI_API_URL|GEMINI_API_TIMEOUT|gemini-2\\.5-fla)]\n\nASSISTANT: Found the surface area. Coding all 3 phases now.\n\nASSISTANT: [tools: Edit(/Users/nissimagent/.claude/hooks/delegation_hook.py)]\n\nASSISTANT: [tools: Edit(/Users/nissimagent/.claude/hooks/delegation_hook.py)]\n\nASSISTANT: [tools: Bash(grep -nE \"def prefetch_from_model|def try_gemini|def try_oll)]\n\nASSISTANT: [tools: Read(/Users/nissimagent/.claude/hooks/delegation_hook.py)]\n\nASSISTANT: [tools: Edit(/Users/nissimagent/.claude/hooks/delegation_hook.py)]\n\nASSISTANT: [tools: Bash(grep -nE \"prefetch_from_model\\(\" ~/.claude/hooks/delegation_)]\n\nASSISTANT: [tools: Read(/Users/nissimagent/.claude/hooks/delegation_hook.py)]\n\nASSISTANT: [tools: Edit(/Users/nissimagent/.claude/hooks/delegation_hook.py)]\n\nASSISTANT: [tools: Bash(python3 -c \"import ast; ast.parse(open('/Users/nissimagent/.)]\n\nASSISTANT: Phase 1+3 done. Phase 2: register MCP.",
+    "edit_old_string_preview": "{\n  \"mcpServers\": {\n    \"sentry\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@sentry/mcp-server\", \"--access-token\", \"${SENTRY_AUTH_TOKEN}\"],\n      \"description\": \"Sentry error tracking and issue ",
+    "edit_new_string_preview": "{\n  \"mcpServers\": {\n    \"sentry\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@sentry/mcp-server\", \"--access-token\", \"${SENTRY_AUTH_TOKEN}\"],\n      \"description\": \"Sentry error tracking and issue ",
+    "synthesized_user_prompt": "Please update the `.claude/.mcp.json` file to remove the Sentry server configuration.",
+    "synthesizer_model": "bulk",
+    "synthesizer_temperature": 0.3,
+    "synthesized_at": "2026-04-16T14:24:58Z"
+  }
+}
