@@ -70,7 +70,7 @@ if [[ -z "${DEEPSEEK_API_KEY:-}" ]]; then
 fi
 
 prompt_text=""
-model="deepseek-chat"  # default: DeepSeek V3
+model="deepseek-v4-flash"  # default: V4 Flash, $0.14/$0.28 per M — cheapest batch tier (catalog-verified 2026-06-12)
 args=("$@")
 
 for i in "${!args[@]}"; do

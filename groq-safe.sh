@@ -69,7 +69,7 @@ if [[ -z "${GROQ_API_KEY:-}" ]]; then
 fi
 
 prompt_text=""
-model="llama-3.3-70b-versatile"  # default: best free model
+model="openai/gpt-oss-120b"  # default: strongest general-text model on Groq (catalog-verified 2026-06-12)
 args=("$@")
 
 for i in "${!args[@]}"; do
@@ -83,13 +83,20 @@ done
 
 if [[ -z "$prompt_text" ]]; then
     echo "Usage: groq-safe.sh -p \"your prompt\" [-m model]" >&2
-    echo "Default model: llama-3.3-70b-versatile" >&2
-    echo "Available: llama-3.3-70b-versatile, llama-3.1-8b-instant, gemma2-9b-it" >&2
+    echo "Default model: openai/gpt-oss-120b" >&2
+    echo "Available: openai/gpt-oss-120b, openai/gpt-oss-20b, llama-3.3-70b-versatile, llama-3.1-8b-instant, meta-llama/llama-4-scout-17b-16e-instruct, qwen/qwen3-32b" >&2
     exit 1
 fi
 
 check_prompt "$prompt_text"
 log_event "ALLOWED" "Prompt passed validation (${#prompt_text} chars) model=$model"
+
+# gpt-oss models are reasoning models: cap effort for delegation work
+# (shallow batch tasks) so tokens go to the answer, not the reasoning.
+extra_params=""
+if [[ "$model" == openai/gpt-oss-* ]]; then
+    extra_params=', "reasoning_effort": "low"'
+fi
 
 # Call Groq API (OpenAI-compatible)
 response=$(curl -sS -X POST "https://api.groq.com/openai/v1/chat/completions" \
@@ -98,7 +105,7 @@ response=$(curl -sS -X POST "https://api.groq.com/openai/v1/chat/completions" \
     -d "{
         \"model\": \"$model\",
         \"messages\": [{\"role\": \"user\", \"content\": $(echo "$prompt_text" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read()))')}],
-        \"max_tokens\": 4096
+        \"max_tokens\": 4096$extra_params
     }" 2>&1)
 
 # Extract just the message content

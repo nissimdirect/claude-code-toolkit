@@ -119,6 +119,10 @@ GEMINI_API_URL = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 )
 GEMINI_DEFAULT_MODEL = "gemini-2.5-flash"
+# Light tier for shallow batch work (summarize/classify/extract): 60-70%
+# cheaper than Haiku-class with minimal regression. gemini-3.1-flash-lite
+# exists (catalog 2026-06-12) but pricing unverified — revisit at next /ops.
+GEMINI_LITE_MODEL = "gemini-2.5-flash-lite"
 
 
 def _call_gemini_api(
