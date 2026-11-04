@@ -815,8 +815,89 @@ def check_kb_scrape_freshness():
     stale_medium = timedelta(days=30)
     stale_high = timedelta(days=60)
 
+    # KBs registered in data-sources.json are refreshed by kb_refresh.py, which records last_checked /
+    # content_newest there and never rewrites metadata.json (2026-10-28: 142 false "stale" HIGHs came from
+    # leftover scraped_at stamps, e.g. the-brand-identity at 2026-07-01 while 6,913 files were updated since Sept).
+    registry = []
+    try:
+        with open(Path.home() / ".claude/data-sources.json") as f:
+            ds = json.load(f)
+        for s in ds if isinstance(ds, list) else ds.get("sources", []):
+            if isinstance(s, dict) and s.get("local_path"):
+                registry.append(
+                    (os.path.realpath(os.path.expanduser(s["local_path"])), s)
+                )
+    except (OSError, json.JSONDecodeError):
+        pass
+
+    # Leftover stub folders (an early scrape of a site that is now registered under another path) carry the
+    # site URL in metadata "source"; match them to the registered entry by host instead of re-flagging them.
+    def host(u):
+        m = re.match(r"https?://(?:www\.)?([^/]+)", str(u or ""))
+        return m.group(1).lower() if m else None
+
+    by_host = {host(s.get("url")): s for _, s in registry if host(s.get("url"))}
+
+    def registered(kb_dir):
+        d = os.path.realpath(kb_dir)
+        for p, s in registry:
+            if d == p or d.startswith(p + os.sep) or p.startswith(d + os.sep):
+                return s
+        return None
+
+    def day(v):
+        try:
+            return datetime.fromisoformat(str(v)[:10])
+        except (ValueError, TypeError):
+            return None
+
+    seen = set()
+
     # Find all metadata.json files under ~/Development/*/metadata/
     for meta_path in sorted(DEV_DIR.glob("**/metadata/metadata.json")):
+        # claude-harness/kb and claude-kb are export copies of the KBs, not scrape targets
+        if (
+            meta_path.relative_to(DEV_DIR).parts[:2] in (("claude-harness", "kb"),)
+            or meta_path.relative_to(DEV_DIR).parts[0] == "claude-kb"
+        ):
+            continue
+        src = registered(meta_path.parent.parent)
+        if src is None:
+            try:
+                with open(meta_path) as f:
+                    src = by_host.get(host(json.load(f).get("source")))
+            except (json.JSONDecodeError, OSError):
+                pass
+        if src is not None:
+            # paused sources carry a paused_reason in the registry; they are tracked, not stale
+            if src["id"] in seen or src.get("status", "active") != "active":
+                continue
+            seen.add(src["id"])
+            checked, newest = (
+                day(src.get("last_checked")),
+                day(src.get("content_newest")),
+            )
+            interval = int(src.get("refresh_interval_days") or 30)
+            rel_path = f"data-sources.json:{src['id']}"
+            if checked is None or (today - checked).days > max(2 * interval, 7):
+                issues.append(
+                    Issue(
+                        "HIGH",
+                        rel_path,
+                        f"KB '{src['id']}' not checked by kb_refresh in {(today - checked).days if checked else '?'} days (interval {interval})",
+                        fix_hint=f"kb_refresh.py --source {src['id']} (see logs/kb-refresh-tier{src.get('refresh_tier', '?')}.txt)",
+                    )
+                )
+            elif newest and (today - newest).days > 180:
+                issues.append(
+                    Issue(
+                        "MEDIUM",
+                        rel_path,
+                        f"KB '{src['id']}' checked {(today - checked).days} days ago but newest content is {(today - newest).days} days old (frozen scraper or quiet site?)",
+                        fix_hint="Verify the scraper still finds new items (kb-refresh 'OK added=0' failure mode)",
+                    )
+                )
+            continue
         try:
             with open(meta_path) as f:
                 meta = json.load(f)
