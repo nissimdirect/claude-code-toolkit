@@ -20,6 +20,7 @@ SCRAPERS = [
     HOME / "music-production/attack-magazine/scrape_attack.py",
     HOME / "music-production/splice/scrape_splice.py",
     TOOLS / "data_analyst_scraper.py",
+    HOME / "art-direction/the-brand-identity/scrape_brand_identity.py",
 ]
 
 
