@@ -342,7 +342,13 @@ class BaseScraper:
             f"[{self.source_name}] Found {len(urls)} URLs, {len(existing_urls)} already scraped"
         )
 
-        new_urls = [u for u in urls if u not in existing_urls]
+        # metadata.json only holds the LAST run's articles; files on disk are truth.
+        from kb_urls import known_urls, norm
+
+        existing_urls = {norm(u) for u in existing_urls} | known_urls(
+            self.output_dir / "articles"
+        )
+        new_urls = [u for u in urls if norm(u) not in existing_urls]
         print(f"[{self.source_name}] Scraping {len(new_urls)} new articles...")
 
         idx = existing_count

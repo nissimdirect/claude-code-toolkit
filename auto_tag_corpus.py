@@ -441,7 +441,9 @@ class TFIDFTagger:
             if tagged_content != doc["content"]:
                 tagged_count += 1
 
-                if not dry_run:
+                # A file moved/archived since load_corpus() must stay gone:
+                # on 2026-11-04 this write resurrected 59,998 archived dupes.
+                if not dry_run and doc["path"].exists():
                     doc["path"].write_text(tagged_content, encoding="utf-8")
 
         print(f"   Tagged {tagged_count}/{self.num_docs} documents")
