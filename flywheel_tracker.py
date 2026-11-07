@@ -337,7 +337,7 @@ def measure_all_loops() -> dict:
                     usage_age = float("inf")
             else:
                 usage_age = float("inf")
-            five_h = us.get("five_hour", {}).get("utilization")
+            five_h = (us.get("five_hour") or {}).get("utilization")
             source = us.get("source", "?")
             errors = us.get("consecutive_errors", 0)
             if five_h is not None:
