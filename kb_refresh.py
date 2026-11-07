@@ -36,6 +36,8 @@ import html2text
 import requests
 from bs4 import BeautifulSoup
 
+from kb_urls import norm, url_of
+
 REGISTRY = Path.home() / ".claude" / "data-sources.json"
 REPORT_DIR = Path.home() / "Development" / "tools" / "logs"
 DEFAULT_DELAY = 1.0
@@ -80,18 +82,16 @@ def article_dir(source: dict) -> Path:
 
 
 def scraped_urls(outdir: Path) -> set:
-    """URLs already on disk, read from frontmatter. Drives incremental mode."""
+    """Normalized URLs already on disk (url: front matter OR **URL:** lines).
+    Drives incremental mode. Compare with `norm(link) in seen`: exact-string
+    matching re-saved maggie-appleton's whole feed on 2026-11-05."""
     urls = set()
     if not outdir.exists():
         return urls
     for f in outdir.rglob("*.md"):
-        try:
-            head = f.read_text(encoding="utf-8", errors="ignore")[:600]
-            m = re.search(r'^url:\s*"?([^"\n]+)"?', head, re.MULTILINE)
-            if m:
-                urls.add(m.group(1).strip())
-        except OSError:
-            pass
+        u = url_of(f)
+        if u:
+            urls.add(norm(u))
     return urls
 
 
@@ -216,7 +216,7 @@ def do_rss(s: dict, limit: int) -> dict:
     added = skipped = 0
     for e in feed.entries[:limit]:
         link = str(e.get("link", "") or "")
-        if not link or link in seen:
+        if not link or norm(link) in seen:
             skipped += 1
             continue
         body = ""
@@ -265,7 +265,7 @@ def do_substack(s: dict, limit: int) -> dict:
             break
         for p in posts:
             link = p.get("canonical_url", "")
-            if not link or link in seen:
+            if not link or norm(link) in seen:
                 skipped += 1
                 continue
             try:
@@ -341,7 +341,7 @@ def do_sitemap(s: dict, limit: int) -> dict:
     for u in urls:
         if added + skipped >= limit:
             break
-        if u in seen:
+        if norm(u) in seen:
             skipped += 1
             continue
         try:
@@ -377,7 +377,7 @@ def do_wp_api(s: dict, limit: int) -> dict:
             break
         for p in posts:
             link = p.get("link", "")
-            if not link or link in seen:
+            if not link or norm(link) in seen:
                 skipped += 1
                 continue
             body = H2T.handle(p.get("content", {}).get("rendered", "")).strip()

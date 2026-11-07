@@ -334,15 +334,12 @@ class AdvisorScraper:
 
     @staticmethod
     def normalize_url(url):
-        """Canonical form for dedup: lowercase scheme/host, drop fragment,
-        trailing slash, and a leading 'www.'."""
-        p = urlparse(url.strip())
-        host = p.netloc.lower()
-        if host.startswith("www."):
-            host = host[4:]
-        path = p.path.rstrip("/")
-        q = f"?{p.query}" if p.query else ""
-        return f"{p.scheme.lower()}://{host}{path}{q}"
+        """Canonical form for dedup. Delegates to kb_urls.norm, which never
+        raises: a tag-corrupted stored URL (https://[[chatprd]].ai/...) made
+        urlparse throw and failed the whole chatprd-blog refresh (2026-11-05)."""
+        from kb_urls import norm
+
+        return norm(url)
 
     def known_urls(self):
         """Normalized URLs from **URL:** lines of already-saved articles."""

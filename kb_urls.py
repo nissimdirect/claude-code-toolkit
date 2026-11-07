@@ -23,6 +23,8 @@ _URL_LINE = re.compile(
 def norm(url: str) -> str:
     """Canonical form for "same article": lowercase scheme/host, no www.,
     no trailing slash, no fragment. Query is kept (?p=1 vs ?p=2 differ)."""
+    # auto_tag_corpus once wrapped words inside URLs: https://[[chatprd]].ai/x
+    url = url.replace("[[", "").replace("]]", "")
     try:
         p = urlsplit(url.strip())
         host = p.netloc.lower()

@@ -21,6 +21,9 @@ SCRAPERS = [
     HOME / "music-production/splice/scrape_splice.py",
     TOOLS / "data_analyst_scraper.py",
     HOME / "art-direction/the-brand-identity/scrape_brand_identity.py",
+    HOME / "music-business/hypebot/scrape_hypebot.py",
+    HOME / "music-business/music-biz-worldwide/scrape_mbw.py",
+    TOOLS / "kb_refresh.py",
 ]
 
 
@@ -63,7 +66,7 @@ class ScrapersWiredTest(unittest.TestCase):
         for p in SCRAPERS:
             src = p.read_text()
             with self.subTest(scraper=p.name):
-                self.assertIn("known_urls(", src)
+                self.assertRegex(src, r"\b(known_urls|url_of)\(")
                 self.assertRegex(src, r"\bnorm\(")
 
 
