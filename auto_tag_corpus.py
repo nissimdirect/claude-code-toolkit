@@ -12,6 +12,19 @@ from pathlib import Path
 from collections import Counter, defaultdict
 import math
 
+# URLs (bare or as markdown link targets) must never get [[tags]] inside them.
+_URL_RE = re.compile(r"(?:https?://|www\.)[^\s)\]>\"']+")
+
+
+def _header_end(content: str) -> int:
+    """End offset of the metadata header that must stay untagged: a YAML
+    front-matter block, or the '# Title / **URL:** ... ---' preamble."""
+    if content.startswith("---\n"):
+        end = content.find("\n---", 4)
+        return end + 4 if end != -1 else 0
+    end = content.find("\n---\n", 0, 3000)
+    return end + 5 if end != -1 else 0
+
 
 class TFIDFTagger:
     def __init__(self, corpus_dirs):
@@ -413,19 +426,24 @@ class TFIDFTagger:
         for concept in concepts:
             pattern = re.compile(r"\b(" + re.escape(concept) + r")\b", re.IGNORECASE)
 
-            # Tag only first occurrence (count=1) to keep articles readable
-            def make_replacer(full_content):
-                def replace_if_not_tagged(match):
-                    start = max(0, match.start() - 3)
-                    end = min(len(full_content), match.end() + 3)
-                    context = full_content[start:end]
-                    if "[[" in context or "]]" in context:
-                        return match.group(0)
-                    return f"[[{match.group(0)}]]"
-
-                return replace_if_not_tagged
-
-            content = pattern.sub(make_replacer(content), content, count=1)
+            # Tag only the first eligible occurrence to keep articles readable.
+            # Never tag the metadata header or inside a URL: doing so produced
+            # https://[[chatprd]].ai/... (7,812 broken URLs, found 2026-11-06)
+            # and crashed the chatprd-blog refresh.
+            protected = [(0, _header_end(content))] + [
+                m.span() for m in _URL_RE.finditer(content)
+            ]
+            for match in pattern.finditer(content):
+                if any(a <= match.start() < b for a, b in protected):
+                    continue
+                context = content[max(0, match.start() - 3) : match.end() + 3]
+                if "[[" not in context and "]]" not in context:
+                    content = (
+                        content[: match.start()]
+                        + f"[[{match.group(0)}]]"
+                        + content[match.end() :]
+                    )
+                break  # first eligible occurrence only (already tagged = done)
 
         return content
 
@@ -441,7 +459,9 @@ class TFIDFTagger:
             if tagged_content != doc["content"]:
                 tagged_count += 1
 
-                if not dry_run:
+                # A file moved/archived since load_corpus() must stay gone:
+                # on 2026-11-04 this write resurrected 59,998 archived dupes.
+                if not dry_run and doc["path"].exists():
                     doc["path"].write_text(tagged_content, encoding="utf-8")
 
         print(f"   Tagged {tagged_count}/{self.num_docs} documents")
